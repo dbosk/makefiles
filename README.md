@@ -7,7 +7,7 @@ I started development during my first years as Lecturer in Mid Sweden
 University [[MIUN](http://apachepersonal.miun.se/~danbos/)], and they were used 
 there by me and my colleagues.
 I later added some more research-paper oriented features during my doctoral 
-study time in KTH Royal Institute of Technology, Sweden 
+studies in KTH Royal Institute of Technology, Sweden 
 [[KTH](http://www.csc.kth.se/~dbosk/)].
 
 They are published here under the MIT license (see license.txt).
