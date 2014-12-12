@@ -36,7 +36,7 @@ $(1):
 include $(1)
 endif
 endef
-$(foreach i,${INCLUDES},$(call inc,$i))
+$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
 
 ### END INCLUDES ###
 
