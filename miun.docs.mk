@@ -20,7 +20,7 @@ INCLUDES= 	doc.mk miun.depend.mk miun.pub.mk miun.tex.mk
 define inc
 ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
 $(1):
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$@
+	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
 include $(1)
 endif
 endef
