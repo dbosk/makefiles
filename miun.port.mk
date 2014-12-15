@@ -16,4 +16,9 @@ miun.subdir.mk: subdir.mk
 miun.export.mk miun.package.mk miun.tex.mk miun.subdir.mk:
 	cp $^ $@
 
+.PHONY: clean-port
+clean: clean-port
+clean-port:
+	${RM} miun.export.mk miun.package.mk miun.tex.mk miun.subdir.mk
+
 endif

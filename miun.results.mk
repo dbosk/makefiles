@@ -32,40 +32,27 @@ CP?=		cp -R
 PAGER?= 	less
 PASTE?= 	paste
 
-.SUFFIXES: .csv .txt
-# convert old moodle .txt format to new moodle .csv format
-.txt.csv:
-	${CAT} $< | \
-		${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))/	\1/" | \
-		${SED} "s/Surname/Surname	Username/" > $@
-
-.SUFFIXES: .pnr
-# filter out the userid from csv file
-.csv.pnr:
-	${CUT} -f 6 > $@.tmp
-	${PAGER} $@.tmp
-	@echo "---- paste personnummer, end with C-d on a blank line (EOF) ----"
-	${CAT} | ${PASTE} $@.tmp - > $@
-	${RM} $@.tmp
-
 .PHONY: report
 # phony target used to send results
 report: ${report} ${out}
-	${MAILER}
+	if [ ! -s ${out}.new ]; then \
+		echo "No new results to report" >&2; \
+	else \
+		${PAGER} ${report}; \
+		${MAILER}; \
+	fi
 
 # create a csv for long storage of results
-${out}: $(shell echo ${in} | ${SED} "s/^\(.*\)\.\([^.]\{1,\}\)$$/\1.csv/")
-	${CP} $(shell echo ${in} | ${SED} "s/^\(.*\)\.\([^.]\{1,\}\)$$/\1.csv/") \
-		$@.tmp
+${out}: ${in}
 	${RM} $@
-	${CUT} -f 1-3,5- $@.tmp | \
+	${CUT} -f 1-3,5- $^ | \
 		${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
 		$(if ${REWRITES},${SED} "s/ //g",) \
 		$(foreach regex,${REWRITES},| ${SED} ${regex}) > $@
-	#${RM} $@.tmp
 
-.PHONY: clean-results
+.PHONY: clean clean-results
 # remove intermediate helper files
+clean: clean-results
 clean-results:
 	${RM} ${out}.out ${out}.pnr ${out}.head ${out}.new ${out}.rewrite \
 		#$(shell echo ${in} | ${SED} "s/^\(.*\)\.\([^.]\{1,\}\)$$/\1.csv/") \
@@ -74,11 +61,8 @@ clean-results:
 	${RM} ${out}.new.out ${out}.new.pnr ${out}.new.new ${out}.new.rewrite;
 	${RM} ${out}.tmp
 
-.PHONY: clean
-clean: clean-results
-
 # sort out the new results by comparing previously reported and new results
-${out}.new: $(shell echo ${in} | ${SED} "s/^\(.*\)\.\([^.]\{1,\}\)$$/\1.csv/")
+${out}.new: ${in}
 	[ -r ${out} ] || ln -s /dev/null ${out}
 	${GREP} -v "^.\?First \?name" $^ | \
 		${CUT} -f 1-3,5- | \
@@ -86,39 +70,34 @@ ${out}.new: $(shell echo ${in} | ${SED} "s/^\(.*\)\.\([^.]\{1,\}\)$$/\1.csv/")
 		$(if ${REWRITES},${SED} "s/ //g",) \
 		$(foreach regex,${REWRITES},| ${SED} ${regex}) | \
 		$(if ${FAILED},${GREP} -v ${FAILED_regex} |,) \
-		${DIFF} ${out} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@.new
-	if [ ! -s $@.new ]; then \
-		${RM} $@.out $@.pnr $@.new $@.rewrite; \
-		${MAKE} in=${in} out=${out} report=${report} clean; \
-		echo "No new results to report" >&2; \
-		false; \
-	fi
-	${CAT} $@.new
-	${CAT} $@.new | ${CUT} -f 3 | ${SORT} -k 1 > $@.pnr
-	@echo "---- copy username, convert to personnummer ----"
-	${PAGER} $@.pnr
-	@echo "---- paste personnummer, end with C-d on a blank line (EOF) ----"
-	${CAT} | ${PASTE} $@.pnr - > $@.pnr.new
-	${MV} $@.pnr.new $@.pnr
-	${JOIN} -1 1 -2 3 $@.pnr $@.new | ${CUT} -f 2- > $@.out
-	${CAT} $@.out
-	${HEAD} -n 1 $^ | ${CUT} -f 1-2,5- | ${SED} "s/^/Personnr	/" | \
-		$(if ${REWRITES},${SED} "s/ //g",) \
-		$(foreach regex,${REWRITES},| ${SED} ${regex})  > $@
-	${CAT} $@.out | ${SORT} -k 3 >> $@
-	#${RM} $@.out $@.pnr $@.new $@.rewrite
+		${DIFF} ${out} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
 
-.SUFFIXES: .pdf
+.SUFFIXES: .csv .pdf
 .csv.pdf: localc
 	${LOCALC} $<
 
 .SUFFIXES: .csv.new
 .csv.new.csv:
 	${CP} $< $@
-.csv.new.pdf:
+
+.csv.new.pdf: localc
 	${LOCALC} $<
 
-${report}: ${out}.new
+${report}: ${in} ${out}.new ${out}.new.pnr
+	${HEAD} -n 1 ${in} | ${CUT} -f 1-2,5- | ${SED} "s/^/Personnr	/" | \
+		$(if ${REWRITES},${SED} "s/ //g",) \
+		$(foreach regex,${REWRITES},| ${SED} ${regex}) > $@
+	${JOIN} -1 1 -2 3 ${out}.new.pnr ${out}.new | ${CUT} -f 2- | \
+		${SORT} -k 3 >> $@
+
+.SUFFIXES: .csv.new.pnr
+# filter out the userid from csv file
+.csv.new.csv.new.pnr:
+	${CAT} $< | ${CUT} -f 3 | ${SORT} -k 1 > $@.tmp
+	${PAGER} $@.tmp
+	@echo "---- paste personnummer, end with C-d on a blank line (EOF) ----"
+	${CAT} | ${PASTE} $@.tmp - > $@
+	${RM} $@.tmp
 
 ### INCLUDES ###
 
