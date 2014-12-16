@@ -17,12 +17,6 @@ PUBDIR?=		/srv/web/svn
 CATEGORY?=		build
 PUB_FILES?=		${PACKAGE_FILES} ${PACKAGE}.tar.gz
 
-clean:
-	${RM} depend.mk pub.mk package.mk miun.port.mk
-
-depend.mk pub.mk package.mk miun.port.mk:
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$@
-
 include depend.mk
 include pub.mk
 include package.mk
