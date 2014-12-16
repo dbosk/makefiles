@@ -34,21 +34,23 @@ PASTE?= 	paste
 
 .PHONY: report
 # phony target used to send results
-report: ${report} ${out}
+report: ${report} ${in}
 	if [ ! -s ${out}.new ]; then \
 		echo "No new results to report" >&2; \
 	else \
 		${PAGER} ${report}; \
-		${MAILER}; \
+		${MAILER} && \
+		$(call store,${in},${out}); \
 	fi
 
 # create a csv for long storage of results
-${out}: ${in}
-	${RM} $@
-	${CUT} -f 1-3,5- $^ | \
-		${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
-		$(if ${REWRITES},${SED} "s/ //g",) \
-		$(foreach regex,${REWRITES},| ${SED} ${regex}) > $@
+define store
+${RM} $(2) && \
+${CUT} -f 1-3,5- $(1) | \
+	${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
+	$(if ${REWRITES},${SED} "s/ //g",) \
+	$(foreach regex,${REWRITES},| ${SED} ${regex}) > $(2)
+endef
 
 .PHONY: clean clean-results
 # remove intermediate helper files
@@ -61,43 +63,61 @@ clean-results:
 	${RM} ${out}.new.out ${out}.new.pnr ${out}.new.new ${out}.new.rewrite;
 	${RM} ${out}.tmp
 
-# sort out the new results by comparing previously reported and new results
-${out}.new: ${in}
-	[ -r ${out} ] || ln -s /dev/null ${out}
-	${GREP} -v "^.\?First \?name" $^ | \
+.SUFFIXES: .csv .pdf
+# turn a csv into a pdf
+.csv.pdf: localc
+	${LOCALC} $<
+
+#.SUFFIXES: .csv .csv.new
+## turn new results into a new csv
+#.csv.new.csv:
+#	${CP} $< $@
+
+.SUFFIXES: .pdf .csv.new
+# turn new results into a pdf
+.csv.new.pdf: localc
+	${LOCALC} $<
+
+${out}:
+	[ -r $@ ] || ln -s /dev/null $@
+
+${out}.new: ${in} ${out}
+	${GREP} -v "^.\?First \?name" ${in} | \
 		${CUT} -f 1-3,5- | \
 		${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
 		$(if ${REWRITES},${SED} "s/ //g",) \
 		$(foreach regex,${REWRITES},| ${SED} ${regex}) | \
 		$(if ${FAILED},${GREP} -v ${FAILED_regex} |,) \
-		${DIFF} ${out} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
+		${DIFF} ${@:.new=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
 
-.SUFFIXES: .csv .pdf
-.csv.pdf: localc
-	${LOCALC} $<
+#.SUFFIXES: .csv .csv.new
+## sort out the new results by comparing previously reported and new results
+#.csv.csv.new:
+#	${GREP} -v "^.\?First \?name" $< | \
+#		${CUT} -f 1-3,5- | \
+#		${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
+#		$(if ${REWRITES},${SED} "s/ //g",) \
+#		$(foreach regex,${REWRITES},| ${SED} ${regex}) | \
+#		$(if ${FAILED},${GREP} -v ${FAILED_regex} |,) \
+#		${DIFF} ${@:.new=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
 
-.SUFFIXES: .csv.new
-.csv.new.csv:
-	${CP} $< $@
+.SUFFIXES: .csv.new.pnr
+# filter out the userid from csv file, accept a paste of userid\t personnummer
+.csv.new.csv.new.pnr:
+	@echo "---- userids showed in ${PAGER} ----"
+	${CAT} $< | ${CUT} -f 3 | ${SORT} -k 1 > $@.tmp
+	${PAGER} $@.tmp
+	@echo "---- paste personnummer, end with C-d on a blank line (EOF) ----"
+	${CAT} > $@
+	${RM} $@.tmp
 
-.csv.new.pdf: localc
-	${LOCALC} $<
-
+# create the report, join personnummer and results
 ${report}: ${in} ${out}.new ${out}.new.pnr
 	${HEAD} -n 1 ${in} | ${CUT} -f 1-2,5- | ${SED} "s/^/Personnr	/" | \
 		$(if ${REWRITES},${SED} "s/ //g",) \
 		$(foreach regex,${REWRITES},| ${SED} ${regex}) > $@
 	${JOIN} -1 1 -2 3 ${out}.new.pnr ${out}.new | ${CUT} -f 2- | \
 		${SORT} -k 3 >> $@
-
-.SUFFIXES: .csv.new.pnr
-# filter out the userid from csv file
-.csv.new.csv.new.pnr:
-	${CAT} $< | ${CUT} -f 3 | ${SORT} -k 1 > $@.tmp
-	${PAGER} $@.tmp
-	@echo "---- paste personnummer, end with C-d on a blank line (EOF) ----"
-	${CAT} | ${PASTE} $@.tmp - > $@
-	${RM} $@.tmp
 
 ### INCLUDES ###
 
