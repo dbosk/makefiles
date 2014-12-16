@@ -6,7 +6,7 @@ MIUN_RESULTS_MK=true
 
 in?=		${COURSE}.txt
 out?=		reported.csv
-report?=	new.csv
+report?=	report.csv
 
 COURSE?=
 EXPADDR?=	iksexp@miun.se
@@ -56,22 +56,17 @@ endef
 # remove intermediate helper files
 clean: clean-results
 clean-results:
-	${RM} ${out}.out ${out}.pnr ${out}.head ${out}.new ${out}.rewrite \
-		#$(shell echo ${in} | ${SED} "s/^\(.*\)\.\([^.]\{1,\}\)$$/\1.csv/") \
-	${RM} ${report} \
-		$(shell echo ${report} | ${SED} "s/^\(.*\)\.\([^.]\{1,\}\)$$/\1.csv/")
-	${RM} ${out}.new.out ${out}.new.pnr ${out}.new.new ${out}.new.rewrite;
-	${RM} ${out}.tmp
+	${RM} ${report} ${out}.new ${out}.new.pnr
 
 .SUFFIXES: .csv .pdf
 # turn a csv into a pdf
 .csv.pdf: localc
 	${LOCALC} $<
 
-#.SUFFIXES: .csv .csv.new
-## turn new results into a new csv
-#.csv.new.csv:
-#	${CP} $< $@
+.SUFFIXES: .csv .csv.new
+# turn new results into a new csv
+.csv.new.csv:
+	${CP} $< $@
 
 .SUFFIXES: .pdf .csv.new
 # turn new results into a pdf
@@ -90,26 +85,13 @@ ${out}.new: ${in} ${out}
 		$(if ${FAILED},${GREP} -v ${FAILED_regex} |,) \
 		${DIFF} ${@:.new=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
 
-#.SUFFIXES: .csv .csv.new
-## sort out the new results by comparing previously reported and new results
-#.csv.csv.new:
-#	${GREP} -v "^.\?First \?name" $< | \
-#		${CUT} -f 1-3,5- | \
-#		${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
-#		$(if ${REWRITES},${SED} "s/ //g",) \
-#		$(foreach regex,${REWRITES},| ${SED} ${regex}) | \
-#		$(if ${FAILED},${GREP} -v ${FAILED_regex} |,) \
-#		${DIFF} ${@:.new=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
-
 .SUFFIXES: .csv.new.pnr
 # filter out the userid from csv file, accept a paste of userid\t personnummer
 .csv.new.csv.new.pnr:
 	@echo "---- userids showed in ${PAGER} ----"
-	${CAT} $< | ${CUT} -f 3 | ${SORT} -k 1 > $@.tmp
-	${PAGER} $@.tmp
+	${CAT} $< | ${CUT} -f 3 | ${SORT} -k 1 | ${PAGER}
 	@echo "---- paste personnummer, end with C-d on a blank line (EOF) ----"
 	${CAT} > $@
-	${RM} $@.tmp
 
 # create the report, join personnummer and results
 ${report}: ${in} ${out}.new ${out}.new.pnr
