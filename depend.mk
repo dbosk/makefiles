@@ -4,7 +4,7 @@
 ifndef DEPEND_MK
 DEPEND_MK=true
 
-CONF?= 	/etc/mk.conf
+CONF?= 	${HOME}/.mk.conf
 -include ${CONF}
 
 .PHONY: dvips
