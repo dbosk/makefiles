@@ -6,7 +6,7 @@ MIUN_RESULTS_MK=true
 
 in?=		${COURSE}.txt
 out?=		reported.csv
-report?=	new.csv
+report?=	new.pdf
 
 COURSE?=
 EXPADDR?=	iksexp@miun.se
@@ -74,16 +74,18 @@ ${out}.new: ${in}
 
 .SUFFIXES: .csv .pdf
 .csv.pdf: localc
-	${LOCALC} $<
+	${LOCALC} --convert-to pdf $<
 
 .SUFFIXES: .csv.new
 .csv.new.csv:
 	${CP} $< $@
 
 .csv.new.pdf: localc
-	${LOCALC} $<
+	${LOCALC} --convert-to pdf $<
 
-${report}: ${in} ${out}.new ${out}.new.pnr
+${report:.csv=.pdf}: ${report:.pdf=.csv}
+
+${report:.pdf=.csv}: ${in} ${out}.new ${out}.new.pnr
 	${HEAD} -n 1 ${in} | ${CUT} -f 1-2,5- | ${SED} "s/^/Personnr	/" | \
 		$(if ${REWRITES},${SED} "s/ //g",) \
 		$(foreach regex,${REWRITES},| ${SED} ${regex}) > $@
