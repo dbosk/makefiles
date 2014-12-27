@@ -17,6 +17,7 @@ PUB_SITES?= 			miun
 PUB_SERVER-miun?=		ver.miun.se
 PUB_DIR-miun?=			/srv/web/svn
 PUB_CATEGORY-miun?=		build
+PUB_GROUP-miun?= 		svn
 PUB_FILES-miun?=		${PACKAGE_FILES} ${PACKAGE}.tar.gz
 
 include depend.mk
