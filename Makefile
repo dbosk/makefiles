@@ -12,10 +12,12 @@ INSTALL_FILES?=	${MKFILES}
 PREFIX?=		/usr/local
 INSTALLDIR?=	/include
 
-SERVER?=		ver.miun.se
-PUBDIR?=		/srv/web/svn
-CATEGORY?=		build
-PUB_FILES?=		${PACKAGE_FILES} ${PACKAGE}.tar.gz
+PUB_SITES?= 			miun
+
+PUB_SERVER-miun?=		ver.miun.se
+PUB_DIR-miun?=			/srv/web/svn
+PUB_CATEGORY-miun?=		build
+PUB_FILES-miun?=		${PACKAGE_FILES} ${PACKAGE}.tar.gz
 
 include depend.mk
 include pub.mk
