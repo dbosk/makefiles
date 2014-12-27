@@ -124,11 +124,11 @@ define publish-ssh
 	${SSH} $(1) mkdir -p $(2)
 	[ -n "$(6)" ] && find $(6) -type f -or -type l | \
 		xargs ${PAX} \
-			-s "|^.*/$(7)/.*$$||p" \
+			-s "|^.*/$(strip $(7))/.*$$||p" \
 			-s "|^\(.*\).export$$|\1|p" \
 			-s "|^\(.*\)\.export\([^.]*\)$$|\1\.\2|p" | \
 		${SSH} $(1) ${UNPAX} \
-			-s "\"|^|$(2)/|p\""
+			-s "\"|^|$(strip $(2))/|p\""
 	$(call chown,$(1),$(2),$(3),$(4))
 	$(call chmod,$(1),$(2),$(5))
 endef
@@ -147,7 +147,7 @@ define publish-at
 		mktemp -d"); \
 	[ -n "$(6)" ] && find $(6) -type f -or -type l | \
 		xargs ${PAX} \
-			-s "|^.*/$(7)/.*$$||p" \
+			-s "|^.*/$(strip $(7))/.*$$||p" \
 			-s "|^\(.*\).export$$|\1|p" \
 			-s "|^\(.*\)\.export\([^.]*\)$$|\1\.\2|p" | \
 		${SSH} $(1) ${UNPAX} \
@@ -170,7 +170,7 @@ endef
 # $(7) = ${PUB_IGNORE_FILES}
 # $(8) = ${PUB_TMPDIR}
 define publish-git
-	git archive master $(6) | ssh $(1) pax -r -s ",^,$(2),";
+	git archive master $(6) | ssh $(1) pax -r -s ",^,$(strip $(2)),";
 endef
 
 ### INCLUDES ###
