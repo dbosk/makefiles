@@ -6,7 +6,7 @@ MIUN_RESULTS_MK=true
 
 in?=		${COURSE}.txt
 out?=		reported.csv
-report?=	report.csv
+report?=	report.pdf
 
 COURSE?=
 EXPADDR?=	iksexp@miun.se
@@ -61,7 +61,7 @@ clean-results:
 .SUFFIXES: .csv .pdf
 # turn a csv into a pdf
 .csv.pdf: localc
-	${LOCALC} $<
+	${LOCALC} --convert-to pdf $<
 
 .SUFFIXES: .csv .csv.new
 # turn new results into a new csv
@@ -71,7 +71,7 @@ clean-results:
 .SUFFIXES: .pdf .csv.new
 # turn new results into a pdf
 .csv.new.pdf: localc
-	${LOCALC} $<
+	${LOCALC} --convert-to pdf $<
 
 ${out}:
 	[ -r $@ ] || ln -s /dev/null $@
@@ -94,7 +94,9 @@ ${out}.new: ${in} ${out}
 	${CAT} > $@
 
 # create the report, join personnummer and results
-${report}: ${in} ${out}.new ${out}.new.pnr
+${report:.csv=.pdf}: ${report:.pdf=.csv}
+
+${report:.pdf=.csv}: ${in} ${out}.new ${out}.new.pnr
 	${HEAD} -n 1 ${in} | ${CUT} -f 1-2,5- | ${SED} "s/^/Personnr	/" | \
 		$(if ${REWRITES},${SED} "s/ //g",) \
 		$(foreach regex,${REWRITES},| ${SED} ${regex}) > $@
