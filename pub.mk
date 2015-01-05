@@ -13,6 +13,8 @@ COMMIT_OPTS?=
 AUTOTAG?= 		false
 TAG_OPTS?= 		
 
+PUB_BRANCH?= 			master
+
 # the sites used to publish
 PUB_SITES?= 	main
 
@@ -24,6 +26,9 @@ PUB_METHOD-$(1)?= 		ssh
 PUB_FILES-$(1)?=		${PUB_FILES}
 # must be a regex
 PUB_IGNORE_FILES-$(1)?=	\(\.svn\|\.git\|CVS\)
+# if git is used the above variables are ignored
+# instead we use the branch
+PUB_BRANCH-$(1)?= 		${PUB_BRANCH}
 
 PUB_SERVER-$(1)?=		localhost
 PUB_DIR-$(1)?=			/pub
@@ -63,7 +68,8 @@ endif
 		${PUB_CHMOD-${site}},\
 		${PUB_FILES-${site}},\
 		${PUB_IGNORE_FILES-${site}},\
-		${PUB_TMPDIR-${site}}\
+		${PUB_TMPDIR-${site}},\
+		${PUB_BRANCH-${site}}\
 		))
 
 define autocommit-svn
@@ -169,8 +175,9 @@ endef
 # $(6) = ${PUB_FILES}
 # $(7) = ${PUB_IGNORE_FILES}
 # $(8) = ${PUB_TMPDIR}
+# $(9) = ${PUB_BRANCH}
 define publish-git
-	git archive master $(6) | ssh $(1) pax -r -s ",^,$(strip $(2)),";
+	git archive $(9) $(6) | ssh $(1) pax -r -s ",^,$(strip $(2)),";
 endef
 
 ### INCLUDES ###
