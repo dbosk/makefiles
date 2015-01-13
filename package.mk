@@ -76,6 +76,8 @@ post-install:
 
 INCLUDES= 	depend.mk export.mk
 
+export.mk: depend.mk
+
 define inc
 ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
 $(1):
