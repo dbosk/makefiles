@@ -36,9 +36,6 @@ todo:
 
 INCLUDES= 	depend.mk pub.mk tex.mk
 
-pub.mk: depend.mk
-tex.mk: depend.mk
-
 define inc
 ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
 $(1):
