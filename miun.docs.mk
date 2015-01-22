@@ -15,7 +15,7 @@ CATEGORY?=
 
 ### INCLUDES ###
 
-INCLUDES= 	doc.mk miun.depend.mk miun.pub.mk miun.tex.mk
+INCLUDES= 	doc.mk tex.mk miun.depend.mk miun.pub.mk
 
 define inc
 ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
