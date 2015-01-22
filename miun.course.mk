@@ -27,7 +27,7 @@ clean: clean-course
 
 ### INCLUDES ###
 
-INCLUDES= 	miun.depend.mk miun.docs.mk miun.export.mk
+INCLUDES= 	miun.depend.mk miun.docs.mk export.mk
 
 define inc
 ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
