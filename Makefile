@@ -6,11 +6,20 @@ MKFILES+=		miun.package.mk miun.pub.mk miun.course.mk
 MKFILES+=		miun.export.mk miun.results.mk latexmkrc
 MKFILES+=		miun.depend.mk
 
-PACKAGE?=		build-all
-PACKAGE_FILES?=	${MKFILES} Makefile README.md
-INSTALL_FILES?=	${MKFILES}
-PREFIX?=		/usr/local
-INSTALLDIR?=	/include
+PKG_PACKAGES?= 			main miun
+
+PKG_NAME-main= 			makefiles
+PKG_FILES-main= 		depend.mk package.mk pub.mk subdir.mk
+PKG_FILES-main+= 		export.mk doc.mk tex.mk latexmkrc
+PKG_TARBALL_FILES-main= ${PKG_FILES-main} Makefile README.md
+PKG_PREFIX-main= 		/usr/local
+PKG_DIR-main= 			/include
+
+PKG_NAME-miun=			build-all
+PKG_FILES-miun= 		${MKFILES}
+PKG_TARBALL_FILES-miun= ${PKG_FILES-miun} Makefile README.md
+PKG_PREFIX-miun=		/usr/local
+PKG_DIR-miun= 			/include
 
 PUB_SITES?= 			miun
 
