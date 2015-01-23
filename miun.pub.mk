@@ -12,13 +12,13 @@ TMPDIR?=	/var/tmp
 SSH_USER?=	${USER}
 PUBGROUP?= 	svn
 
-PUB_METHOD-main= 	ssh
-PUB_SERVER-main= 	${SERVER}
-PUB_DIR-main= 		${PUBDIR}
-PUB_CATEGORY-main= 	${CATEGORY}
-PUB_FILES-main= 	${PUB_FILES}
-PUB_TMPDIR-main= 	${TMPDIR}
-PUB_GROUP-main= 	svn
+PUB_METHOD-main?= 	ssh
+PUB_SERVER-main?= 	${SERVER}
+PUB_DIR-main?= 		${PUBDIR}
+PUB_CATEGORY-main?= ${CATEGORY}
+PUB_FILES-main?= 	${PUB_FILES}
+PUB_TMPDIR-main?= 	${TMPDIR}
+PUB_GROUP-main?= 	svn
 
 ### INCLUDES ###
 
