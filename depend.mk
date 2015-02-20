@@ -261,4 +261,27 @@ clean-depends: clean-acmlarge
 clean-acmlarge:
 	${RM} ${ACMLARGE}/acmlarge.cls
 
+
+### libbib ###
+
+LIBBIB+=anon.bib
+LIBBIB+=crypto.bib
+LIBBIB+=meta.bib
+LIBBIB+=otrmsg.bib
+LIBBIB+=ppes.bib
+LIBBIB+=surveillance.bib
+
+${LIBBIB}: libbib
+	#wget -O $@ https://priv-git.csc.kth.se/utilities/libbib/raw/master/$@
+	ln -s libbib/$@ ./$@
+
+libbib:
+	git clone git@priv-git.csc.kth.se:utilities/libbib.git $@
+
+.PHONY: clean-libbib
+clean-depends: clean-libbib
+clean-libbib:
+	${RM} ${LIBBIB}
+	${RM} libbib
+
 endif
