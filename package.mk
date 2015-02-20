@@ -96,7 +96,7 @@ do-install: do-install-$(1)
 do-install-$(1): pre-install-$(1) ${PKG_FILES-$(1)}
 	${MKDIR} ${PKG_PREFIX-$(1)}${PKG_DIR-$(1)}/
 	for f in ${PKG_FILES-$(1)}; do \
-		[ -d "$$f" ] || ${INSTALL} "$$f" ${PKG_PREFIX-$(1)}${PKG_DIR-$(1)}/; \
+		[ -d "$$$$f" ] || ${INSTALL} "$$$$f" ${PKG_PREFIX-$(1)}${PKG_DIR-$(1)}/; \
 	done
 endef
 $(foreach pkg,${PKG_PACKAGES},$(eval $(call do-install,${pkg})))
