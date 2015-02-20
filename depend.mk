@@ -290,6 +290,6 @@ clean-depends: clean-libbib
 clean-libbib:
 	${RM} ${LIBBIB}
 	$(call check_clean_libbib)
-	${RM} libbib
+	${RM} -R libbib
 
 endif
