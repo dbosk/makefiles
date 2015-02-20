@@ -279,10 +279,10 @@ libbib:
 	git clone git@priv-git.csc.kth.se:utilities/libbib.git $@
 
 define check_clean_libbib
-cd libbib && \
+[ ! -e libbib ] || ( cd libbib && \
 git diff-files --quiet --ignore-submodules -- && \
 git diff-index --cached --quiet HEAD --ignore-submodules -- && \
-! [ "$$(git diff origin/master..HEAD | wc -l)" -gt 0 ]
+! [ "$$(git diff origin/master..HEAD | wc -l)" -gt 0 ] )
 endef
 
 .PHONY: clean-libbib
