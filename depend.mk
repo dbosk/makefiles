@@ -273,7 +273,7 @@ LIBBIB+=surveillance.bib
 
 ${LIBBIB}: libbib
 	#wget -O $@ https://priv-git.csc.kth.se/utilities/libbib/raw/master/$@
-	ln -s libbib/$@ ./$@
+	[ -e "./$@" ] || ln -s libbib/$@ ./$@
 
 libbib:
 	git clone git@priv-git.csc.kth.se:utilities/libbib.git $@
