@@ -264,32 +264,28 @@ clean-acmlarge:
 
 ### libbib ###
 
-LIBBIB+=anon.bib
-LIBBIB+=crypto.bib
-LIBBIB+=meta.bib
-LIBBIB+=otrmsg.bib
-LIBBIB+=ppes.bib
-LIBBIB+=surveillance.bib
-
-${LIBBIB}: libbib
-	#wget -O $@ https://priv-git.csc.kth.se/utilities/libbib/raw/master/$@
-	[ -e "./$@" ] || ln -s libbib/$@ ./$@
-
 libbib:
-	git clone git@priv-git.csc.kth.se:utilities/libbib.git $@
+	if ( git submodule status | grep $@ ); then \
+		git submodule update --init $@ ; \
+	else \
+		git clone git@priv-git.csc.kth.se:utilities/libbib.git $@; \
+	endif
 
-define check_clean_libbib
-[ ! -e libbib ] || ( cd libbib && \
-git diff-files --quiet --ignore-submodules -- && \
-git diff-index --cached --quiet HEAD --ignore-submodules -- && \
-! [ "$$(git diff origin/master..HEAD | wc -l)" -gt 0 ] )
-endef
+libbib.mk: libbib
+	[ -e "./$@" ] || ln -s libbib/$@ ./$@
 
 .PHONY: clean-libbib
 clean-depends: clean-libbib
 clean-libbib:
-	${RM} ${LIBBIB}
-	$(call check_clean_libbib)
-	${RM} -R libbib
+	${RM} libbib.mk
+	if ( git submodule status | grep libbib ); then \
+		true; \
+	else \
+		[ ! -e libbib ] || ( cd libbib && \
+		git diff-files --quiet --ignore-submodules -- && \
+		git diff-index --cached --quiet HEAD --ignore-submodules -- && \
+		! [ "$$(git diff origin/master..HEAD | wc -l)" -gt 0 ] ) && \
+		$${RM} libbib; \\
+	endif
 
 endif
