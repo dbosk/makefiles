@@ -261,31 +261,4 @@ clean-depends: clean-acmlarge
 clean-acmlarge:
 	${RM} ${ACMLARGE}/acmlarge.cls
 
-
-### libbib ###
-
-libbib:
-	if ( git submodule status | grep $@ ); then \
-		git submodule update --init $@ ; \
-	else \
-		git clone git@priv-git.csc.kth.se:utilities/libbib.git $@; \
-	endif
-
-libbib.mk: libbib
-	[ -e "./$@" ] || ln -s libbib/$@ ./$@
-
-.PHONY: clean-libbib
-clean-depends: clean-libbib
-clean-libbib:
-	${RM} libbib.mk
-	if ( git submodule status | grep libbib ); then \
-		true; \
-	else \
-		[ ! -e libbib ] || ( cd libbib && \
-		git diff-files --quiet --ignore-submodules -- && \
-		git diff-index --cached --quiet HEAD --ignore-submodules -- && \
-		! [ "$$(git diff origin/master..HEAD | wc -l)" -gt 0 ] ) && \
-		$${RM} libbib; \\
-	endif
-
 endif
