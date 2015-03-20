@@ -56,12 +56,13 @@ endef
 # remove intermediate helper files
 clean: clean-results
 clean-results:
-	${RM} ${report} ${out}.new ${out}.new.pnr
+	${RM} ${report} ${report:.pdf=.csv} ${out}.new ${out}.new.pnr
 
 .SUFFIXES: .csv .pdf
-# turn a csv into a pdf
+# convert a csv to pdf
 .csv.pdf: localc
-	${LOCALC} --convert-to pdf $<
+	#${LOCALC} --convert-to pdf $< --headless
+	${LOCALC} $<
 
 .SUFFIXES: .csv .csv.new
 # turn new results into a new csv
