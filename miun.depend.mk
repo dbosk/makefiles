@@ -13,10 +13,11 @@ update: miun.tex.mk miun.course.mk miun.docs.mk
 update: miun.export.mk miun.pub.mk miun.package.mk
 update: miun.subdir.mk miun.results.mk
 
-miun.tex.mk \
-miun.course.mk miun.docs.mk miun.export.mk miun.pub.mk \
-miun.package.mk miun.subdir.mk miun.results.mk:
-	wget -O $@ http://ver.miun.se/build/$@
+# Don't use these, better take them from GitHub
+#miun.tex.mk \
+#miun.course.mk miun.docs.mk miun.export.mk miun.pub.mk \
+#miun.package.mk miun.subdir.mk miun.results.mk:
+#	wget -O $@ http://ver.miun.se/build/$@
 
 .PHONY: clean-depends clean-miun-depends
 clean-depends: clean-miun-depends
@@ -26,6 +27,7 @@ clean-miun-depends:
 
 update: miunmisc miunart miunasgn miunbeam miunexam
 update: miunlett miunprot miunthes
+
 
 ### MIUN Miscellanous package and Logo ###
 
@@ -39,9 +41,33 @@ ${miunmisc-depend} ${logo-depend}:
 	cd /tmp && tar -zxf miunmisc.tar.gz
 	cd /tmp/miunmisc && ${MAKE} install
 
+MIUNMISC_FILES= 	MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
+MIUNMISC_FILES+= 	MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
+MIUNMISC_FILES+= 	miunmisc.ins miunmisc.dtx
+
+${MIUNMISC_FILES}:
+	wget -O $@ http://ver.miun.se/latex/miunmisc/$@
+
+miunmisc.pdf miunmisc.ps: miunmisc.dtx
+miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict: miunmisc.ins
+miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict: miunmisc.dtx
+
 .PHONY: miunmisc miunlogo
-miunmisc: ${miunmisc-depend}
-miunlogo: miunmisc
+miunlogo: MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
+miunlogo: MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
+
+miunmisc: miunmisc.sty miunmisc-English.dict miunmisc-Swedish.dict
+miunmisc: miunlogo
+
+.PHONY: clean-miunmisc clean-miunlogo
+clean-depends: clean-miunmisc clean-miunlogo
+clean-miunmisc: clean-tex
+	${RM} ${MIUNMISC_FILES}
+	${RM} miunmisc.sty miunmisc-English.dict miunmisc-Swedish.dict
+clean-miunlogo:
+	${RM} MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
+	${RM} MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
+
 
 ### MIUN Article class ###
 
@@ -52,8 +78,17 @@ ${miunart-depend}:
 	cd /tmp && tar -zxf miunart.tar.gz
 	cd /tmp/miunart && ${MAKE} install
 
+miunart.cls miunart-English.dict miunart-Swedish.dict:
+	wget -O $@ http://ver.miun.se/latex/miunart/$@
+
 .PHONY: miunart
-miunart: ${miunart-depend} miunlogo
+miunart: miunart.cls miunart-English.dict miunart-Swedish.dict miunlogo
+
+.PHONY: clean-miunart
+clean-depends: clean-miunart
+clean-miunart:
+	${RM} miunart.cls miunart-English.dict miunart-Swedish.dict
+
 
 ### MIUN Assignment class ###
 
@@ -64,20 +99,30 @@ ${miunasgn-depend}:
 	cd /tmp && tar -zxf miunasgn.tar.gz
 	cd /tmp/miunasgn && ${MAKE} install
 
+miunasgn.cls miunasgn-English.dict miunasgn-Swedish.dict:
+	wget -O $@ http://ver.miun.se/latex/miunasgn/$@
+
 .PHONY: miunasgn
-miunasgn: ${miunasgn-depend} miunlogo
+miunasgn: miunasgn.cls miunasgn-Swedish.dict miunasgn-English.dict miunlogo
 
-### MIUN Beamer class ###
+.PHONY: clean-miunasgn
+clean-depends: clean-miunasgn
+clean-miunasgn:
+	${RM} miunasgn.cls miunasgn-English.dict miunasgn-Swedish.dict
 
-miunbeam-depend?= 	${TEXMF}/tex/latex/miun/miunbeam/miunbeam.sty
-${miunbeam-depend}:
-	wget -O /tmp/miunbeam.tar.gz \
-		http://ver.miun.se/latex/packages/miunbeam.tar.gz
-	cd /tmp && tar -zxf miunbeam.tar.gz
-	cd /tmp/miunbeam && ${MAKE} install
 
-.PHONY: miunbeam
-miunbeam: ${miunbeam-depend} miunlogo
+#### MIUN Beamer class ###
+#
+#miunbeam-depend?= 	${TEXMF}/tex/latex/miun/miunbeam/miunbeam.sty
+#${miunbeam-depend}:
+#	wget -O /tmp/miunbeam.tar.gz \
+#		http://ver.miun.se/latex/packages/miunbeam.tar.gz
+#	cd /tmp && tar -zxf miunbeam.tar.gz
+#	cd /tmp/miunbeam && ${MAKE} install
+#
+#.PHONY: miunbeam
+#miunbeam: ${miunbeam-depend} miunlogo
+
 
 ### MIUN Exam class ###
 
@@ -88,8 +133,18 @@ ${miunexam-depend}:
 	cd /tmp && tar -zxf miunexam.tar.gz
 	cd /tmp/miunexam && ${MAKE} install
 
+miunexam.cls miunexam-English.dict miunexam-Swedish.dict:
+	wget -O $@ http://ver.miun.se/latex/miunexam/$@
+
 .PHONY: miunexam
-miunexam: ${miunexam-depend} miunlogo
+miunexam: miunexam.cls miunexam-English.dict miunexam-Swedish.dict
+miunexam: miunlogo
+
+.PHONY: clean-miunexam
+clean-depends: clean-miunexam
+clean-miunexam:
+	${RM} miunexam.cls miunexam-English.dict miunexam-Swedish.dict
+
 
 ### MIUN Letter class ###
 
@@ -100,8 +155,17 @@ ${miunlett-depend}:
 	cd /tmp && tar -zxf miunlett.tar.gz
 	cd /tmp/miunlett && ${MAKE} install
 
+miunlett.cls:
+	wget -O $@ http://ver.miun.se/latex/miunlett/$@
+
 .PHONY: miunlett
-miunlett: ${miunlett-depend} miunlogo
+miunlett: miunlett.cls miunlogo
+
+.PHONY: clean-miunlett
+clean-depends: clean-miunlett
+clean-miunlett:
+	${RM} miunlett.cls
+
 
 ### MIUN Protocol class ###
 
@@ -112,8 +176,17 @@ ${miunprot-depend}:
 	cd /tmp && tar -zxf miunprot.tar.gz
 	cd /tmp/miunprot && ${MAKE} install
 
+miunprot.cls miunprot-English.dict miunprot-Swedish.dict:
+	wget -O $@ http://ver.miun.se/latex/miunprot/$@
+
 .PHONY: miunprot
-miunprot: ${miunprot-depend} miunlogo
+miunprot: miunprot.cls miunprot-English.dict miunprot-Swedish.dict miunlogo
+
+.PHONY: clean-miunprot
+clean-depends: clean-miunprot
+clean-miunprot:
+	${RM} miunprot.cls miunprot-English.dict miunprot-Swedish.dict
+
 
 ### MIUN Thesis class ###
 
@@ -124,13 +197,22 @@ ${miunthes-depend}:
 	cd /tmp && tar -zxf miunthes.tar.gz
 	cd /tmp/miunthes && ${MAKE} install
 
+miunthes.cls miunthes-English.dict miunthes-Swedish.dict:
+	wget -O $@ http://ver.miun.se/latex/miunthes/$@
+
 .PHONY: miunthes
-miunthes: ${miunthes-depend} miunlogo latexmkrc
+miunthes: miunthes.cls miunthes-English.dict miunthes-Swedish.dict
+miunthes: miunlogo latexmkrc
+
+.PHONY: clean-miunthes
+clean-depends: clean-miunthes
+clean-miunthes:
+	${RM} miunthes.cls miunthes-English.dict miunthes-Swedish.dict
 
 
 ### INCLUDES ###
 
-INCLUDES= 	depend.mk
+INCLUDES= 	depend.mk tex.mk
 
 define inc
 ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
