@@ -129,6 +129,15 @@ endif
 .dvi.ps: dvips
 	${DVIPS} $<
 
+.SUFFIXES: .svg
+.svg.tex:
+	inkscape -D -z --file=$< --export-pdf=${@:.tex=.pdf} --export-latex
+	mv ${@:.tex=.pdf_tex} $@
+
+.SUFFIXES: .dia
+.dia.tex:
+	dia -E $@ -t pgf-tex $<
+
 .PHONY: all
 all: ${DOCUMENTS}
 
