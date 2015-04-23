@@ -106,13 +106,14 @@ ${report:.pdf=.csv}: ${in} ${out}.new ${out}.new.pnr
 
 ### INCLUDES ###
 
+INCLUDE_MAKEFILES?= .
 INCLUDES= 	miun.depend.mk
 
 define inc
 ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
 $(1):
 	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
-include $(1)
+include ${INCLUDE_MAKEFILES}/$(1)
 endif
 endef
 $(foreach i,${INCLUDES},$(eval $(call inc,$i)))
