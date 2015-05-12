@@ -181,10 +181,15 @@ BLTX-files+= 	lncs.cbx
 BLTX-files+= 	lncs.dbx
 
 biblatex-lncs-src:
-	git clone https://github.com/gvdgdo/biblatex-lncs.git biblatex-lncs-src
+	if [ -e biblatex-lncs ]; then \
+		ln -s biblatex-lncs biblatex-lncs-src; \
+	else \
+		git clone https://github.com/neapel/biblatex-lncs.git \
+		biblatex-lncs-src; \
+	fi
 
 $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}): biblatex-lncs-src
-	cp biblatex-lncs-src/${@:${BIBLATEX-LNCS}/=} $@
+	ln -s biblatex-lncs-src/${@:${BIBLATEX-LNCS}/=} $@
 
 .PHONY: biblatex-lncs clean-biblatex-lncs
 biblatex-lncs: $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files})
