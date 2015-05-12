@@ -145,9 +145,9 @@ clean-latexmkrc:
 .PHONY: clean-mk
 clean-depends: clean-mk
 clean-mk:
-	${RM} depend.mk doc.mk export.mk
-	${RM} moodle.mk package.mk pub.mk subdir.mk tex.mk
-	${RM} miun.course.mk miun.depend.mk miun.docs.mk miun.port.mk
+	find depend.mk doc.mk export.mk moodle.mk package.mk pub.mk subdir.mk \
+		tex.mk miun.course.mk miun.depend.mk miun.docs.mk miun.port.mk -type l \
+		| xargs ${RM}
 
 
 ### Springer's Lecture Notes on Computer Science ###
@@ -195,7 +195,8 @@ $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}): biblatex-lncs-src
 biblatex-lncs: $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files})
 clean-depends: clean-biblatex-lncs
 clean-biblatex-lncs:
-	${RM} $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files})
+	find $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}) -type l | \
+		xargs ${RM}
 	${RM} -R biblatex-lncs-src
 
 ### Springer's Monograph ###
