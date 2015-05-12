@@ -189,7 +189,7 @@ biblatex-lncs-src:
 	fi
 
 $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}): biblatex-lncs-src
-	ln -s biblatex-lncs-src/${@:${BIBLATEX-LNCS}/=} $@
+	[ -e $@ ] || ln -s biblatex-lncs-src/${@:${BIBLATEX-LNCS}/=} $@
 
 .PHONY: biblatex-lncs clean-biblatex-lncs
 biblatex-lncs: $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files})
