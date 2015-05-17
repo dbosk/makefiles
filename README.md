@@ -32,12 +32,28 @@ variables and then build the relevant target.  The files on the form
 Dependencies and installation
 -------------------------------------------------------------------------------
 
-To use them, either download all files to a directory and then just run `sudo 
-make install` in that directory.  That will install the files in 
-/usr/local/include, where GNU make(1) will look for them.  Or, you can just 
-download the relevant file to the working directory, then GNU make(1) will also 
-be able to find it.  In the end of most of my own Makefile's I use the 
-following lines:
+There are three ways of using this makefile library.  The first and obvious one 
+is to download the files you need, add them to the working directory and use 
+them in your Makefile.  This can even be automated using make(1), by adding the 
+following lines in the end of your Makefile:
+
+```Makefile
+INCLUDE_MAKEFILES?= .
+INCLUDES=   depend.mk
+
+define inc
+ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
+$(1):
+    wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
+include ${INCLUDE_MAKEFILES}/$(1)
+endif
+endef
+$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
+```
+
+This will automatically download and include any files specified in the 
+`INCLUDES` variable.  A more trivial code snippet, but with some minor 
+drawbacks, is this:
 
 ```Makefile
 tex.mk depend.mk:
@@ -51,15 +67,38 @@ The make(1) utility will then realise it must make those files, and hence it'll
 download them to the current working directory.  Then you can use the target 
 `clean-depends` to clean them.
 
+
+The second and better way to use this library is to use the repo as a (Git) 
+submodule in your repository.  To do this you would first add the submodule: 
+`git submodule add -b master https://github.com/dbosk/makefiles.git`.  Then you 
+would add the following two lines to your Makefile:
+
+```Makefile
+INCLUDE_MAKEFILES=makefiles
+include ${INCLUDE_MAKEFILES}/<name-of-file>.mk
+```
+
+Note that you need the variable `INCLUDE_MAKEFILES`.  This variable is used 
+internally by the different .mk-files to find their respective dependencies 
+from the part of the tree your Makefile resides.  E.g. tex.mk in turn includes 
+depend.mk.
+
+The third option is to install the makefiles globally on the system.  To do 
+this, just run `sudo make install` in the root of the makefiles repo.  That 
+will install the files into /usr/local/include, where GNU make(1) will look for 
+them.
+
 The dependencies for these files to work are the following programs:
 
-	* GNU make(1),
-	* pax(1),
-	* wget(1),
-	* latex(1),
-	* pdflatex(1),
-	* latexmk(1L), and
-	* LibreOffice (this applies to miun.results.mk only).
+ - GNU make(1),
+ - pax(1),
+ - wget(1),
+ - latex(1),
+ - pdflatex(1),
+ - latexmk(1L),
+ - dia(1),
+ - inkscape(1), and
+ - LibreOffice.
 
 Either you install these manually or they will be installed automatically when 
 needed through the use of `depend.mk`.  You will need sudo(8) privileges to 
