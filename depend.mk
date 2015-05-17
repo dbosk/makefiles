@@ -101,6 +101,35 @@ localc:
 	which localc || sudo apt-get install libreoffice
 endif
 
+.PHONY: soffice
+ifeq (${MAKE},gmake)
+soffice:
+	which soffice || sudo pkg_add libreoffice
+else
+soffice:
+	which soffice || sudo apt-get install libreoffice
+endif
+
+.PHONY: dia
+ifeq (${MAKE},gmake)
+dia:
+	which dia || sudo pkg_add dia
+else
+dia:
+	which dia || sudo apt-get install dia
+endif
+
+.PHONY: inkscape
+ifeq (${MAKE},gmake)
+inkscape:
+	which inkscape || sudo pkg_add inkscape 
+else
+inkscape:
+	which inkscape || sudo apt-get install inkscape
+endif
+
+
+
 .PHONY: update
 
 update: update-rfc
