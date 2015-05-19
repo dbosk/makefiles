@@ -26,10 +26,13 @@ PUB_SITES?= 			miun
 PUB_SERVER-miun?=		ver.miun.se
 PUB_DIR-miun?=			/srv/web/svn
 PUB_CATEGORY-miun?=		build
+PUB_METHOD-miun?= 		ssh
 PUB_GROUP-miun?= 		svn
-PUB_FILES-miun?=		${PACKAGE_FILES} ${PACKAGE}.tar.gz
+PUB_FILES-miun?=		${PKG_FILES-miun} ${PKG_NAME-miun}.tar.gz
 
-include depend.mk
-include pub.mk
-include package.mk
-include miun.port.mk
+
+INCLUDE_MAKEFILES=makefiles
+include ${INCLUDE_MAKEFILES}/depend.mk
+include ${INCLUDE_MAKEFILES}/pub.mk
+include ${INCLUDE_MAKEFILES}/package.mk
+include ${INCLUDE_MAKEFILES}/miun.port.mk
