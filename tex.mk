@@ -29,8 +29,8 @@ BIBTEX?=	bibtex8
 PDFVIEW?=	evince
 PAPER?=		a4
 
-USE_LATEXMK?= 	no
-USE_BIBLATEX?= 	no
+USE_LATEXMK?= 	yes
+USE_BIBLATEX?= 	yes
 
 MATCH_PRINTANSWERS="/\\\\\\\\\\printanswers/s/^%//"
 MATCH_HANDOUT="s/\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}/\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}/"
