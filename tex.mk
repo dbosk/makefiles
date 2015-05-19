@@ -130,25 +130,28 @@ endif
 	${DVIPS} $<
 
 .SUFFIXES: .svg
-.svg.tex:
+.svg.tex: inkscape
 	inkscape -D -z --file=$< --export-pdf=${@:.tex=.pdf} --export-latex
 	mv ${@:.tex=.pdf_tex} $@
 
 .SUFFIXES: .dia
-.dia.tex:
+.dia.tex: dia
 	dia -E $@ -t pgf-tex $<
+
+.SUFFIXES: .odt
+.odt.pdf: soffice
+	soffice --convert-to pdf $< --headless
 
 .PHONY: all
 all: ${DOCUMENTS}
 
 .PHONY: clean-tex
 clean-tex: latexmk
-	@${RM} ${EXAMPLES} \
-		*.log *.aux *.toc *.bbl *.blg *.ind *.ilg *.dvi \
-		*.out *.idx *.nls *.nlo *.lof *.lot *.glo \
-		*.core *.o *~ *.out missfont.log \
-		*.nav *.snm *.vrb *-eps-converted-to.pdf \
-		*.run.xml *-blx.bib
+	${RM} *.log *.aux *.toc *.bbl *.blg *.ind *.ilg *.dvi
+	${RM} *.out *.idx *.nls *.nlo *.lof *.lot *.glo
+	${RM} *.core *.o *~ *.out
+	${RM} missfont.log *.nav *.snm *.vrb *-eps-converted-to.pdf
+	${RM} *.run.xml *-blx.bib
 	@-for f in *.tex; do \
 		[ -f $$f.orig ] && mv $$f.orig $$f; \
 	done

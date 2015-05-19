@@ -101,6 +101,35 @@ localc:
 	which localc || sudo apt-get install libreoffice
 endif
 
+.PHONY: soffice
+ifeq (${MAKE},gmake)
+soffice:
+	which soffice || sudo pkg_add libreoffice
+else
+soffice:
+	which soffice || sudo apt-get install libreoffice
+endif
+
+.PHONY: dia
+ifeq (${MAKE},gmake)
+dia:
+	which dia || sudo pkg_add dia
+else
+dia:
+	which dia || sudo apt-get install dia
+endif
+
+.PHONY: inkscape
+ifeq (${MAKE},gmake)
+inkscape:
+	which inkscape || sudo pkg_add inkscape 
+else
+inkscape:
+	which inkscape || sudo apt-get install inkscape
+endif
+
+
+
 .PHONY: update
 
 update: update-rfc
@@ -145,9 +174,9 @@ clean-latexmkrc:
 .PHONY: clean-mk
 clean-depends: clean-mk
 clean-mk:
-	${RM} depend.mk doc.mk export.mk
-	${RM} moodle.mk package.mk pub.mk subdir.mk tex.mk
-	${RM} miun.course.mk miun.depend.mk miun.docs.mk miun.port.mk
+	find depend.mk doc.mk export.mk moodle.mk package.mk pub.mk subdir.mk \
+		tex.mk miun.course.mk miun.depend.mk miun.docs.mk miun.port.mk -type l \
+		| xargs ${RM}
 
 
 ### Springer's Lecture Notes on Computer Science ###
@@ -181,16 +210,22 @@ BLTX-files+= 	lncs.cbx
 BLTX-files+= 	lncs.dbx
 
 biblatex-lncs-src:
-	git clone https://github.com/gvdgdo/biblatex-lncs.git biblatex-lncs-src
+	if [ -e biblatex-lncs ]; then \
+		ln -s biblatex-lncs biblatex-lncs-src; \
+	else \
+		git clone https://github.com/neapel/biblatex-lncs.git \
+		biblatex-lncs-src; \
+	fi
 
 $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}): biblatex-lncs-src
-	cp biblatex-lncs-src/${@:${BIBLATEX-LNCS}/=} $@
+	[ -e $@ ] || ln -s biblatex-lncs-src/${@:${BIBLATEX-LNCS}/=} $@
 
 .PHONY: biblatex-lncs clean-biblatex-lncs
 biblatex-lncs: $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files})
 clean-depends: clean-biblatex-lncs
 clean-biblatex-lncs:
-	${RM} $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files})
+	find $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}) -type l | \
+		xargs ${RM}
 	${RM} -R biblatex-lncs-src
 
 ### Springer's Monograph ###
