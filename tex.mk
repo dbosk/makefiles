@@ -191,7 +191,7 @@ submission: ${DOCUMENTS:.pdf=.submission.tex}
 
 .SUFFIXES: .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
 .py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
-	noweave -n -delay -t2 $< > $@
+	noweave -x -n -delay -t2 $< > $@
 
 ### INCLUDES ###
 
