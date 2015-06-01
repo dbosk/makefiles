@@ -128,6 +128,14 @@ inkscape:
 	which inkscape || sudo apt-get install inkscape
 endif
 
+.PHONY: noweb
+ifeq (${MAKE},gmake)
+noweb:
+	which noweb || sudo pkg_add noweb 
+else
+noweb:
+	which noweb || sudo apt-get install noweb
+endif
 
 
 .PHONY: update
