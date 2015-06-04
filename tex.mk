@@ -152,6 +152,7 @@ clean-tex: latexmk
 	${RM} *.core *.o *~ *.out
 	${RM} missfont.log *.nav *.snm *.vrb *-eps-converted-to.pdf
 	${RM} *.run.xml *-blx.bib
+	${RM} *.bcf *.fdb_latexmk *.fls
 	@-for f in *.tex; do \
 		[ -f $$f.orig ] && mv $$f.orig $$f; \
 	done
