@@ -153,6 +153,7 @@ clean-tex: latexmk
 	${RM} missfont.log *.nav *.snm *.vrb *-eps-converted-to.pdf
 	${RM} *.run.xml *-blx.bib
 	${RM} *.bcf *.fdb_latexmk *.fls
+	${RM} -R pythontex-files-* *.pytxcode *.py.err
 	@-for f in *.tex; do \
 		[ -f $$f.orig ] && mv $$f.orig $$f; \
 	done

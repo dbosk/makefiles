@@ -171,7 +171,11 @@ rfc.bib:
 
 
 latexmkrc:
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$@
+	if [ -e ${INCLUDE_MAKEFILES}/latexmkrc ]; then \
+		ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@ ; \
+	else \
+		wget https://raw.githubusercontent.com/dbosk/makefiles/master/$@ ; \
+	fi
 
 .PHONY: clean-latexmkrc
 clean-depends: clean-latexmkrc
