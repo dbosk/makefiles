@@ -19,7 +19,7 @@ CAT?=		cat
 # variables used to compile LaTeX documents
 LATEX?=		latex
 PDFLATEX?=	pdflatex
-LATEXMK?= 	latexmk ${LATEXMKRC}
+LATEXMK?= 	latexmk ${LATEXMKRC} -bibtex-cond
 LATEXMKRC?= 
 DVIPS?=		dvips
 PDFPS?=		pdf2ps
