@@ -196,8 +196,8 @@ endef
 .PHONY: submission
 submission: ${DOCUMENTS:.pdf=.submission.tex}
 
-.SUFFIXES: .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
-.py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
+.SUFFIXES: .nw .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
+.nw.tex .py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
 	noweave -x -n -delay -t2 $< > $@
 
 ### INCLUDES ###
