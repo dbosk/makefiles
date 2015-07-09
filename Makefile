@@ -6,6 +6,9 @@ MKFILES+=		miun.package.mk miun.pub.mk miun.course.mk
 MKFILES+=		miun.export.mk miun.results.mk latexmkrc
 MKFILES+=		miun.depend.mk
 
+.PHONY: miun
+miun: ${MKFILES}
+
 PKG_PACKAGES?= 			main miun
 
 PKG_NAME-main= 			makefiles
@@ -31,7 +34,7 @@ PUB_GROUP-miun?= 		svn
 PUB_FILES-miun?=		${PKG_FILES-miun} ${PKG_NAME-miun}.tar.gz
 
 
-INCLUDE_MAKEFILES=makefiles
+INCLUDE_MAKEFILES=.
 include ${INCLUDE_MAKEFILES}/depend.mk
 include ${INCLUDE_MAKEFILES}/pub.mk
 include ${INCLUDE_MAKEFILES}/package.mk
