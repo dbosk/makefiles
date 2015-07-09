@@ -164,22 +164,28 @@ clean-tex: latexmk
 .PHONY: clean
 clean: clean-tex
 
-filecontent = for f in $(1); do ${SED} -i \
+define filecontent
+for f in $(1); do ${SED} -i \
 	"/^%\\\\begin{filecontents\\*\\?}{$$f}/,/^%\\\\end{filecontents\\*\\?}/s/^%//" $(2); \
 	${SED} -i "/^\\\\begin{filecontents\\*\\?}{$$f}/r $$f" $(2); done
+endef
 
-bibliography = ${SED} -i -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1:.tex=.bbl)" -e "}" $(1)
+define bibliography
+${SED} -i -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1:.tex=.bbl)" -e "}" $(1)
+endef
 
-bblcode = "\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begingroup\\\\blx@bblstart\\\\input{\\\\jobname.bbl}\\\\blx@bblend\\\\endgroup\\\\csnumgdef{blx@labelnumber@\\\\the\\\\c@refsection}{0}}\\\\makeatother"
+define bblcode
+\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begingroup\\\\blx@bblstart\\\\input{\\\\jobname.bbl}\\\\blx@bblend\\\\endgroup\\\\csnumgdef{blx@labelnumber@\\\\the\\\\c@refsection}{0}}\\\\makeatother
+endef
 
 .SUFFIXES: .submission.tex
 .tex.submission.tex: sed
 	cp $< $@
-	eval '$(call filecontent,\
+	$(call filecontent,\
 		$(shell ${SED} -n \
 		"s/^%\\\\begin{filecontents\\*\\?}{\\([^}]*\\)}/\\1/p" \
-		$<),$@)'
-	eval '$(call bibliography,$@)'
+		$<),$@)
+	$(call bibliography,$@)
 	${SED} -i "s/^%biblatex-bbl-code/${bblcode}/" $@
 	${SED} -i "s/${@:.tex=}/\\\\jobname/g" $@
 
