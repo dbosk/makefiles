@@ -69,62 +69,61 @@ endif
 .pdf.ps: pdf2ps
 	${PDFPS} $< $@
 
+# $1 = input file
+# $2 = output file
+define sed_transformations
+${CAT} $1 \
+	$(shell [ "${solutions}" = "no" ] || echo \
+	" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
+	$(shell [ "${handout}" = "no" ] || echo \
+	" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
+	> $2
+endef
+
+# $1 = latex version
+# $2 = input tex file
+define run_latex
+$1 ${LATEXFLAGS} $2
+-${BIBTEX} ${1:.tex=}
+-${MAKEINDEX} -s gind.ist ${2:.tex=}
+-${MAKEINDEX} ${2:.tex=.nlo} -s nomencl.ist -o ${2:.tex=.nls}
+while ($1 ${LATEXFLAGS} $2; \
+	grep "Rerun to get cross" ${2:.tex=.log}) \
+	do true; done
+$1 ${LATEXFLAGS} $2
+endef
+
+# $1 = original file
+# $2 = new file
+# $3 = backup file
+define backup_file
+if diff -u $1 $2; then \
+	mv $1 $3 && mv $2 $1; \
+fi
+endef
+
+# $1 = backup file
+# $2 = original file
+define restore_file
+if [ -f $1 ]; then \
+	${MV} $1 $2; \
+fi
+endef
+
 .SUFFIXES: .tex
 .tex.pdf: latexmk
-	${CAT} $< \
-		$(shell [ "${solutions}" = "no" ] || echo \
-		" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
-		$(shell [ "${handout}" = "no" ] || echo \
-		" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
-		> $<.new
-	if diff -u $< $<.new; then \
-		mv $< $<.orig && mv $<.new $<; \
-	fi
 ifeq (${USE_LATEXMK},yes)
-	${LATEXMK} -pdf ${LATEXFLAGS} ${<:.tex=}
+	${LATEXMK} -pdf ${LATEXFLAGS} $<
 else
-	${PDFLATEX} ${LATEXFLAGS} $<
-ifneq (${USE_BIBLATEX},yes)
-	-${BIBTEX} ${<:.tex=}
+	$(call run_latex, ${PDFLATEX}, $<)
 endif
-	-${MAKEINDEX} -s gind.ist ${<:.tex=}
-	-${MAKEINDEX} ${<:.tex=.nlo} -s nomencl.ist -o ${<:.tex=.nls}
-	while (${PDFLATEX} ${LATEXFLAGS} $<; \
-		grep "Rerun to get cross" ${<:.tex=.log}) \
-		do true; done
-	${PDFLATEX} ${LATEXFLAGS} $<
-endif
-	if [ -f $<.orig ]; then \
-		${MV} $<.orig $<; \
-	fi
 
 .tex.dvi: latexmk
-	${CAT} $< \
-		$(shell [ "${solutions}" = "no" ] || echo \
-		" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
-		$(shell [ "${handout}" = "no" ] || echo \
-		" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
-		> $<.new
-	if diff -u $< $<.new; then \
-		mv $< $<.orig && mv $<.new $<; \
-	fi
 ifeq (${USE_LATEXMK},yes)
-	${LATEXMK} -dvi ${LATEXFLAGS} ${<:.tex=}
+	${LATEXMK} -dvi ${LATEXFLAGS} $<
 else
-	${LATEX} ${LATEXFLAGS} $<
-ifneq (${USE_BIBLATEX},yes)
-	-${BIBTEX} ${<:.tex=}
+	$(call run_latex, ${PDFLATEX}, $<)
 endif
-	-${MAKEINDEX} -s gind.ist ${<:.tex=}
-	-${MAKEINDEX} ${<:.tex=.nlo} -s nomencl.ist -o ${<:.tex=.nls}
-	while (${LATEX} ${LATEXFLAGS} $<; \
-		grep "Rerun to get cross" ${<:.tex=.log}) \
-		do true; done
-	${LATEX} ${LATEXFLAGS} $<
-endif
-	if [ -f $<.orig ]; then \
-		${MV} $<.orig $<; \
-	fi
 
 .dvi.ps: dvips
 	${DVIPS} $<
