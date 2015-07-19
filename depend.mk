@@ -168,6 +168,7 @@ rfc.bib:
 		wget -O - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null | \
 		uncompress - > ${@} ; \
 	fi
+	sed -i "s/@misc/@manual/" $@
 
 
 latexmkrc:
