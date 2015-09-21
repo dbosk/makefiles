@@ -6,6 +6,9 @@ MKFILES+=		miun.package.mk miun.pub.mk miun.course.mk
 MKFILES+=		miun.export.mk miun.results.mk latexmkrc
 MKFILES+=		miun.depend.mk
 
+.PHONY: miun
+miun: ${MKFILES}
+
 PKG_PACKAGES?= 			main miun
 
 PKG_NAME-main= 			makefiles
@@ -26,10 +29,13 @@ PUB_SITES?= 			miun
 PUB_SERVER-miun?=		ver.miun.se
 PUB_DIR-miun?=			/srv/web/svn
 PUB_CATEGORY-miun?=		build
+PUB_METHOD-miun?= 		ssh
 PUB_GROUP-miun?= 		svn
-PUB_FILES-miun?=		${PACKAGE_FILES} ${PACKAGE}.tar.gz
+PUB_FILES-miun?=		${PKG_FILES-miun} ${PKG_NAME-miun}.tar.gz
 
-include depend.mk
-include pub.mk
-include package.mk
-include miun.port.mk
+
+INCLUDE_MAKEFILES=.
+include ${INCLUDE_MAKEFILES}/depend.mk
+include ${INCLUDE_MAKEFILES}/pub.mk
+include ${INCLUDE_MAKEFILES}/package.mk
+include ${INCLUDE_MAKEFILES}/miun.port.mk

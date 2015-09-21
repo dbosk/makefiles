@@ -19,7 +19,7 @@ CAT?=		cat
 # variables used to compile LaTeX documents
 LATEX?=		latex
 PDFLATEX?=	pdflatex
-LATEXMK?= 	latexmk ${LATEXMKRC}
+LATEXMK?= 	latexmk ${LATEXMKRC} -bibtex-cond
 LATEXMKRC?= 
 DVIPS?=		dvips
 PDFPS?=		pdf2ps
@@ -69,62 +69,61 @@ endif
 .pdf.ps: pdf2ps
 	${PDFPS} $< $@
 
+# $1 = input file
+# $2 = output file
+define sed_transformations
+${CAT} $1 \
+	$(shell [ "${solutions}" = "no" ] || echo \
+	" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
+	$(shell [ "${handout}" = "no" ] || echo \
+	" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
+	> $2
+endef
+
+# $1 = latex version
+# $2 = input tex file
+define run_latex
+$1 ${LATEXFLAGS} $2
+-${BIBTEX} ${1:.tex=}
+-${MAKEINDEX} -s gind.ist ${2:.tex=}
+-${MAKEINDEX} ${2:.tex=.nlo} -s nomencl.ist -o ${2:.tex=.nls}
+while ($1 ${LATEXFLAGS} $2; \
+	grep "Rerun to get cross" ${2:.tex=.log}) \
+	do true; done
+$1 ${LATEXFLAGS} $2
+endef
+
+# $1 = original file
+# $2 = new file
+# $3 = backup file
+define backup_file
+if diff -u $1 $2; then \
+	mv $1 $3 && mv $2 $1; \
+fi
+endef
+
+# $1 = backup file
+# $2 = original file
+define restore_file
+if [ -f $1 ]; then \
+	${MV} $1 $2; \
+fi
+endef
+
 .SUFFIXES: .tex
 .tex.pdf: latexmk
-	${CAT} $< \
-		$(shell [ "${solutions}" = "no" ] || echo \
-		" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
-		$(shell [ "${handout}" = "no" ] || echo \
-		" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
-		> $<.new
-	if diff -u $< $<.new; then \
-		mv $< $<.orig && mv $<.new $<; \
-	fi
 ifeq (${USE_LATEXMK},yes)
-	${LATEXMK} -pdf ${LATEXFLAGS} ${<:.tex=}
+	${LATEXMK} -pdf ${LATEXFLAGS} $<
 else
-	${PDFLATEX} ${LATEXFLAGS} $<
-ifneq (${USE_BIBLATEX},yes)
-	-${BIBTEX} ${<:.tex=}
+	$(call run_latex, ${PDFLATEX}, $<)
 endif
-	-${MAKEINDEX} -s gind.ist ${<:.tex=}
-	-${MAKEINDEX} ${<:.tex=.nlo} -s nomencl.ist -o ${<:.tex=.nls}
-	while (${PDFLATEX} ${LATEXFLAGS} $<; \
-		grep "Rerun to get cross" ${<:.tex=.log}) \
-		do true; done
-	${PDFLATEX} ${LATEXFLAGS} $<
-endif
-	if [ -f $<.orig ]; then \
-		${MV} $<.orig $<; \
-	fi
 
 .tex.dvi: latexmk
-	${CAT} $< \
-		$(shell [ "${solutions}" = "no" ] || echo \
-		" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
-		$(shell [ "${handout}" = "no" ] || echo \
-		" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
-		> $<.new
-	if diff -u $< $<.new; then \
-		mv $< $<.orig && mv $<.new $<; \
-	fi
 ifeq (${USE_LATEXMK},yes)
-	${LATEXMK} -dvi ${LATEXFLAGS} ${<:.tex=}
+	${LATEXMK} -dvi ${LATEXFLAGS} $<
 else
-	${LATEX} ${LATEXFLAGS} $<
-ifneq (${USE_BIBLATEX},yes)
-	-${BIBTEX} ${<:.tex=}
+	$(call run_latex, ${PDFLATEX}, $<)
 endif
-	-${MAKEINDEX} -s gind.ist ${<:.tex=}
-	-${MAKEINDEX} ${<:.tex=.nlo} -s nomencl.ist -o ${<:.tex=.nls}
-	while (${LATEX} ${LATEXFLAGS} $<; \
-		grep "Rerun to get cross" ${<:.tex=.log}) \
-		do true; done
-	${LATEX} ${LATEXFLAGS} $<
-endif
-	if [ -f $<.orig ]; then \
-		${MV} $<.orig $<; \
-	fi
 
 .dvi.ps: dvips
 	${DVIPS} $<
@@ -152,6 +151,8 @@ clean-tex: latexmk
 	${RM} *.core *.o *~ *.out
 	${RM} missfont.log *.nav *.snm *.vrb *-eps-converted-to.pdf
 	${RM} *.run.xml *-blx.bib
+	${RM} *.bcf *.fdb_latexmk *.fls
+	${RM} -R pythontex-files-* *.pytxcode *.py.err
 	@-for f in *.tex; do \
 		[ -f $$f.orig ] && mv $$f.orig $$f; \
 	done
@@ -163,22 +164,28 @@ clean-tex: latexmk
 .PHONY: clean
 clean: clean-tex
 
-filecontent = for f in $(1); do ${SED} -i \
+define filecontent
+for f in $(1); do ${SED} -i \
 	"/^%\\\\begin{filecontents\\*\\?}{$$f}/,/^%\\\\end{filecontents\\*\\?}/s/^%//" $(2); \
 	${SED} -i "/^\\\\begin{filecontents\\*\\?}{$$f}/r $$f" $(2); done
+endef
 
-bibliography = ${SED} -i -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1:.tex=.bbl)" -e "}" $(1)
+define bibliography
+${SED} -i -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1:.tex=.bbl)" -e "}" $(1)
+endef
 
-bblcode = "\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begingroup\\\\blx@bblstart\\\\input{\\\\jobname.bbl}\\\\blx@bblend\\\\endgroup\\\\csnumgdef{blx@labelnumber@\\\\the\\\\c@refsection}{0}}\\\\makeatother"
+define bblcode
+\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begingroup\\\\blx@bblstart\\\\input{\\\\jobname.bbl}\\\\blx@bblend\\\\endgroup\\\\csnumgdef{blx@labelnumber@\\\\the\\\\c@refsection}{0}}\\\\makeatother
+endef
 
 .SUFFIXES: .submission.tex
 .tex.submission.tex: sed
 	cp $< $@
-	eval '$(call filecontent,\
+	$(call filecontent,\
 		$(shell ${SED} -n \
 		"s/^%\\\\begin{filecontents\\*\\?}{\\([^}]*\\)}/\\1/p" \
-		$<),$@)'
-	eval '$(call bibliography,$@)'
+		$<),$@)
+	$(call bibliography,$@)
 	${SED} -i "s/^%biblatex-bbl-code/${bblcode}/" $@
 	${SED} -i "s/${@:.tex=}/\\\\jobname/g" $@
 
@@ -188,6 +195,10 @@ bblcode = "\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begin
 
 .PHONY: submission
 submission: ${DOCUMENTS:.pdf=.submission.tex}
+
+.SUFFIXES: .nw .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
+.nw.tex .py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
+	noweave -x -n -delay -t2 $< > $@
 
 ### INCLUDES ###
 

@@ -128,6 +128,14 @@ inkscape:
 	which inkscape || sudo apt-get install inkscape
 endif
 
+.PHONY: noweb
+ifeq (${MAKE},gmake)
+noweb:
+	which noweb || sudo pkg_add noweb 
+else
+noweb:
+	which noweb || sudo apt-get install noweb
+endif
 
 
 .PHONY: update
@@ -160,10 +168,15 @@ rfc.bib:
 		wget -O - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null | \
 		uncompress - > ${@} ; \
 	fi
+	sed -i "s/@misc/@manual/" $@
 
 
 latexmkrc:
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$@
+	if [ -e ${INCLUDE_MAKEFILES}/latexmkrc ]; then \
+		ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@ ; \
+	else \
+		wget https://raw.githubusercontent.com/dbosk/makefiles/master/$@ ; \
+	fi
 
 .PHONY: clean-latexmkrc
 clean-depends: clean-latexmkrc
