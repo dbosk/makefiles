@@ -5,7 +5,7 @@ ifndef MIUN_PUB_MK
 MIUN_PUB_MK=true
 
 SERVER?=	ver.miun.se
-PUBDIR?=	/srv/web/svn
+PUBDIR?=	/srv/web
 CATEGORY?=
 TMPDIR?=	/var/tmp
 

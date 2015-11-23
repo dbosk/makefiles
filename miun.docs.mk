@@ -9,7 +9,7 @@ SOURCES?=	${FILES}
 DOCUMENTS?=	
 PUB_FILES?=	${DOCUMENTS}
 SERVER?=	ver.miun.se
-PUBDIR?=	/srv/web/svn/dokument
+PUBDIR?=	/srv/web/documents
 CATEGORY?=	
 # the documents will be published to $SERVER/$PUBDIR/$CATEGORY
 
