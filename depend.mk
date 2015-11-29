@@ -207,7 +207,7 @@ LLNCS-files+= 	aliascnt.sty
 LLNCS-files+= 	remreset.sty
 
 $(patsubst %,${LLNCS}/%,${LLNCS-files}): ${LLNCS}/llncs2e.zip
-	unzip -DD ${LLNCS}/llncs2e.zip ${@:${LLNCS}/=} -d ${LLNCS}
+	unzip ${LLNCS}/llncs2e.zip ${@:${LLNCS}/=} -d ${LLNCS}
 
 .PHONY: llncs clean-llncs
 llncs: ${LLNCS-files}
@@ -253,7 +253,7 @@ SVMONO-files= 	svind.ist
 SVMONO-files+= 	svmono.cls
 
 $(patsubst %,${SVMONO}/%,${SVMONO-files}): ${SVMONO}/svmono.zip
-	unzip -DD ${SVMONO}/svmono.zip styles/${@:${SVMONO}/=} -d ${SVMONO}
+	unzip ${SVMONO}/svmono.zip styles/${@:${SVMONO}/=} -d ${SVMONO}
 
 .PHONY: svmono clean-svmono
 svmono: $(patsubst %,${SVMONO}/%,${SVMONO-files})
@@ -284,7 +284,7 @@ ${ACMSMALL}/v2-acmsmall.zip:
 	wget -O $@ http://www.acm.org/publications/latex_style/v2-acmsmall.zip
 
 ${ACMSMALL}/acmsmall.cls: ${ACMSMALL}/v2-acmsmall.zip
-	unzip -DD ${ACMSMALL}/v2-acmsmall.zip acmsmall.cls -d ${ACMSMALL}
+	unzip ${ACMSMALL}/v2-acmsmall.zip acmsmall.cls -d ${ACMSMALL}
 
 .PHONY: acmsmall clean-acmsmall
 acmsmall: ${ACMSMALL}/acmsmall.cls
@@ -301,7 +301,7 @@ ${ACMLARGE}/v2-acmlarge.zip:
 	wget -O $@ http://www.acm.org/publications/latex_style/v2-acmlarge.zip
 
 ${ACMLARGE}/acmlarge.cls: ${ACMLARGE}/v2-acmlarge.zip
-	unzip -DD ${ACMLARGE}/v2-acmlarge.zip acmlarge.cls -d ${ACMLARGE}
+	unzip ${ACMLARGE}/v2-acmlarge.zip acmlarge.cls -d ${ACMLARGE}
 
 .PHONY: acmlarge clean-acmlarge
 acmlarge: ${ACMLARGE}/acmlarge.cls
