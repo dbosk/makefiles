@@ -15,10 +15,12 @@ MV?=		mv
 SED?=		sed
 SEDex?=		sed -E
 CAT?=		cat
+WC?= 		wc -w
 
 # variables used to compile LaTeX documents
 LATEX?=		latex
 PDFLATEX?=	pdflatex
+DETEXT?= 	detex
 LATEXMK?= 	latexmk ${LATEXMKRC} -bibtex-cond
 LATEXMKRC?= 
 DVIPS?=		dvips
@@ -200,6 +202,11 @@ submission: ${DOCUMENTS:.pdf=.submission.tex}
 .SUFFIXES: .nw .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
 .nw.tex .py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
 	noweave -x -n -delay -t2 $< > $@
+
+.PHONY: wc
+wc:
+	for f in $^; do echo -n "$${f}: "; ${DETEX} $${f} | ${WC}; done
+
 
 ### INCLUDES ###
 
