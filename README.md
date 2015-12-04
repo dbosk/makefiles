@@ -93,6 +93,7 @@ The dependencies for these files to work are the following programs:
  - GNU make(1),
  - pax(1),
  - wget(1),
+ - unzip(1),
  - latex(1),
  - pdflatex(1),
  - latexmk(1L),
@@ -103,3 +104,21 @@ The dependencies for these files to work are the following programs:
 Either you install these manually or they will be installed automatically when 
 needed through the use of `depend.mk`.  You will need sudo(8) privileges to 
 install them.
+
+
+For Mac users
+-------------------------------------------------------------------------------
+
+Since Apple is using an old version of Info-ZIP's unzip(1) command in the OS 
+X systems, you will be caused much grievance.  By default `depend.mk` uses 
+`unzip -DD` to extract dependencies, this causes timestamps of the extracted 
+files to be that of extraction instead of what is stored in the zip file.  The 
+benefit of this is that the extracted files will be newer than the zip file, 
+hence make(1) won't try to rebuild them.  In the old version of unzip(1) used 
+by OS X, the `-DD` option doesn't exist.  As a consequence you'll be asked if 
+you'd like to overwrite the extracted files --- every time you recompile.  So 
+if you use a Mac, run make(1) as follows:
+
+```
+$ UNZIP=unzip make ...
+```

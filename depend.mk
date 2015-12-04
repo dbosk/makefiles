@@ -4,8 +4,14 @@
 ifndef DEPEND_MK
 DEPEND_MK=true
 
-CONF?= 	${HOME}/.mk.conf
+CONF?= 	${HOME}/.mk.conf /etc/mk.conf
 -include ${CONF}
+
+ifeq ($(shell uname),Linux)
+UNZIP?= unzip -DD
+else
+UNZIP?= unzip
+endif
 
 .PHONY: dvips
 ifeq (${MAKE},gmake)
@@ -207,7 +213,7 @@ LLNCS-files+= 	aliascnt.sty
 LLNCS-files+= 	remreset.sty
 
 $(patsubst %,${LLNCS}/%,${LLNCS-files}): ${LLNCS}/llncs2e.zip
-	unzip ${LLNCS}/llncs2e.zip ${@:${LLNCS}/=} -d ${LLNCS}
+	${UNZIP} ${LLNCS}/llncs2e.zip ${@:${LLNCS}/=} -d ${LLNCS}
 
 .PHONY: llncs clean-llncs
 llncs: ${LLNCS-files}
@@ -253,7 +259,7 @@ SVMONO-files= 	svind.ist
 SVMONO-files+= 	svmono.cls
 
 $(patsubst %,${SVMONO}/%,${SVMONO-files}): ${SVMONO}/svmono.zip
-	unzip ${SVMONO}/svmono.zip styles/${@:${SVMONO}/=} -d ${SVMONO}
+	${UNZIP} ${SVMONO}/svmono.zip styles/${@:${SVMONO}/=} -d ${SVMONO}
 
 .PHONY: svmono clean-svmono
 svmono: $(patsubst %,${SVMONO}/%,${SVMONO-files})
@@ -284,7 +290,7 @@ ${ACMSMALL}/v2-acmsmall.zip:
 	wget -O $@ http://www.acm.org/publications/latex_style/v2-acmsmall.zip
 
 ${ACMSMALL}/acmsmall.cls: ${ACMSMALL}/v2-acmsmall.zip
-	unzip ${ACMSMALL}/v2-acmsmall.zip acmsmall.cls -d ${ACMSMALL}
+	${UNZIP} ${ACMSMALL}/v2-acmsmall.zip acmsmall.cls -d ${ACMSMALL}
 
 .PHONY: acmsmall clean-acmsmall
 acmsmall: ${ACMSMALL}/acmsmall.cls
@@ -301,7 +307,7 @@ ${ACMLARGE}/v2-acmlarge.zip:
 	wget -O $@ http://www.acm.org/publications/latex_style/v2-acmlarge.zip
 
 ${ACMLARGE}/acmlarge.cls: ${ACMLARGE}/v2-acmlarge.zip
-	unzip ${ACMLARGE}/v2-acmlarge.zip acmlarge.cls -d ${ACMLARGE}
+	${UNZIP} ${ACMLARGE}/v2-acmlarge.zip acmlarge.cls -d ${ACMLARGE}
 
 .PHONY: acmlarge clean-acmlarge
 acmlarge: ${ACMLARGE}/acmlarge.cls
