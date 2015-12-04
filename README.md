@@ -25,8 +25,18 @@ to use gmake(1) on a BSD system than try to find _the_ BSD make(1) in a GNU
 system.
 
 The usage is to include the relevant .mk-files in your Makefile, set the 
-variables and then build the relevant target.  The files on the form 
-`miun.*.mk` have specific defaults for my colleagues at Mid Sweden University.
+variables and then build the relevant target.  For example, add
+
+```Makefile
+INCLUDE_MAKEFILES=makefiles
+include ${INCLUDE_MAKEFILES}/subdir.mk
+include ${INCLUDE_MAKEFILES}/tex.mk
+```
+
+to the end of your `Makefile`.  More on this in the next section.
+
+The files on the form `miun.*.mk` have the old defaults for my colleagues at 
+Mid Sweden University.
 
 
 Dependencies and installation
