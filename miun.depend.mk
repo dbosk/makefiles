@@ -27,7 +27,6 @@ ${miunmisc-depend} ${logo-depend}:
 
 MIUNMISC_FILES= 	MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
 MIUNMISC_FILES+= 	MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
-MIUNMISC_FILES+= 	miunmisc.ins miunmisc.dtx
 
 ifdef INCLUDE_MIUNTEX
 $(foreach f,${MIUNMISC_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunmisc/$f))
@@ -37,10 +36,6 @@ else
 ${MIUNMISC_FILES}:
 	wget -O $@ ${CURRENT_URL}/$@
 endif
-
-miunmisc.pdf miunmisc.ps: miunmisc.dtx
-miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict: miunmisc.ins
-miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict: miunmisc.dtx
 
 .PHONY: miunmisc miunlogo
 miunlogo: MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
