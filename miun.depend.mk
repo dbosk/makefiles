@@ -7,6 +7,8 @@ MIUN_DEPEND_MK=true
 CONF?= 	/etc/mk.conf
 -include ${CONF}
 
+CURRENT_URL=https://github.com/dbosk/miuntex/releases/download/v1.0
+
 
 .PHONY: clean-depends
 
@@ -33,7 +35,7 @@ ${MIUNMISC_FILES}:
 	ln -s $^ $@
 else
 ${MIUNMISC_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunmisc/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 miunmisc.pdf miunmisc.ps: miunmisc.dtx
@@ -74,7 +76,7 @@ ${MIUNART_FILES}:
 	ln -s $^ $@
 else
 ${MIUNART_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunart/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunart
@@ -103,7 +105,7 @@ ${MIUNASGN_FILES}:
 	ln -s $^ $@
 else
 ${MIUNASGN_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunasgn/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunasgn
@@ -132,7 +134,7 @@ ${MIUNEXAM_FILES}:
 	ln -s $^ $@
 else
 ${MIUNEXAM_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunexam/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunexam
@@ -154,7 +156,7 @@ ${miunlett-depend}:
 	cd /tmp/miunlett && ${MAKE} install
 
 miunlett.cls:
-	wget -O $@ http://ver.miun.se/latex/miunlett/$@
+	wget -O $@ ${CURRENT_URL}/$@
 
 .PHONY: miunlett
 miunlett: miunlett.cls miunlogo
@@ -182,7 +184,7 @@ ${MIUNPROT_FILES}:
 	ln -s $^ $@
 else
 ${MIUNPROT_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunprot/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunprot
@@ -211,7 +213,7 @@ ${MIUNTHES_FILES}:
 	ln -s $^ $@
 else
 ${MIUNTHES_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunthes/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunthes
