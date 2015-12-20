@@ -18,7 +18,7 @@ PKG_DIR-$(1)?= 			${INSTALLDIR}
 
 # these will usually not need any changes
 PKG_TARBALL-$(1)?=		${PKG_NAME-$(1)}.tar.gz
-PKG_TARBALL_FILES-$(1)?=${PKG_FILES-$(1)}
+PKG_TARBALL_FILES-$(1)?=${PKG_FILES-$(1)} ${TARBALL_FILES}
 PKG_IGNORE-$(1)?= 		${IGNORE_FILES}
 endef
 
