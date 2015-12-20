@@ -27,6 +27,7 @@ ${miunmisc-depend} ${logo-depend}:
 
 MIUNMISC_FILES= 	MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
 MIUNMISC_FILES+= 	MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
+MIUNMISC_FILES+= 	miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict
 
 ifdef INCLUDE_MIUNTEX
 $(foreach f,${MIUNMISC_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunmisc/$f))
