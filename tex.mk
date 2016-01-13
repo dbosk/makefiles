@@ -20,7 +20,7 @@ WC?= 		wc -w
 # variables used to compile LaTeX documents
 LATEX?=		latex
 PDFLATEX?=	pdflatex
-DETEXT?= 	detex
+DETEX?= 	detex
 LATEXMK?= 	latexmk ${LATEXMKRC} -bibtex-cond
 LATEXMKRC?= 
 DVIPS?=		dvips
