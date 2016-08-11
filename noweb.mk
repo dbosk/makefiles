@@ -11,11 +11,17 @@
 .nw.h .c.nw.h .nw.hpp .cpp.nw.hpp .nw.hxx .cxx.nw.hxx: noweb
 	notangle -R$@ $< | cpif $@
 
-# implicit rules for Python and make(1) includes
-.SUFFIXES: .py.nw .mk.nw
-.SUFFIXES: .py .mk
-.nw.py .py.nw.py .nw.mk .mk.nw.mk: noweb
+# implicit rules for Python
+.SUFFIXES: .py.nw
+.SUFFIXES: .py
+.nw.py .py.nw.py: noweb
 	notangle -R$@ $< | cpif $@
+
+# implicit rules for make(1) includes
+.SUFFIXES: .mk.nw
+.SUFFIXES: .mk
+.nw.mk .mk.nw.mk: noweb
+	notangle -t2 -R$@ $< | cpif $@
 
 
 INCLUDE_MAKEFILES?=.
