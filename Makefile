@@ -1,10 +1,18 @@
 # $Id$
 # Author: Daniel Bosk <daniel.bosk@miun.se>
 
-MKFILES=		miun.docs.mk miun.tex.mk miun.subdir.mk
+MKFILES+=		miun.docs.mk miun.tex.mk miun.subdir.mk
 MKFILES+=		miun.package.mk miun.pub.mk miun.course.mk
 MKFILES+=		miun.export.mk miun.results.mk latexmkrc
 MKFILES+=		miun.depend.mk
+
+.PHONY: all
+all: ${MKFILES} makefiles.pdf
+
+makefiles.pdf: makefiles.tex
+
+miun.results.mk miun.results.tex: miun.results.mk.nw
+makefiles.pdf: miun.results.tex
 
 .PHONY: miun
 miun: ${MKFILES}
@@ -39,3 +47,5 @@ include ${INCLUDE_MAKEFILES}/depend.mk
 include ${INCLUDE_MAKEFILES}/pub.mk
 include ${INCLUDE_MAKEFILES}/package.mk
 include ${INCLUDE_MAKEFILES}/miun.port.mk
+include ${INCLUDE_MAKEFILES}/tex.mk
+include ${INCLUDE_MAKEFILES}/noweb.mk
