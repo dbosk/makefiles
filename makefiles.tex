@@ -1,0 +1,35 @@
+\documentclass{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[british]{babel}
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\usepackage[capitalize]{cleveref}
+\usepackage{csquotes}
+\usepackage{authblk}
+
+\usepackage{noweb}
+% Needed to relax penalty for breaking code chunks across pages, otherwise 
+% there might be a lot of space following a code chunk.
+\def\nwendcode{\endtrivlist \endgroup}
+\let\nwdocspar=\smallbreak
+
+\title{Portable general-purpose makefiles}
+\author{Daniel Bosk}
+\affil{%
+  School of Computer Science and Communication\\
+  KTH Royal Institute of Technology, Stockholm
+}
+\affil{%
+  Department of Information and Communication Systems\\
+  Mid Sweden University, Sundsvall
+}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\chapter{miun.results.mk}
+\input{miun.results.tex}
+
+\end{document}
