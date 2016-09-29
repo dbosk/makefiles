@@ -143,6 +143,15 @@ noweb:
 	which noweb || sudo apt-get install noweb
 endif
 
+.PHONY: pandoc
+ifeq (${MAKE},gmake)
+pandoc:
+	which pandoc || sudo pkg_add pandoc
+else
+pandoc:
+	which pandoc || sudo apt install pandoc
+endif
+
 
 .PHONY: update
 

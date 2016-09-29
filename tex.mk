@@ -207,6 +207,10 @@ submission: ${DOCUMENTS:.pdf=.submission.tex}
 .py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
 	noweave -x -n -t2 $< > $@
 
+.SUFFIXES: .md
+.md.tex: pandoc
+	pandoc $< -t latex -o $@
+
 .PHONY: wc
 wc:
 	for f in $^; do echo -n "$${f}: "; ${DETEX} $${f} | ${WC}; done
