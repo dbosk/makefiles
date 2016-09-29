@@ -19,7 +19,7 @@ dvips:
 	which dvips || sudo pkg_add ghostscript
 else
 dvips:
-	which dvips || sudo apt-get install texlive-full
+	which dvips || sudo apt install texlive-full
 endif
 
 .PHONY: pdf2ps
@@ -28,7 +28,7 @@ pdf2ps:
 	which pdf2ps || sudo pkg_add ghostscript
 else
 pdf2ps:
-	which pdf2ps || sudo apt-get install texlive-full
+	which pdf2ps || sudo apt install texlive-full
 endif
 
 .PHONY: latex
@@ -37,7 +37,7 @@ latex:
 	which latex || sudo pkg_add texlive_texmf-full
 else
 latex:
-	which latex || sudo apt-get install texlive-full
+	which latex || sudo apt install texlive-full
 endif
 
 .PHONY: latexmk
@@ -46,7 +46,7 @@ latexmk:
 	which latexmk || sudo pkg_add latexmk
 else
 latexmk:
-	which latexmk || sudo apt-get install latexmk
+	which latexmk || sudo apt install latexmk
 endif
 
 .PHONY: pax
@@ -55,7 +55,7 @@ pax:
 	which pax
 else
 pax:
-	which pax || sudo apt-get install pax
+	which pax || sudo apt install pax
 endif
 
 .PHONY: sed
@@ -86,7 +86,7 @@ git:
 	which git || sudo pkg_add git git-svn
 else
 git:
-	which git || sudo apt-get install git git-svn
+	which git || sudo apt install git git-svn
 endif
 
 .PHONY: wget
@@ -95,7 +95,7 @@ wget:
 	which wget || sudo pkg_add wget
 else
 wget:
-	which wget || sudo apt-get install wget
+	which wget || sudo apt install wget
 endif
 
 .PHONY: localc
@@ -104,7 +104,7 @@ localc:
 	which localc || sudo pkg_add libreoffice
 else
 localc:
-	which localc || sudo apt-get install libreoffice
+	which localc || sudo apt install libreoffice
 endif
 
 .PHONY: soffice
@@ -113,7 +113,7 @@ soffice:
 	which soffice || sudo pkg_add libreoffice
 else
 soffice:
-	which soffice || sudo apt-get install libreoffice
+	which soffice || sudo apt install libreoffice
 endif
 
 .PHONY: dia
@@ -122,7 +122,7 @@ dia:
 	which dia || sudo pkg_add dia
 else
 dia:
-	which dia || sudo apt-get install dia
+	which dia || sudo apt install dia
 endif
 
 .PHONY: inkscape
@@ -131,7 +131,7 @@ inkscape:
 	which inkscape || sudo pkg_add inkscape 
 else
 inkscape:
-	which inkscape || sudo apt-get install inkscape
+	which inkscape || sudo apt install inkscape
 endif
 
 .PHONY: noweb
@@ -140,7 +140,7 @@ noweb:
 	which noweb || sudo pkg_add noweb 
 else
 noweb:
-	which noweb || sudo apt-get install noweb
+	which noweb || sudo apt install noweb
 endif
 
 .PHONY: pandoc
