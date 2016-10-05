@@ -203,8 +203,9 @@ submission: ${DOCUMENTS:.pdf=.submission.tex}
 .nw.tex: noweb
 	noweave -x -n -delay -t2 $< > $@
 
-.SUFFIXES: .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
-.py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
+NOWEB_SUFFIXES+= .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw .hs.nw
+.SUFFIXES: ${NOWEB_SUFFIXES}
+$(foreach suffix,${NOWEB_SUFFIXES},${suffix}.tex): noweb
 	noweave -x -n -t2 $< > $@
 
 .SUFFIXES: .md
