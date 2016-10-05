@@ -23,6 +23,12 @@
 .nw.mk .mk.nw.mk: noweb
 	notangle -t2 -R$@ $< | cpif $@
 
+# implicit rules for haskell
+.SUFFIXES: .hs.nw
+.SUFFIXES: .hs
+.nw.hs .hs.nw.hs:
+	notangle -t2 -L -R$@ $< | cpif $@
+
 
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/depend.mk
