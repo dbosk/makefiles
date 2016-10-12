@@ -29,56 +29,49 @@ RESULTS_REWRITES+=  "s/\"//g"
 RESULTS_FAILED?=      -\|Fx\?\|U
 RESULTS_FAILED_regex= "\( \|	\|,\)\"\?\(${RESULTS_FAILED}\)\"\?\(	.*\)*$$"
 RESULTS_COLUMNS?=   4
-define store
-${RM} $(2) && \
-${CUT} -f 1-3,5- $(1) | \
-	${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
-	$(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
-	$(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) > $(2)
-endef
 .PHONY: report
 report:
-	if [ ! -s ${out}.new ]; then \
+	if [ ! -s ${out}.diff ]; then \
 	  echo "No new results to report" >&2; \
 	else \
 	  ${PAGER} ${report}; \
 	  ${RESULTS_MAILER} && \
-	  $(call store,${in},${out}); \
+	  ${MV} ${out}.new ${out}; \
 	fi
 .PHONY: clean clean-results
 clean: clean-results
 clean-results:
 	${RM} ${out}.new
-	${RM} ${out}.new ${out}.new.id
+	${RM} ${out}.diff ${out}.diff.id
 	${RM} ${report:.pdf=.csv}
 	${RM} ${report}
 ${out}.new: ${in}
-	${GREP} -v "^.\?First \?name" ${in} | \
-	${CUT} -f 1-3,5- | \
-	${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
-	$(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
-	$(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) | \
+	${CUT} -f 1-3,6- ${in} | \
+	${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" \
+	$(if ${RESULTS_REWRITES},| ${SED} "s/ //g", ) \
+	$(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) \
+	> $@
+${out}.diff: ${out}.new
+	${GREP} -v "^.\?First \?name" ${out}.new | \
 	$(if ${RESULTS_FAILED},${GREP} -v ${RESULTS_FAILED_regex} |,) \
-	${DIFF} ${@:.new=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
-${out}.new: ${out}
+	${DIFF} ${@:.diff=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
+${out}.diff: ${out}
 ${out}:
 	[ -r $@ ] || ${LN} -s /dev/null $@
-.SUFFIXES: .csv .csv.new .csv.new.id
-.csv.new.csv.new.id:
-		@echo "---- userids showed in ${PAGER} ----"
-	  ${CAT} $< | ${CUT} -f 3 | ${PAGER}
-	  @echo "---- paste username <tab> personnummer, end with C-d on a blank line (EOF) ----"
-		${CAT} > $@
+.SUFFIXES: .csv .csv.diff .csv.diff.id
+.csv.diff.csv.diff.id:
+	@echo "---- userids showed in ${PAGER} ----"
+	${CAT} $< | ${CUT} -f 3 | ${PAGER}
+	@echo "---- paste username <tab> personnummer, end with C-d on a blank line (EOF) ----"
+	${CAT} > $@
 .SUFFIXES: .csv .pdf
 .csv.pdf:
 	${LOCALC} $<
 ${report:.csv=.pdf}: ${report:.pdf=.csv}
-${report:.pdf=.csv}: ${in} ${out}.new ${out}.new.id
-	${HEAD} -n 1 ${in} | ${CUT} -f 1-2,5- | ${SED} "s/^/Personnr	/" | \
-	  $(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
-	  $(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) | \
+${report:.pdf=.csv}: ${in} ${out}.diff ${out}.diff.id
+	${HEAD} -n 1 ${out}.new | \
 	  ${CUT} -f -${RESULTS_COLUMNS} > $@
-	${JOIN} -1 1 -2 3 ${out}.new.id ${out}.new | ${CUT} -d " " -f 2- | \
+	${JOIN} -1 1 -2 3 ${out}.diff.id ${out}.diff | ${CUT} -d " " -f 2- | \
 	  ${SORT} -k 2 | ${CUT} -d " " -f -${RESULTS_COLUMNS} >> $@
 .PHONY: report
 report: ${report} ${in}
