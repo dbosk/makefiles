@@ -148,9 +148,9 @@ We are not interested in the headers of the table in [[${in}]], so we skip that
 line.
 <<new recipie>>=
 ${GREP} -v "^.\?First \?name" ${in} | \
-@ The columns we are interested in are 1--3 and 5 to the end.
+@ The columns we are interested in are 1--3 and 6 to the end.
 <<new recipie>>=
-${CUT} -f 1-3,5- | \
+${CUT} -f 1-3,6- | \
 @ For some reason the students' usernames are appended to their lastnames --- 
 in addition to having a separate column for usernames.
 Obviously we want to filter this away.
@@ -275,7 +275,7 @@ ${RM} ${report:.pdf=.csv}
 The first thing we do to generate the report is to cut and paste the header to 
 a proper format (fitting our adaptions of the data above).
 <<report.csv recipie>>=
-${HEAD} -n 1 ${in} | ${CUT} -f 1-2,5- | ${SED} "s/^/Personnr	/" | \
+${HEAD} -n 1 ${in} | ${CUT} -f 1-2,6- | ${SED} "s/^/Personnr	/" | \
   $(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
   $(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) | \
   ${CUT} -f -${RESULTS_COLUMNS} > $@

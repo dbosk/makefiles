@@ -54,7 +54,7 @@ clean-results:
 	${RM} ${report}
 ${out}.new: ${in}
 	${GREP} -v "^.\?First \?name" ${in} | \
-	${CUT} -f 1-3,5- | \
+	${CUT} -f 1-3,6- | \
 	${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
 	$(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
 	$(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) | \
@@ -74,7 +74,7 @@ ${out}:
 	${LOCALC} $<
 ${report:.csv=.pdf}: ${report:.pdf=.csv}
 ${report:.pdf=.csv}: ${in} ${out}.new ${out}.new.id
-	${HEAD} -n 1 ${in} | ${CUT} -f 1-2,5- | ${SED} "s/^/Personnr	/" | \
+	${HEAD} -n 1 ${in} | ${CUT} -f 1-2,6- | ${SED} "s/^/Personnr	/" | \
 	  $(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
 	  $(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) | \
 	  ${CUT} -f -${RESULTS_COLUMNS} > $@
