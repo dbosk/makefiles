@@ -76,7 +76,7 @@ report and emails it to the designated address above.
 <<targets>>=
 .PHONY: report
 report:
-	<<report recipie>>
+	<<report recipe>>
 @
 
 Finally, we also provide a way to clean up all temporary files.
@@ -87,8 +87,8 @@ is specified in the [[Makefile]].
 .PHONY: clean clean-results
 clean: clean-results
 clean-results:
-	<<clean recipie>>
-@ We will populate the [[<<clean recipie>>]] as we go.
+	<<clean recipe>>
+@ We will populate the [[<<clean recipe>>]] as we go.
 
 \subsection{Portability}
 
@@ -128,34 +128,32 @@ national database (\cref{ChangingIdentifiers}).
 Then we can send the report and update our local representation of what is 
 reported to the national database, i.e.\ [[${out}]].
 
-\subsection{Extracting the changes}
-\label{FindingChanges}
+\subsection{Transforming Moodle's output}
 
-We do not want to overwrite the old output file, because we want to find the 
-difference so that we can generate the report to send.
-So we create a temporary file [[${out}.new]] based on [[${in}]].
+The first thing we need to do is to transform Moodle's output.
+The output format varies a lot, it changes with the mood of the system 
+administrator.
+So the code in this section changes the most.
+
+We will now create a temporary file [[${out}.diff]] based on [[${in}]].
 <<targets>>=
 ${out}.new: ${in}
-	<<new recipie>>
-@ This means we should also add [[${out}.new]] to the recipie of clean.
-<<clean recipie>>=
+	<<new recipe>>
+@ This means we should also add [[${out}.diff]] to the recipe of clean.
+<<clean recipe>>=
 ${RM} ${out}.new
 @
 
 We are now going to process the data, we will do this by piping the data 
 through a series of commands.
-We are not interested in the headers of the table in [[${in}]], so we skip that
-line.
-<<new recipie>>=
-${GREP} -v "^.\?First \?name" ${in} | \
-@ The columns we are interested in are 1--3 and 6 to the end.
-<<new recipie>>=
-${CUT} -f 1-3,6- | \
+The columns we are interested in are 1--3 and 6 to the end.
+<<new recipe>>=
+${CUT} -f 1-3,6- ${in} | \
 @ For some reason the students' usernames are appended to their lastnames --- 
 in addition to having a separate column for usernames.
 Obviously we want to filter this away.
-<<new recipie>>=
-${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
+<<new recipe>>=
+${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" \
 @
 
 Some of the data in Moodle are quite long, so we would like to do some 
@@ -166,9 +164,10 @@ We store this list as a space separated list of regular expressions in
 [[${RESULTS_REWRITES}]].
 This means that we also must avoid spaces in the regular expressions, thus the 
 first thing we do is to remove all spaces in the data.
-<<new recipie>>=
-$(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
-$(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) | \
+<<new recipe>>=
+$(if ${RESULTS_REWRITES},| ${SED} "s/ //g", ) \
+$(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) \
+> $@
 @ We let the default rewrites be
 <<variables>>=
 RESULTS_REWRITES+=  "s/Godkänd(G)/G/g" "s/Underkänd(U)/U/g"
@@ -176,7 +175,23 @@ RESULTS_REWRITES+=  "s/Komplettering(Fx)/Fx/g"
 RESULTS_REWRITES+=  "s/\"//g"
 @
 
-We are not interested in reporting students' failed results, so we filter out 
+\subsection{Extracting the changes}
+\label{FindingChanges}
+
+Now we want to find what has changed since the last time we exported the 
+grades.
+For this we will create a file [[${out}.diff]] which contains only the changed 
+rows.
+<<targets>>=
+${out}.diff: ${out}.new
+	<<diff recipe>>
+@
+
+We are not interested in the headers of the table, so we skip that
+line.
+<<diff recipe>>=
+${GREP} -v "^.\?First \?name" ${out}.new | \
+@ We are not interested in reporting students' failed results, so we filter out 
 those.
 In [[${RESULTS_FAILED}]] we keep a regular expression for the grades that shall
 be removed.
@@ -185,7 +200,7 @@ We then use [[${RESULTS_FAILED_regex}]] to match against the data.
 RESULTS_FAILED?=      -\|Fx\?\|U
 RESULTS_FAILED_regex= "\( \|	\|,\)\"\?\(${RESULTS_FAILED}\)\"\?\(	.*\)*$$"
 @ The code to filter the data will thus be:
-<<new recipie>>=
+<<diff recipe>>=
 $(if ${RESULTS_FAILED},${GREP} -v ${RESULTS_FAILED_regex} |,) \
 @
 
@@ -193,12 +208,13 @@ Finally, we want to compare this result with the old result and keep only the
 modified lines.
 For the convenience of the secretaries we will also sort the data on the third 
 column (i.e.\ family name).
-<<new recipie>>=
-${DIFF} ${@:.new=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
+<<diff recipe>>=
+${DIFF} ${@:.diff=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
 @ Due to the difference comparison we require that the new file depends on the 
-old file, and that the old file actually exists.
+old file, and that the old file actually exists, so we add this as 
+a dependency.
 <<targets>>=
-${out}.new: ${out}
+${out}.diff: ${out}
 @ We will have to ensure that the old file exists, i.e.\ create it if it does 
 not exist.
 We need it for comparisons, an empty file perfectly represents previously
@@ -217,33 +233,33 @@ their civic registration number.
 What we want to do here is to extract the username from the exported data, then
 supply the corresponding civic registration numbers.
 We are only interested in the usernames of those students for whom the results 
-changed, so we can use the [[${out}.new]] file from above.
+changed, so we can use the [[${out}.diff]] file from above.
 
 In this case we can use one of make's suffix-based constructions.
-We will take a file with suffix \enquote{.csv.new} and create a file 
-\enquote{.csv.new.id}.
+We will take a file with suffix \enquote{.csv.diff} and create a file 
+\enquote{.csv.diff.id}.
 <<targets>>=
-.SUFFIXES: .csv .csv.new .csv.new.id
-.csv.new.csv.new.id:
-	<<identifier recipie>>
+.SUFFIXES: .csv .csv.diff .csv.diff.id
+.csv.diff.csv.diff.id:
+	<<identifier recipe>>
 @ Now we want to extract the usernames and get the identifiers from the 
 national database.
 We simply extract the list of usernames (the third column in the data) and pipe
 it to a pager.
-<<identifier recipie>>=
-	@echo "---- userids showed in ${PAGER} ----"
-  ${CAT} $< | ${CUT} -f 3 | ${PAGER}
+<<identifier recipe>>=
+@echo "---- userids showed in ${PAGER} ----"
+${CAT} $< | ${CUT} -f 3 | ${PAGER}
 @ Now we let the user paste the list of both identifiers.
-<<identifier recipie>>=
-  @echo "---- paste username <tab> personnummer, end with C-d on a blank line (EOF) ----"
-	${CAT} > $@
+<<identifier recipe>>=
+@echo "---- paste username <tab> personnummer, end with C-d on a blank line (EOF) ----"
+${CAT} > $@
 @
 
 \subsection{Generating the report}
 \label{GeneratingReport}
 
-Now we have the changes in [[${out}.new]] and a mapping from usernames to civic
-registration numbers in [[${out}.new.id]].
+Now we have the changes in [[${out}.diff]] and a mapping from usernames to 
+civic registration numbers in [[${out}.diff.id]].
 To create the report, we only have to join these files and convert the result 
 to PDF format.
 
@@ -259,32 +275,32 @@ ${report:.csv=.pdf}: ${report:.pdf=.csv}
 @
 
 The above target lets us create a PDF-formatted report from a CSV-file, so now 
-we have to create that CSV-file using [[${out}.new]] and [[${out}.new.id]].
+we have to create that CSV-file using [[${out}.diff]] and [[${out}.diff.id]].
 We also need the table headers from [[${in}]].
 <<targets>>=
-${report:.pdf=.csv}: ${in} ${out}.new ${out}.new.id
-	<<report.csv recipie>>
+${report:.pdf=.csv}: ${in} ${out}.diff ${out}.diff.id
+	<<report.csv recipe>>
 @ Since the target for [[report.csv]] will automatically generate 
-[[${out}.new]] and [[${out}.new.id]] we would better add them to the clean 
-recipie in addition to the [[${report:.pdf=.csv}]] file.
-<<clean recipie>>=
-${RM} ${out}.new ${out}.new.id
+[[${out}.diff]] and [[${out}.diff.id]] we would better add them to the clean 
+recipe in addition to the [[${report:.pdf=.csv}]] file.
+<<clean recipe>>=
+${RM} ${out}.diff ${out}.diff.id
 ${RM} ${report:.pdf=.csv}
 @
 
-The first thing we do to generate the report is to cut and paste the header to 
-a proper format (fitting our adaptions of the data above).
-<<report.csv recipie>>=
-${HEAD} -n 1 ${in} | ${CUT} -f 1-2,6- | ${SED} "s/^/Personnr	/" | \
-  $(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
-  $(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) | \
+Now we want the header back, so we can get it properly formatted from 
+[[${out}.new]].
+However, we do not want all the excess columns for the grades: we only need one
+column with a summary.
+<<report.csv recipe>>=
+${HEAD} -n 1 ${out}.new | \
   ${CUT} -f -${RESULTS_COLUMNS} > $@
-@ Lastly, we simply join the two tables on the username column and sort the 
-list on the column of the family name.
-Finally, we want to cut excess columns, the number of columns is controlled by 
-[[${RESULTS_COLUMNS}]].
-<<report.csv recipie>>=
-${JOIN} -1 1 -2 3 ${out}.new.id ${out}.new | ${CUT} -d " " -f 2- | \
+@ Next, we simply join the two tables on the username column and sort the list 
+on the column of the family name.
+We want to cut the excess columns here as well, the number of columns is 
+controlled by [[${RESULTS_COLUMNS}]].
+<<report.csv recipe>>=
+${JOIN} -1 1 -2 3 ${out}.diff.id ${out}.diff | ${CUT} -d " " -f 2- | \
   ${SORT} -k 2 | ${CUT} -d " " -f -${RESULTS_COLUMNS} >> $@
 @ By default we let the default number of columns be four, i.e.\ first and last 
 name, civic identification number and finally one grade.
@@ -301,37 +317,25 @@ As stated in \cref{Intro} we have a target [[report]] for this purpose.
 .PHONY: report
 report: ${report} ${in}
 @ Since this will trigger the creation of [[${report}]] we must add it to the 
-clean recipie.
-<<clean recipie>>=
+clean recipe.
+<<clean recipe>>=
 ${RM} ${report}
 @
 
 If there are no new results, then we do not want to send any report.
 The first thing we do is thus to check for new results.
 If there are none, we will say so to the user.
-<<report recipie>>=
-if [ ! -s ${out}.new ]; then \
+<<report recipe>>=
+if [ ! -s ${out}.diff ]; then \
   echo "No new results to report" >&2; \
 @ Otherwise, if there are new results, we will output them using the pager and 
 then send them using the email program.
 If the emailing succeeds, then we want to store the results, but not if it 
 fails (hence the conditional).
-<<report recipie>>=
+<<report recipe>>=
 else \
   ${PAGER} ${report}; \
   ${RESULTS_MAILER} && \
-  $(call store,${in},${out}); \
+  ${MV} ${out}.new ${out}; \
 fi
-@ The call to store the file [[${in}]] as the file [[${out}]], i.e.\ to 
-overwrite the old [[${out}]] with the new [[${in}]], performs the same 
-transformations as we did above.
-<<variables>>=
-define store
-${RM} $(2) && \
-${CUT} -f 1-3,5- $(1) | \
-	${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" | \
-	$(if ${RESULTS_REWRITES},${SED} "s/ //g",) \
-	$(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) > $(2)
-endef
 @
-
