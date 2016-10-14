@@ -211,6 +211,10 @@ submission: ${DOCUMENTS:.pdf=.submission.tex}
 wc:
 	for f in $^; do echo -n "$${f}: "; ${DETEX} $${f} | ${WC}; done
 
+.SUFFIXES: .md
+.md.tex:
+	pandoc -f markdown -t latex $< > $@
+
 
 ### INCLUDES ###
 
