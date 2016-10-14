@@ -9,7 +9,7 @@ MKFILES+=		miun.depend.mk
 .PHONY: all
 all: ${MKFILES} makefiles.pdf
 
-makefiles.pdf: makefiles.tex
+makefiles.pdf: makefiles.tex intro.tex
 
 makefiles.pdf: exam.tex
 all: exam.mk
