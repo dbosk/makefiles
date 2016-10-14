@@ -11,8 +11,14 @@ all: ${MKFILES} makefiles.pdf
 
 makefiles.pdf: makefiles.tex
 
-miun.results.mk miun.results.tex: miun.results.mk.nw
+makefiles.pdf: exam.tex
+all: exam.mk
+exam.mk exam.tex: exam.mk.nw
+
 makefiles.pdf: miun.results.tex
+all: miun.results.mk
+miun.results.mk miun.results.tex: miun.results.mk.nw
+
 
 .PHONY: miun
 miun: ${MKFILES}

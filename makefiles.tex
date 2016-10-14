@@ -8,13 +8,30 @@
 \usepackage{csquotes}
 \usepackage{authblk}
 
+\usepackage{listings}
+\lstset{%
+  numbers=left,
+  basicstyle=\small
+}
+
 \usepackage{noweb}
 % Needed to relax penalty for breaking code chunks across pages, otherwise 
 % there might be a lot of space following a code chunk.
 \def\nwendcode{\endtrivlist \endgroup}
 \let\nwdocspar=\smallbreak
 
-\title{Portable general-purpose makefiles}
+\usepackage[natbib,style=alphabetic,maxbibnames=99]{biblatex}
+\addbibresource{exam.bib}
+
+\usepackage{acro}
+\DeclareAcronym{ILO}{%
+  short = {ILO},
+  short-indefinite = {an},
+  long = {intended learning outcome},
+  long-indefinite = {an},
+}
+
+\title{Makefiles for Research and Education}
 \author{Daniel Bosk}
 \affil{%
   School of Computer Science and Communication\\
@@ -29,7 +46,11 @@
 \maketitle
 \tableofcontents
 
+\chapter{exam.mk}
+\input{exam.tex}
+
 \chapter{miun.results.mk}
 \input{miun.results.tex}
 
+\printbibliography{}
 \end{document}
