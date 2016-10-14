@@ -211,6 +211,13 @@ submission: ${DOCUMENTS:.pdf=.submission.tex}
 wc:
 	for f in $^; do echo -n "$${f}: "; ${DETEX} $${f} | ${WC}; done
 
+.SUFFIXES: .asc .tex.asc
+.tex.tex.asc:
+	gpg -aes $(foreach recipient,${TEX_RECIPIENTS},-r ${recipient}) $<
+
+.tex.asc.tex:
+	gpg --output $@ -d $<.SUFFIXES: .gpg
+
 
 ### INCLUDES ###
 
