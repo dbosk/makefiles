@@ -38,17 +38,16 @@ miun: ${MIUNFILES}
 
 PKG_PACKAGES?= 			main miun
 
+PKG_PREFIX=				/usr/local
+PKG_DIR=				/include
+
 PKG_NAME-main= 			makefiles
 PKG_FILES-main= 		${MKFILES}
 PKG_TARBALL_FILES-main= ${PKG_FILES-main} Makefile README.md
-PKG_PREFIX-main= 		/usr/local
-PKG_DIR-main= 			/include
 
 PKG_NAME-miun=			build-all
 PKG_FILES-miun= 		${MIUNFILES}
 PKG_TARBALL_FILES-miun= ${PKG_FILES-miun} Makefile README.md
-PKG_PREFIX-miun=		/usr/local
-PKG_DIR-miun= 			/include
 
 PUB_SITES?= 			miun
 
