@@ -1,13 +1,20 @@
 # $Id$
 # Author: Daniel Bosk <daniel.bosk@miun.se>
 
-MKFILES+=		miun.docs.mk miun.tex.mk miun.subdir.mk
-MKFILES+=		miun.package.mk miun.pub.mk miun.course.mk
-MKFILES+=		miun.export.mk miun.results.mk latexmkrc
-MKFILES+=		miun.depend.mk
+MKFILES+=		depend.mk subdir.mk
+MKFILES+=		package.mk export.mk pub.mk
+MKFILES+=		doc.mk tex.mk latexmkrc noweb.mk
+MKFILES+=		exam.mk results.mk
+
+MIUNFILES+=		miun.docs.mk miun.tex.mk miun.subdir.mk
+MIUNFILES+=		miun.package.mk miun.pub.mk miun.course.mk
+MIUNFILES+=		miun.export.mk miun.results.mk latexmkrc
+MIUNFILES+=		miun.depend.mk
 
 .PHONY: all
-all: ${MKFILES} makefiles.pdf
+all: makefiles.pdf
+all: ${MKFILES}
+all: ${MIUNFILES}
 
 makefiles.pdf: makefiles.tex intro.tex
 
@@ -25,20 +32,20 @@ clean:
 	${RM} exam.mk exam.tex
 	${RM} results.mk results.tex
 
+
 .PHONY: miun
-miun: ${MKFILES}
+miun: ${MIUNFILES}
 
 PKG_PACKAGES?= 			main miun
 
 PKG_NAME-main= 			makefiles
-PKG_FILES-main= 		depend.mk package.mk pub.mk subdir.mk
-PKG_FILES-main+= 		export.mk doc.mk tex.mk latexmkrc
+PKG_FILES-main= 		${MKFILES}
 PKG_TARBALL_FILES-main= ${PKG_FILES-main} Makefile README.md
 PKG_PREFIX-main= 		/usr/local
 PKG_DIR-main= 			/include
 
 PKG_NAME-miun=			build-all
-PKG_FILES-miun= 		${MKFILES}
+PKG_FILES-miun= 		${MIUNFILES}
 PKG_TARBALL_FILES-miun= ${PKG_FILES-miun} Makefile README.md
 PKG_PREFIX-miun=		/usr/local
 PKG_DIR-miun= 			/include
