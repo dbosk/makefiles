@@ -7,19 +7,25 @@ PACKAGE_MK=true
 # specify all packages
 PKG_PACKAGES?= 			main
 
-IGNORE_FILES?=	\(\.svn\|\.git\|CVS\)
+PKG_NAME?=				${PACKAGE}
+PKG_FILES?=				${PACKAGE_FILES} ${INSTALL_FILES}
+PKG_PREFIX?=			${PREFIX}
+PKG_DIR?=				${INSTALLDIR}
+
+IGNORE_FILES?=			\(\.svn\|\.git\|CVS\)
+PKG_IGNORE?=			${IGNORE_FILES}
 
 # these three variables should be set in $PACKAGE/Makefile for each package
 define variables
-PKG_NAME-$(1)?= 		${PACKAGE}
-PKG_FILES-$(1)?= 		${PACKAGE_FILES} ${INSTALL_FILES}
-PKG_PREFIX-$(1)?=		${PREFIX}
-PKG_DIR-$(1)?= 			${INSTALLDIR}
+PKG_NAME-$(1)?= 		${PKG_NAME}
+PKG_FILES-$(1)?= 		${PKG_FILES}
+PKG_PREFIX-$(1)?=		${PKG_PREFIX}
+PKG_DIR-$(1)?= 			${PKG_DIR}
 
 # these will usually not need any changes
 PKG_TARBALL-$(1)?=		${PKG_NAME-$(1)}.tar.gz
 PKG_TARBALL_FILES-$(1)?=${PKG_FILES-$(1)}
-PKG_IGNORE-$(1)?= 		${IGNORE_FILES}
+PKG_IGNORE-$(1)?= 		${PKG_IGNORE}
 endef
 
 # set up default values for all packages, for which values are not already set
