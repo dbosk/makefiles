@@ -15,10 +15,15 @@ makefiles.pdf: exam.tex
 all: exam.mk
 exam.mk exam.tex: exam.mk.nw
 
-makefiles.pdf: miun.results.tex
-all: miun.results.mk
-miun.results.mk miun.results.tex: miun.results.mk.nw
+makefiles.pdf: results.tex
+all: results.mk
+results.mk results.tex: results.mk.nw
 
+
+.PHONY: clean
+clean:
+	${RM} exam.mk exam.tex
+	${RM} results.mk results.tex
 
 .PHONY: miun
 miun: ${MKFILES}

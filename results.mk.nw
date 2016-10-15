@@ -39,7 +39,7 @@ The structure is thus similar to most makefiles, we first need
 Since this will be a file to include, we do not want to include the same 
 contents twice, in any form of accidental recursive inclusion, so we use 
 a C-like construction.
-<<miun.results.mk>>=
+<<results.mk>>=
 ifndef MIUN_RESULTS_MK
 MIUN_RESULTS_MK=true
 
@@ -51,7 +51,7 @@ include ${INCLUDE_MAKEFILES}/miun.depend.mk
 
 endif
 @ So to use this file, simply input it in your Makefile by adding the line 
-[[include miun.results.mk]] at the end of the file, in the same fashion as the 
+[[include results.mk]] at the end of the file, in the same fashion as the 
 inclusion of [[miun.depend.mk]] above.
 
 For the purpose of reporting the results, we need to provide some identifiers.
