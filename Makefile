@@ -3,7 +3,7 @@
 
 MKFILES+=		depend.mk subdir.mk
 MKFILES+=		package.mk export.mk pub.mk
-MKFILES+=		doc.mk tex.mk latexmkrc noweb.mk
+MKFILES+=		doc.mk tex.mk noweb.mk
 MKFILES+=		exam.mk results.mk
 
 MIUNFILES+=		miun.docs.mk miun.tex.mk miun.subdir.mk
@@ -18,19 +18,29 @@ all: ${MIUNFILES}
 
 makefiles.pdf: makefiles.tex intro.tex
 
-makefiles.pdf: exam.tex
-all: exam.mk
-exam.mk exam.tex: exam.mk.nw
+define makefiles_depends
+makefiles.pdf: $(1:.mk=.tex)
+$(1) $(1:.mk=.tex): $(1).nw
+endef
 
-makefiles.pdf: results.tex
-all: results.mk
-results.mk results.tex: results.mk.nw
+$(foreach mkfile,${MKFILES},$(eval $(call makefiles_depends,${mkfile})))
+
+latexmkrc: tex.mk.nw
+	notangle -t2 -R$@ $^ | cpif $@
 
 
 .PHONY: clean
 clean:
-	${RM} exam.mk exam.tex
-	${RM} results.mk results.tex
+	${RM} depend.tex
+	${RM} subdir.tex
+	${RM} package.tex
+	${RM} export.tex
+	${RM} pub.tex
+	${RM} tex.tex
+	${RM} doc.tex
+	${RM} noweb.tex
+	${RM} exam.tex
+	${RM} results.tex
 
 
 .PHONY: miun
@@ -42,7 +52,7 @@ PKG_PREFIX=				/usr/local
 PKG_DIR=				/include
 
 PKG_NAME-main= 			makefiles
-PKG_FILES-main= 		${MKFILES}
+PKG_FILES-main= 		${MKFILES} latexmkrc
 PKG_TARBALL_FILES-main= ${PKG_FILES-main} Makefile README.md
 
 PKG_NAME-miun=			build-all
@@ -63,6 +73,6 @@ INCLUDE_MAKEFILES=.
 include ${INCLUDE_MAKEFILES}/depend.mk
 include ${INCLUDE_MAKEFILES}/pub.mk
 include ${INCLUDE_MAKEFILES}/package.mk
-include ${INCLUDE_MAKEFILES}/miun.port.mk
 include ${INCLUDE_MAKEFILES}/tex.mk
 include ${INCLUDE_MAKEFILES}/noweb.mk
+include ${INCLUDE_MAKEFILES}/miun.port.mk

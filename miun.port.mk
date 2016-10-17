@@ -12,13 +12,15 @@ miun.export.mk: export.mk
 miun.package.mk: package.mk
 miun.tex.mk: tex.mk
 miun.subdir.mk: subdir.mk
+miun.results.mk: results.mk
 
-miun.export.mk miun.package.mk miun.tex.mk miun.subdir.mk:
-	cp $^ $@
+miun.export.mk miun.package.mk miun.tex.mk miun.subdir.mk miun.results.mk:
+	ln -s $^ $@
 
 .PHONY: clean-port
 clean: clean-port
 clean-port:
 	${RM} miun.export.mk miun.package.mk miun.tex.mk miun.subdir.mk
+	${RM} miun.results.mk
 
 endif
