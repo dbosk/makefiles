@@ -1,0 +1,238 @@
+This is the code:
+<<tex.mk>>=
+# $Id$
+# Author: Daniel Bosk <daniel.bosk@miun.se>
+
+ifndef TEX_MK
+TEX_MK=true
+
+DOCUMENTS?=	
+TEXMF?=		${HOME}/texmf
+
+solutions?=	no
+handout?=	no
+
+RM?=		/bin/rm -f
+MV?=		mv
+SED?=		sed
+SEDex?=		sed -E
+CAT?=		cat
+WC?= 		wc -w
+
+# variables used to compile LaTeX documents
+LATEX?=		latex
+PDFLATEX?=	pdflatex
+DETEX?= 	detex
+LATEXMK?= 	latexmk ${LATEXMKRC} -bibtex-cond
+LATEXMKRC?= 
+DVIPS?=		dvips
+PDFPS?=		pdf2ps
+LATEXFLAGS?=
+MAKEINDEX?=	makeindex
+BIBTEX?=	bibtex8
+PDFVIEW?=	evince
+PAPER?=		a4
+
+USE_LATEXMK?= 	yes
+USE_BIBLATEX?= 	yes
+
+MATCH_PRINTANSWERS="/\\\\\\\\\\printanswers/s/^%//"
+MATCH_HANDOUT="s/\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}/\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}/"
+
+.SUFFIXES: .ins .cls .sty
+.ins.sty .ins.cls: latex
+	${LATEX} $<
+
+.SUFFIXES: .dtx .pdf
+.dtx.pdf: latex
+	${PDFLATEX} ${LATEXFLAGS} $<
+ifneq (${USE_BIBLATEX},yes)
+	-${BIBTEX} ${<:.dtx=}
+endif
+	-${MAKEINDEX} -s gind.ist ${<:.dtx=}
+	-${MAKEINDEX} ${<:.dtx=.nlo} -s nomencl.ist -o ${<:.dtx=.nls}
+	while (${PDFLATEX} ${LATEXFLAGS} $<; \
+		grep "Rerun to get cross" ${<:.dtx=.log}) \
+		do true; done
+	${PDFLATEX} ${LATEXFLAGS} $<
+
+.SUFFIXES: .dvi
+.dtx.dvi: latex
+	${LATEX} ${LATEXFLAGS} $<
+ifneq (${USE_BIBLATEX},yes)
+	-${BIBTEX} ${<:.dtx=}
+endif
+	-${MAKEINDEX} -s gind.ist ${<:.dtx=}
+	-${MAKEINDEX} ${<:.dtx=.nlo} -s nomencl.ist -o ${<:.dtx=.nls}
+	while (${LATEX} ${LATEXFLAGS} $<; \
+		grep "Rerun to get cross" ${<:.dtx=.log}) \
+		do true; done
+	${LATEX} ${LATEXFLAGS} $<
+
+# $1 = input file
+# $2 = output file
+define sed_transformations
+${CAT} $1 \
+	$(shell [ "${solutions}" = "no" ] || echo \
+	" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
+	$(shell [ "${handout}" = "no" ] || echo \
+	" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
+	> $2
+endef
+
+# $1 = latex version
+# $2 = input tex file
+define run_latex
+$1 ${LATEXFLAGS} $2
+-${BIBTEX} ${1:.tex=}
+-${MAKEINDEX} -s gind.ist ${2:.tex=}
+-${MAKEINDEX} ${2:.tex=.nlo} -s nomencl.ist -o ${2:.tex=.nls}
+while ($1 ${LATEXFLAGS} $2; \
+	grep "Rerun to get cross" ${2:.tex=.log}) \
+	do true; done
+$1 ${LATEXFLAGS} $2
+endef
+
+# $1 = original file
+# $2 = new file
+# $3 = backup file
+define backup_file
+if diff -u $1 $2; then \
+	mv $1 $3 && mv $2 $1; \
+fi
+endef
+
+# $1 = backup file
+# $2 = original file
+define restore_file
+if [ -f $1 ]; then \
+	${MV} $1 $2; \
+fi
+endef
+
+.SUFFIXES: .tex
+.tex.pdf: latexmk
+ifeq (${USE_LATEXMK},yes)
+	${LATEXMK} -pdf ${LATEXFLAGS} $<
+else
+	$(call run_latex, ${PDFLATEX}, $<)
+endif
+
+.tex.dvi: latexmk
+ifeq (${USE_LATEXMK},yes)
+	${LATEXMK} -dvi ${LATEXFLAGS} $<
+else
+	$(call run_latex, ${PDFLATEX}, $<)
+endif
+
+.PHONY: all
+all: ${DOCUMENTS}
+
+.PHONY: clean-tex
+clean-tex: latexmk
+	${RM} *.log *.aux *.toc *.bbl *.blg *.ind *.ilg *.dvi
+	${RM} *.out *.idx *.nls *.nlo *.lof *.lot *.glo
+	${RM} *.core *.o *~ *.out
+	${RM} missfont.log *.nav *.snm *.vrb *-eps-converted-to.pdf
+	${RM} *.run.xml *-blx.bib
+	${RM} *.bcf *.fdb_latexmk *.fls
+	${RM} -R pythontex-files-* *.pytxcode *.py.err
+	@-for f in *.tex; do \
+		[ -f $$f.orig ] && mv $$f.orig $$f; \
+	done
+	@-${LATEXMK} -C
+	@if [ -L rfc.bib ]; then \
+		${RM} rfc.bib; \
+	fi
+
+.PHONY: clean
+clean: clean-tex
+
+define filecontent
+for f in $(1); do ${SED} -i \
+	"/^%\\\\begin{filecontents\\*\\?}{$$f}/,/^%\\\\end{filecontents\\*\\?}/s/^%//" $(2); \
+	${SED} -i "/^\\\\begin{filecontents\\*\\?}{$$f}/r $$f" $(2); done
+endef
+
+define bibliography
+${SED} -i -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1:.tex=.bbl)" -e "}" $(1)
+endef
+
+define bblcode
+\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begingroup\\\\blx@bblstart\\\\input{\\\\jobname.bbl}\\\\blx@bblend\\\\endgroup\\\\csnumgdef{blx@labelnumber@\\\\the\\\\c@refsection}{0}}\\\\makeatother
+endef
+
+.SUFFIXES: .submission.tex
+.tex.submission.tex: sed
+	cp $< $@
+	$(call filecontent,\
+		$(shell ${SED} -n \
+		"s/^%\\\\begin{filecontents\\*\\?}{\\([^}]*\\)}/\\1/p" \
+		$<),$@)
+	$(call bibliography,$@)
+	${SED} -i "s/^%biblatex-bbl-code/${bblcode}/" $@
+	${SED} -i "s/${@:.tex=}/\\\\jobname/g" $@
+
+.SUFFIXES: .submission.bbl .bbl
+.bbl.submission.bbl:
+	cp $< $@
+
+.PHONY: submission
+submission: ${DOCUMENTS:.pdf=.submission.tex}
+
+endif
+@
+
+The related [[latexmkrc]] file:
+<<latexmkrc>>=
+# Custom dependency and function for nomencl package #
+add_cus_dep( 'nlo', 'nls', 0, 'makenlo2nls' );
+sub makenlo2nls {
+	system( "makeindex -s nomencl.ist -o \"$_[0].nls\" \"$_[0].nlo\"" );
+}
+
+#  This version has a fudge on the latex and pdflatex commands that
+#  allows the pythontex custom dependency to work even when $out_dir
+#  is used to set the output directory.  Without the fudge (done by
+#  trickery symbolic links) the custom dependency for using pythontex
+#  will not be detected.
+
+add_cus_dep('pytxcode', 'tex', 0, 'pythontex');
+sub pythontex {
+    # This subroutine is a fudge, because it from latexmk's point of
+    # view, it makes the main .tex file depend on the .pytxcode file.
+    # But it doesn't actually make the .tex file, but is used for its
+    # side effects in creating other files.  The dependence is a way
+    # of triggering the rule to be run whenever the .pytxcode file
+    # changes, and to do this before running latex/pdflatex again.
+    return system("pythontex --verbose --interpreter python:python3 \"$_[0]\"");
+}
+
+
+$pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
+$latex = 'internal mylatex %R %Z latex %O %S';
+sub mylatex {
+   my $root = shift;
+   my $dir_string = shift;
+   my $code = "$root.pytxcode";
+   my $result = "pythontex-files-$root";
+   if ($dir_string) {
+      warn "mylatex: Making symlinks to fool cus_dep creation\n";
+      unlink $code;
+      if (-l $result) {
+          unlink $result;
+      }
+      elsif (-d $result) {
+         unlink glob "$result/*";
+         rmdir $result;
+      }
+      symlink $dir_string.$code, $code;
+      if ( ! -e $dir_string.$result ) { mkdir $dir_string.$result; }
+      symlink $dir_string.$result, $result;
+   }
+   else {
+      foreach ($code, $result) { if (-l) { unlink; } }
+   }
+   return system @_;
+}
+@
