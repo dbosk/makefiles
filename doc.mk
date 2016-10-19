@@ -1,51 +1,46 @@
-# $Id$
-# Author: Daniel Bosk <daniel.bosk@miun.se>
-
 ifndef DOC_MK
 DOC_MK=true
 
-# add these to the document specific Makefile
-DOCUMENTS?=	
-
-PRINT?=		lpr
-
-.PHONY: all
-all: ${DOCUMENTS}
-
+DOC_LPR?=		lpr
+DOC_WC?=    wc -w
+PDF2PS?=        pdf2ps
+PDFPS?=         ${PDF2PS}
+DOC_PDF2PS?=    ${PDFPS}
+DVIPS?=         dvips
+DOC_DVI2PS?=    ${DVIPS}
+DOC_ODT2PDF?=   soffice --headless --convert-to pdf
+DOC_INKSCAPE_FLAGS?=  -D -z --export-latex
+DOC_DIA_FLAGS?=
+DOC_MD2TEX?=    pandoc -f markdown -t latex
+DOC_TEX2TEXT?=  detex
 .PHONY: print
-print: ${DOCUMENTS:.pdf=.ps}
-	for d in $^ ; do \
-		[ -d $${d} ] || ${PRINT} $${d}; \
-	done
+print:
+	$(foreach doc,$^,${DOC_LPR} ${doc})
+.PHONY: wc
+wc:
+	$(foreach doc,$^,echo -n "${doc}: "; ${DOC_WC} ${doc})
+.SUFFIXES: .ps .pdf
+.pdf.ps:
+	${DOC_PDF2PS} $<
+.SUFFIXES: .dvi .ps
+.dvi.ps:
+	${DOC_DVI2PS} $<
+.SUFFIXES: .odt .pdf
+.odt.pdf:
+	${DOC_ODT2PDF} $<
 
-.PHONY: clean-doc
-clean-doc: clean-tex
-ifneq (${DOCUMENTS},)
-	${RM} ${DOCUMENTS} ${DOCUMENTS:.pdf=.ps}
-endif
+.SUFFIXES: .svg .pdf
+.svg.pdf:
+	inkscape ${DOC_INKSCAPE_FLAGS} --file=$< --export-pdf=$@
+.SUFFIXES: .dia .tex
+.dia.tex:
+	dia ${DOC_DIA_FLAGS} -e $@ -t pgf-tex $<
 
-.PHONY: clean
-clean: clean-doc
-
-.PHONY: todo
-todo:
-	-@grep -e 'TODO ' -e 'XXX ' *
-
-
-### INCLUDES ###
-
-INCLUDE_MAKEFILES?= .
-INCLUDES= 	depend.mk pub.mk tex.mk
-
-define inc
-ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
-$(1):
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
-include ${INCLUDE_MAKEFILES}/$(1)
-endif
-endef
-$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
-
-### END INCLUDES ###
+.SUFFIXES: .md .tex
+.md.tex:
+	${DOC_MD2TEX} $< > $@
+.SUFFIXES: .tex .txt
+.tex.txt:
+	${DOC_TEX2TEXT} $< > $@
 
 endif

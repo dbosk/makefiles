@@ -67,10 +67,6 @@ endif
 		do true; done
 	${LATEX} ${LATEXFLAGS} $<
 
-.SUFFIXES: .ps
-.pdf.ps: pdf2ps
-	${PDFPS} $< $@
-
 # $1 = input file
 # $2 = output file
 define sed_transformations
@@ -127,23 +123,6 @@ else
 	$(call run_latex, ${PDFLATEX}, $<)
 endif
 
-.dvi.ps: dvips
-	${DVIPS} $<
-
-.SUFFIXES: .svg .pdf_tex
-.svg.pdf: inkscape
-	inkscape -D -z --file=$< --export-pdf=$@ --export-latex
-
-.svg.pdf_tex: ${<:.svg=.pdf}
-
-.SUFFIXES: .dia
-.dia.tex: dia
-	dia -E $@ -t pgf-tex $<
-
-.SUFFIXES: .odt
-.odt.pdf: soffice
-	soffice --convert-to pdf $< --headless
-
 .PHONY: all
 all: ${DOCUMENTS}
 
@@ -198,22 +177,6 @@ endef
 
 .PHONY: submission
 submission: ${DOCUMENTS:.pdf=.submission.tex}
-
-.SUFFIXES: .nw
-.nw.tex: noweb
-	noweave -x -n -delay -t2 $< > $@
-
-.SUFFIXES: .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
-.py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
-	noweave -x -n -t2 $< > $@
-
-.PHONY: wc
-wc:
-	for f in $^; do echo -n "$${f}: "; ${DETEX} $${f} | ${WC}; done
-
-.SUFFIXES: .md
-.md.tex:
-	pandoc -f markdown -t latex $< > $@
 
 
 ### INCLUDES ###
