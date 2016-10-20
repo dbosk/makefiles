@@ -1,20 +1,50 @@
-This is the code:
-<<subdir.mk>>=
-# $Id$
-# Author: Daniel Bosk <daniel.bosk@miun.se>
+\section{Introduction and usage}
 
+Sometimes we want to recursively descend into subdirectories making a specific 
+target in each subdirectory.
+The subdirectories must be listed in the variable [[SUBDIR]], which holds 
+a space-separated list of directory names.
+Then each subdirectory may in turn hold a new set of subdirectories to descend 
+into.
+We note that the subdirectories will be built in depth-first search order.
+
+
+\section{Implementation}
+
+The structure of the file is that of most include files.
+We want to ensure that it is not included more than once.
+Furthermore, we do not want to do anything unless the [[SUBDIR]] variable, 
+containing the space-separated list of subdirectories, exists.
+<<subdir.mk>>=
 ifndef SUBDIR_MK
 SUBDIR_MK=true
 
 ifdef SUBDIR
-ifneq (${MAKECMDGOALS},)
-.PHONY: ${MAKECMDGOALS}
-${MAKECMDGOALS}: ${SUBDIR}
-endif
-
-${SUBDIR}::
-	${MAKE} -C $@ ${MAKECMDGOALS}
+<<add subdirectories as prerequisites for the goals>>
+<<let the recipe for each subdirectory recurse into it>>
 endif
 
 endif
 @
+
+The thing we want to do is to build the given goals ([[MAKECMDGOALS]]), i.e.\ 
+the targets specified on the command-line, in all subdirectories listed in 
+[[SUBDIR]].
+For each directory, we specify a recipe which runs make in the subdirectory 
+with the goals specified on the command-line.
+<<let the recipe for each subdirectory recurse into it>>=
+${SUBDIR}::
+	${MAKE} -C $@ ${MAKECMDGOALS}
+@ To ensure these recipes are run we need to ensure that they are prerequisites
+to the goals.
+This also means that if no goals are given on the command-line, then we should 
+use the default goal.
+<<add subdirectories as prerequisites for the goals>>=
+ifneq (${MAKECMDGOALS},)
+.PHONY: ${MAKECMDGOALS}
+${MAKECMDGOALS}: ${SUBDIR}
+else
+${.DEFAULT_GOAL}: ${SUBDIR}
+endif
+@ We note that this will cause the default goal of each subdirectory to be 
+built, not the same goal which is the default goal in the root.
