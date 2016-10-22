@@ -1,44 +1,103 @@
-This is the code:
+\section{Introduction and usage}
+
+The [[noweb.mk]] include provides suffix rules for weaving and tangling 
+(produce documentation and code, respectively).
+To use it correctly there are some suffix naming conventions.
+
+The suffix rules of make works by taking a prerequisite with one suffix and 
+applying the recipe to get a target with another suffix.
+This requires the stem of the filename to be identical.
+This means that some jobs must be done using specific recipe.
+
+We assume that there is a main TeX file which will include the woven 
+documentation.
+So all invocations of [[noweave]] use the [[-n]] option.
+Furthermore, some language-specialized suffixes, such as [[cxx.nw]], will use 
+[[noweave]] options suitable for that language.
+
+
+\section{Implementation}
+
+The overall structure is the same as for other include files.
+We will cover the suffix rules for documentation first and then those for code.
 <<noweb.mk>>=
 ifndef NOWEB_MK
 NOWEB_MK = true
 
-.SUFFIXES: .nw
-
-# implicit rules for C and C++ code
-.SUFFIXES: .c.nw .cpp.nw .cxx.nw
-.SUFFIXES: .c .cpp .cxx
-.nw.c .c.nw.c .nw.cpp .cpp.nw.cpp .nw.cxx .cxx.nw.cxx: noweb
-	notangle -R$@ -L $< | cpif $@
-
-# implicit rules for C and C++ headers
-.SUFFIXES: .h .hpp .hxx
-.nw.h .c.nw.h .nw.hpp .cpp.nw.hpp .nw.hxx .cxx.nw.hxx: noweb
-	notangle -R$@ $< | cpif $@
-
-# implicit rules for Python
-.SUFFIXES: .py.nw
-.SUFFIXES: .py
-.nw.py .py.nw.py: noweb
-	notangle -R$@ $< | cpif $@
-
-# implicit rules for make(1) includes
-.SUFFIXES: .mk.nw
-.SUFFIXES: .mk
-.nw.mk .mk.nw.mk: noweb
-	notangle -t2 -R$@ $< | cpif $@
-
-.SUFFIXES: .tex
-.nw.tex: noweb
-	noweave -x -n -delay -t2 $< > $@
-
-.SUFFIXES: .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
-.py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
-	noweave -x -n -t2 $< > $@
-
-
-INCLUDE_MAKEFILES?=.
-include ${INCLUDE_MAKEFILES}/depend.mk
+<<variables>>
+<<suffix rules for weaving documentation>>
+<<suffix rules for tangling code>>
 
 endif
+@
+
+\subsection{Weaving documentation}
+
+We will use the [[noweave]] command to weave the documentation.
+The default options that we will use can be controlled with the following 
+variable.
+<<variables>>=
+NOWEB_WEAVE_FLAGS?= -x -n -delay -t2
+@
+
+Now we need to specify all the suffixes to use and then construct suffix rules 
+for all of them.
+Fortunately we can use the same recipe for all, so we only need to write one 
+recipe for multiple targets.
+<<suffix rules for weaving documentation>>=
+.SUFFIXES: .nw .tex .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
+.nw.tex .py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex:
+	noweave ${NOWEB_WEAVE_FLAGS} $< > $@
+@
+
+\subsection{Tangling code}
+
+We will now cover the suffix rules for tangling the source code for different 
+languages.
+<<suffix rules for tangling code>>=
+<<suffix rules for C and C++>>
+<<suffix rules for Python>>
+<<suffix rules for Make>>
+@ We will see later that we use a command [[cpif]].
+This command only updates the files if they have changed.
+We need this since many files may reside in the same NOWEB source file, but 
+only some of them are updated.
+Without [[cpif]], make would normally \emph{update all files} if \emph{any has 
+changed} --- undesirable.
+
+As for the weaving, we will use the following variable for the general tangling
+flags.
+<<variables>>=
+NOWEB_TANGLE_FLAGS?= -t2
+@
+
+For C-family source code, we will assume that the header files (declarations) 
+are written together with the definitions, so that we can extract both files 
+from the same NOWEB source.
+Since the language is of the C-family, we will use the [[-L]] option to get the 
+line preprocessor-directive in the generated source --- this will allow [[gdb]] 
+and the compiler to point to lines in the NOWEB source file, and not to the 
+generated file.
+<<suffix rules for C and C++>>=
+.SUFFIXES: .nw .c.nw .cpp.nw .cxx.nw .c .cpp .cxx
+.nw.c .c.nw.c .nw.cpp .cpp.nw.cpp .nw.cxx .cxx.nw.cxx:
+	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
+
+.SUFFIXES: .h .hpp .hxx
+.nw.h .c.nw.h .nw.hpp .cpp.nw.hpp .nw.hxx .cxx.nw.hxx:
+	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
+@
+
+For Python, there is no special processing needed, we simply use the flags we 
+set above.
+<<suffix rules for Python>>=
+.SUFFIXES: .nw .py.nw .py
+.nw.py .py.nw.py:
+	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< | cpif $@
+@ It is the same case for makefiles.
+<<suffix rules for Make>>=
+# implicit rules for make(1) includes
+.SUFFIXES: .nw .mk.nw .mk
+.nw.mk .mk.nw.mk:
+	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< | cpif $@
 @
