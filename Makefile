@@ -11,10 +11,13 @@ MIUNFILES+=		miun.package.mk miun.pub.mk miun.course.mk
 MIUNFILES+=		miun.export.mk miun.results.mk latexmkrc
 MIUNFILES+=		miun.depend.mk
 
+OTHERS+=		gitattributes
+
 .PHONY: all
 all: makefiles.pdf
 all: ${MKFILES}
 all: ${MIUNFILES}
+all: ${OTHERS}
 
 makefiles.pdf: makefiles.tex intro.tex
 
@@ -26,6 +29,9 @@ endef
 $(foreach mkfile,${MKFILES},$(eval $(call makefiles_depends,${mkfile})))
 
 latexmkrc: tex.mk.nw
+	notangle -t2 -R$@ $^ | cpif $@
+
+gitattributes: export.mk.nw
 	notangle -t2 -R$@ $^ | cpif $@
 
 
@@ -52,8 +58,8 @@ PKG_PREFIX=				/usr/local
 PKG_DIR=				/include
 
 PKG_NAME-main= 			makefiles
-PKG_FILES-main= 		${MKFILES} latexmkrc
-PKG_TARBALL_FILES-main= ${PKG_FILES-main} Makefile README.md
+PKG_FILES-main= 		${MKFILES}
+PKG_TARBALL_FILES-main= ${PKG_FILES-main} ${OTHERS} Makefile README.md
 
 PKG_NAME-miun=			build-all
 PKG_FILES-miun= 		${MIUNFILES}

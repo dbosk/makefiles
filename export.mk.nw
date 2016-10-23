@@ -1,42 +1,112 @@
-This is the code:
-<<export.mk>>=
-# $Id$
-# Author:	Daniel Bosk <daniel.bosk@miun.se>
-# Date:		29 Dec 2012
+\section{Introduction and usage}
 
+It is difficult to work openly with assessment material.
+We do not want to publish the solutions to the assignment so that the students 
+can find them and pass the assessment without actually learning the material.
+On the other hand, we want to be able to publicly collaborate with other 
+teachers, to improve the assignments and their solutions.
+This include file provides some tools to achieve this.
+
+
+\section{Implementation}
+
+The structure is similar to other include files.
+We want to prevent repeated inclusion, so we use a C-style technique to avoid 
+that.
+<<export.mk>>=
 ifndef EXPORT_MK
 EXPORT_MK=true
 
-.SUFFIXES: .tex .exporttex
-.tex.exporttex: sed
-	${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d" $< > $@
-
-.SUFFIXES: .export.tex
-.tex.export.tex: sed
-	${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d" $< > $@
-
-Makefile.export: sed
-	${SED} "/#export no/,/#endexport/d" $< > $@
-
-.PHONY: clean clean-export	
-clean: clean-export
-clean-export:
-	${RM} Makefile.export *.exporttex *.export.tex
-
-
-### INCLUDES ###
-
-INCLUDE_MAKEFILES?= .
-INCLUDES= 	depend.mk
-
-define inc
-ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
-$(1):
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
-include ${INCLUDE_MAKEFILES}/$(1)
-endif
-endef
-$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
+<<variables>>
+<<suffix rules for scrubbing files>>
+<<suffix rules for encrypted files>>
+<<target to remove internal building instructions>>
 
 endif
 @
+
+There are two approaches we will explore.
+The first one is to remove solutions etc.
+This makes sense only if the repository is private and occasionally files are 
+exported through a filter.
+The second approach is more general and works for public repositories.
+Here we encrypt the secret contents under the public keys of everyone with 
+access.
+The downside of this approach is to manage keys and the access control lists.
+
+\subsection{Removing solutions}
+
+To remove solutions we will use a suffix rule which transforms any 
+[[.tex]]-file into an [[.export.tex]]-file.
+The transformation is simply a filtering using [[sed]], to remove every 
+solution environment.
+<<suffix rules for scrubbing files>>=
+.SUFFIXES: .tex .export.tex
+.tex.export.tex:
+	${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d" $< > $@
+@ For portability, we use a variable for the [[sed]] command, the following as 
+its default value.
+If we run on a BSD-system the make GNU utility will be called [[gmake]].
+On such systems we also have a different version of [[sed]], where the GNU 
+version of [[sed]] is called [[gsed]].
+<<variables>>=
+ifeq (${MAKE},gmake)
+SED?=     gsed
+else
+SED?=     sed
+endif
+@
+
+\subsection{Using encrypted files}
+
+The idea of this approach is to encrypt the confidential data in the 
+repository.
+Thus the repository can be available to everyone, but only those with the 
+decryption keys can read and make sensible changes in the confidential 
+contents.
+
+We will achieve this using the GNU Privacy Guard (GPG) version of Pretty Good 
+Privacy (PGP).
+We need a command to encrypt, the recipients and a command to decrypt.
+We will use the following by default.
+<<variables>>=
+GPG?=                 gpg
+EXPORT_ENC?=          ${GPG} -aes
+EXPORT_RECIPIENTS?=   -r me
+EXPORT_DEC?=          ${GPG} -d
+@ This will yield the following suffix rules.
+<<suffix rules for encrypted files>>=
+.SUFFIXES: .tex .tex.asc
+.tex.tex.asc:
+	${EXPORT_ENC} ${EXPORT_RECIPIENTS} < $< > $@
+
+.tex.asc.tex:
+	${EXPORT_DEC} < $< > $@
+@
+
+An alternative approach, probably less prone to errors, is to use Git.
+We can use Git's attributes and filter functionality.
+This means that we apply a filter to all files with the [[.asc]] suffix.
+We have two alternatives: do this ourselves or use the [[git-crypt]] 
+package\footnote{%
+  Install on Ubuntu by running [[sudo apt install git-crypt]].
+}~\cite{git-crypt}.
+The set up we must do for this to work is to set a Git attribute.
+<<gitattributes>>=
+*.asc     filter=git-crypt
+@ This will yield similar behaviour as with the makefile approach, except that 
+many things are automated further.
+
+\subsection{Removing excessive build instructions}
+
+Sometimes we have extra build instructions in the internal repo, which are not 
+necessary for the exported source code.
+To do this we supply a target [[Makefile.export]] which filters out portions of
+a makefile.
+To use this target, we simply add the makefile to be filtered as its 
+prerequisite.
+<<target to remove internal building instructions>>=
+Makefile.export:
+	${SED} "/#export false/,/#export true/d" $< > $@
+@
+

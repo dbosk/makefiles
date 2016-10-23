@@ -1,39 +1,25 @@
-# $Id$
-# Author:	Daniel Bosk <daniel.bosk@miun.se>
-# Date:		29 Dec 2012
-
 ifndef EXPORT_MK
 EXPORT_MK=true
 
-.SUFFIXES: .tex .exporttex
-.tex.exporttex: sed
-	${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d" $< > $@
-
-.SUFFIXES: .export.tex
-.tex.export.tex: sed
-	${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d" $< > $@
-
-Makefile.export: sed
-	${SED} "/#export no/,/#endexport/d" $< > $@
-
-.PHONY: clean clean-export	
-clean: clean-export
-clean-export:
-	${RM} Makefile.export *.exporttex *.export.tex
-
-
-### INCLUDES ###
-
-INCLUDE_MAKEFILES?= .
-INCLUDES= 	depend.mk
-
-define inc
-ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
-$(1):
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
-include ${INCLUDE_MAKEFILES}/$(1)
+ifeq (${MAKE},gmake)
+SED?=     gsed
+else
+SED?=     sed
 endif
-endef
-$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
+GPG?=                 gpg
+EXPORT_ENC?=          ${GPG} -aes
+EXPORT_RECIPIENTS?=   -r me
+EXPORT_DEC?=          ${GPG} -d
+.SUFFIXES: .tex .export.tex
+.tex.export.tex:
+	${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d" $< > $@
+.SUFFIXES: .tex .tex.asc
+.tex.tex.asc:
+	${EXPORT_ENC} ${EXPORT_RECIPIENTS} < $< > $@
+
+.tex.asc.tex:
+	${EXPORT_DEC} < $< > $@
+Makefile.export:
+	${SED} "/#export false/,/#export true/d" $< > $@
 
 endif
