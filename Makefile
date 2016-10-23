@@ -48,6 +48,7 @@ clean:
 	${RM} noweb.tex
 	${RM} exam.tex
 	${RM} results.tex
+	${RM} gitattributes
 
 
 .PHONY: miun
