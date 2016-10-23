@@ -11,6 +11,7 @@ MIUNFILES+=		miun.package.mk miun.pub.mk miun.course.mk
 MIUNFILES+=		miun.export.mk miun.results.mk latexmkrc
 MIUNFILES+=		miun.depend.mk
 
+OTHERS+=		latexmkrc
 OTHERS+=		gitattributes
 
 .PHONY: all

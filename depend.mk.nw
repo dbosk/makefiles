@@ -179,19 +179,6 @@ rfc.bib:
 	sed -i "s/@misc/@manual/" $@
 
 
-latexmkrc:
-	if [ -e ${INCLUDE_MAKEFILES}/latexmkrc ]; then \
-		ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@ ; \
-	else \
-		wget https://raw.githubusercontent.com/dbosk/makefiles/master/$@ ; \
-	fi
-
-.PHONY: clean-latexmkrc
-clean-depends: clean-latexmkrc
-clean-latexmkrc:
-	${RM} latexmkrc
-
-
 .PHONY: clean-mk
 clean-depends: clean-mk
 clean-mk:

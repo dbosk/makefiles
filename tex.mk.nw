@@ -180,6 +180,14 @@ endef
 .PHONY: submission
 submission: ${DOCUMENTS:.pdf=.submission.tex}
 
+latexmkrc:
+	[ -e $@ ] || ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+
+.PHONY: clean-latexmkrc
+clean-depends: clean-latexmkrc
+clean-latexmkrc:
+	${RM} latexmkrc
+
 endif
 @
 
