@@ -195,7 +195,7 @@ DOC_MD2TEX?=    pandoc -f markdown -t latex
 <<MD to TeX>>=
 .SUFFIXES: .md .tex
 .md.tex:
-	${DOC_MD2TEX} $< > $@
+	${DOC_MD2TEX} < $< > $@
 @
 
 There are times when we want to convert out TeX-files to plain text, e.g.\ to 

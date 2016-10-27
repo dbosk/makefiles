@@ -38,7 +38,7 @@ wc:
 
 .SUFFIXES: .md .tex
 .md.tex:
-	${DOC_MD2TEX} $< > $@
+	${DOC_MD2TEX} < $< > $@
 .SUFFIXES: .tex .txt
 .tex.txt:
 	${DOC_TEX2TEXT} $< > $@

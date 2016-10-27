@@ -50,12 +50,17 @@ recipe for multiple targets.
 	noweave ${NOWEB_WEAVE_FLAGS} $< > $@
 @
 
+For Haskell code, if the code is written using Haskell's native literate 
+language, then that code is directly compilable as LaTeX code.
+So we need not do any weaving for [[.lhs]] files.
+
 \subsection{Tangling code}
 
 We will now cover the suffix rules for tangling the source code for different 
 languages.
 <<suffix rules for tangling code>>=
 <<suffix rules for C and C++>>
+<<suffix rules for Haskell>>
 <<suffix rules for Python>>
 <<suffix rules for Make>>
 @ We will see later that we use a command [[cpif]].
@@ -87,6 +92,16 @@ generated file.
 .nw.h .c.nw.h .nw.hpp .cpp.nw.hpp .nw.hxx .cxx.nw.hxx:
 	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
 @
+
+The suffix rules for Haskell is similar to those for C and C++, due to the 
+Glasgow Haskell Compiler (GHC) being very close to the C and C++ compilers.
+<<suffix rules for Haskell>>=
+.SUFFIXES: .hs.nw .hs
+.nw.hs .hs.nw.hs:
+	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
+@ We also note that we do not need any suffix rule for [[.lhs]] files, for the 
+same reason as for the weaving, GHC automatically tangles Haskell's native 
+literate files ([[.lhs]]).
 
 For Python, there is no special processing needed, we simply use the flags we 
 set above.

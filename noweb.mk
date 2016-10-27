@@ -13,6 +13,9 @@ NOWEB_TANGLE_FLAGS?= -t2
 .SUFFIXES: .h .hpp .hxx
 .nw.h .c.nw.h .nw.hpp .cpp.nw.hpp .nw.hxx .cxx.nw.hxx:
 	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
+.SUFFIXES: .hs.nw .hs
+.nw.hs .hs.nw.hs:
+	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
 .SUFFIXES: .nw .py.nw .py
 .nw.py .py.nw.py:
 	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< | cpif $@

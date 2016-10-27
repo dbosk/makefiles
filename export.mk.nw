@@ -72,13 +72,13 @@ We will use the following by default.
 <<variables>>=
 GPG?=                 gpg
 EXPORT_ENC?=          ${GPG} -aes
-EXPORT_RECIPIENTS?=   -r me
+EXPORT_RECIPIENTS?=   me
 EXPORT_DEC?=          ${GPG} -d
 @ This will yield the following suffix rules.
 <<suffix rules for encrypted files>>=
 .SUFFIXES: .tex .tex.asc
 .tex.tex.asc:
-	${EXPORT_ENC} ${EXPORT_RECIPIENTS} < $< > $@
+	${EXPORT_ENC} $(foreach r,${EXPORT_RECIPIENTS}, -r $r) < $< > $@
 
 .tex.asc.tex:
 	${EXPORT_DEC} < $< > $@
