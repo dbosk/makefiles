@@ -1,5 +1,24 @@
+\section{Introduction, usage and implementation}
+
+This is by far the shortest include file in this collection.
+What we provide here is a reasonable default set-up for make when working with 
+Haskell.
+In summary, we provide the following.
 <<haskell.mk>>=
-.SUFFIXES: .hs
-.hs.o:
-	ghc -c $<
+<<default variables>>
+<<suffix rules for Haskell programs>>
+@
+
+The Glasgow Haskell Compiler is functionally equivalent to the GNU C Compiler 
+when compiling C programs.
+It can also handle the linking step, which means that we can simply use GHC for
+the linking step.
+<<default variables>>=
+LD=   ghc
+@ And then we can provide the following suffix rule for compiling Haskell 
+programs.
+<<suffix rules for Haskell programs>>=
+.SUFFIXES: .hs .lhs
+.hs.o .lhs.o:
+  ghc ${HSFLAGS} -c $<
 @

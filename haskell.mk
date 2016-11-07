@@ -1,3 +1,4 @@
-.SUFFIXES: .hs
-.hs.o:
-	ghc -c $<
+LD=   ghc
+.SUFFIXES: .hs .lhs
+.hs.o .lhs.o:
+  ghc ${HSFLAGS} -c $<

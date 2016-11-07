@@ -3,7 +3,8 @@
 
 MKFILES+=		depend.mk subdir.mk
 MKFILES+=		package.mk export.mk pub.mk
-MKFILES+=		doc.mk tex.mk noweb.mk
+MKFILES+=		doc.mk tex.mk
+MKFILES+=		noweb.mk haskell.mk
 MKFILES+=		exam.mk results.mk
 
 MIUNFILES+=		miun.docs.mk miun.tex.mk miun.subdir.mk
@@ -46,6 +47,7 @@ clean:
 	${RM} tex.tex
 	${RM} doc.tex
 	${RM} noweb.tex
+	${RM} haskell.tex
 	${RM} exam.tex
 	${RM} results.tex
 	${RM} gitattributes
