@@ -22,6 +22,7 @@ all: ${MIUNFILES}
 all: ${OTHERS}
 
 makefiles.pdf: makefiles.tex intro.tex
+makefiles.pdf: exam.bib
 
 define makefiles_depends
 makefiles.pdf: $(1:.mk=.tex)
