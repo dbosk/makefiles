@@ -108,7 +108,8 @@ NoSolutions?= ${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d"
 Sometimes we have extra build instructions in the internal repo, which are not 
 necessary for the exported source code.
 <<transformations>>=
-ExportFilter?=  ${SED} "/#export false/,/#export true/d"
+ExportFilter?=${SED} "/#export \\(false\\|no\\)/,/#export \\(true\\|yes\\)/d"
+OldExportFilter?=   ${SED} "/#export no/,/#endexport/d"
 @
 
 
@@ -150,8 +151,6 @@ The [[bibtex]] alternative [[biblatex]] is becoming more popular.
 So we want to provide similar functionality for [[biblatex]].
 To do this for [[biblatex]] we can use the [[filecontents]] package to include 
 the bibliographies inline.
-(This solution requires [[biber]] to run anyway, so it will probably not be 
-accepted where the [[bibtex]] solution above will be.)
 
 First we want to use is to fill [[filecontents]] environments with the actual 
 content from the file.

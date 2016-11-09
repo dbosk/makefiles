@@ -16,7 +16,8 @@ define transform
 cat $(1) $(foreach t,$(2),| $(call ${t})) > $(3)
 endef
 NoSolutions?= ${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d"
-ExportFilter?=  ${SED} "/#export false/,/#export true/d"
+ExportFilter?=${SED} "/#export \\(false\\|no\\)/,/#export \\(true\\|yes\\)/d"
+OldExportFilter?=   ${SED} "/#export no/,/#endexport/d"
 .SUFFIXES: ${EXPORT_SRC} ${EXPORT_DST}
 $(foreach src,${EXPORT_SRC},$(foreach dst,${EXPORT_DST},${src}${dst})):
 	$(call transform,$^,${EXPORT_TRANSFORM-$@},$@)
