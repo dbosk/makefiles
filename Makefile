@@ -23,6 +23,7 @@ all: ${OTHERS}
 
 makefiles.pdf: makefiles.tex intro.tex
 makefiles.pdf: exam.bib
+makefiles.pdf: export.bib
 
 define makefiles_depends
 makefiles.pdf: $(1:.mk=.tex)

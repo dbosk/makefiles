@@ -18,34 +18,18 @@ ifndef EXPORT_MK
 EXPORT_MK=true
 
 <<variables>>
-<<suffix rules for scrubbing files>>
+<<suffix rule for transformations>>
+<<target generation for transformations>>
+<<suffix rule for camera-ready source>>
 <<suffix rules for encrypted files>>
-<<target to remove internal building instructions>>
 
 endif
-@
+@ We will now explore now these are implemented.
 
-There are two approaches we will explore.
-The first one is to remove solutions etc.
-This makes sense only if the repository is private and occasionally files are 
-exported through a filter.
-The second approach is more general and works for public repositories.
-Here we encrypt the secret contents under the public keys of everyone with 
-access.
-The downside of this approach is to manage keys and the access control lists.
+\subsection{Portability}
 
-\subsection{Removing solutions}
+We will use the following programs and the possibility to override them.
 
-To remove solutions we will use a suffix rule which transforms any 
-[[.tex]]-file into an [[.export.tex]]-file.
-The transformation is simply a filtering using [[sed]], to remove every 
-solution environment.
-<<suffix rules for scrubbing files>>=
-.SUFFIXES: .tex .export.tex
-.tex.export.tex:
-	${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d" $< > $@
-@ For portability, we use a variable for the [[sed]] command, the following as 
-its default value.
 If we run on a BSD-system the make GNU utility will be called [[gmake]].
 On such systems we also have a different version of [[sed]], where the GNU 
 version of [[sed]] is called [[gsed]].
@@ -57,7 +41,154 @@ SED?=     sed
 endif
 @
 
-\subsection{Using encrypted files}
+
+\section{A transformation mechanism}
+
+We want to provide suffix rules for transforming files in different ways.
+We will transform any file with a suffix in [[EXPORT_SRC]] for which there is 
+a corresponding target in [[EXPORT_DST]].
+<<variables>>=
+EXPORT_SRC?=    .tex
+EXPORT_DST?=    .transformed.tex
+@ Then we can form the following suffix rule, which covers all combinations of 
+sources and destinations.
+<<suffix rule for transformations>>=
+<<transformations>>
+.SUFFIXES: ${EXPORT_SRC} ${EXPORT_DST}
+$(foreach src,${EXPORT_SRC},$(foreach dst,${EXPORT_DST},${src}${dst})):
+	<<transformation recipe>>
+@ The [[<<transformations>>]] will be covered below, we start with how they are 
+applied.
+
+We will now describe a function which makes it easier to apply a list of 
+transformations.
+The first argument is the input file, the second is a space separated list of 
+transformations and the third is the output file.
+<<transformations>>=
+define transform
+cat $(1) $(foreach t,$(2),| $(call ${t})) > $(3)
+endef
+@ What we do here is to expand each transformation in the list to a pipe 
+expression, so the result is a pipeline through which the file contents is 
+piped.
+Thus every transformation must read from standard input and write to standard 
+output.
+
+Now back to our [[<<transformation recipe>>]].
+This is a suffix rule, but we want the transformation to be target-dependent.
+To solve this, we will have a variable [[EXPORT_TRANSFORM-target]] containing 
+the space separated list of transforms to apply to the target.
+Thus we can just apply this list using the function above.
+<<transformation recipe>>=
+$(call transform,$^,${EXPORT_TRANSFORM-$@},$@)
+@
+
+This will work well for a lot of cases, however, there are cases where suffix 
+rules simply will not work.
+For these we must generate specific targets.
+Let [[EXPORT_TARGETS]] contain a space separated list of target files.
+<<target generation for transformations>>=
+define target_recipe
+$(1):
+	$(call transform,$^,${EXPORT_TRANSFORM-$@},$@)
+endef
+$(foreach target,${EXPORT_TARGETS},$(eval $(call target_recipe,${target})))
+@
+
+\subsection{Removing solutions}
+
+To remove solutions we will supply a filtering transformation.
+The filter uses [[sed]] to remove every solution environment from the content.
+<<transformations>>=
+NoSolutions?= ${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d"
+@
+
+\subsection{Removing excessive build instructions}
+
+Sometimes we have extra build instructions in the internal repo, which are not 
+necessary for the exported source code.
+<<transformations>>=
+ExportFilter?=  ${SED} "/#export false/,/#export true/d"
+@
+
+
+\section{Preparing camera-ready source}
+
+Sometimes we must prepare \enquote{camera-ready source}, which essentially 
+means that everything must be contained in a single TeX file.
+Unfortunately, this is difficult to accomplish with the transformations 
+outlined above\footnote{%
+  It is possible and this solution will eventually be converted to such 
+  a solution.
+}.
+For now, we will use some functions which requires parameters --- the 
+transformations above must not require any parameter --- so the outline looks 
+like this:
+<<suffix rules for camera-ready source>>=
+<<function to substitute bibliography for bbl>>
+<<function to fill filecontents environments>>
+<<function to insert biblatex bbl code>>
+
+.SUFFIXES: .tex .cameraready.tex
+.tex.cameraready.tex:
+  <<camera-ready recipe>>
+@
+
+The first thing we want to do is to replace the [[\bibliography]] command with 
+the [[bbl]]-code generated by [[bibtex]].
+This function also takes one argument, the file name of the [[bbl]]-file (which 
+is the main document name with the [[.tex]] suffix replaced by [[.bbl]]).
+<<function to substitute bibliography for bbl>>=
+define bibliography
+${SED} \
+  -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1)" \
+  -e "}"
+endef
+@
+
+The [[bibtex]] alternative [[biblatex]] is becoming more popular.
+So we want to provide similar functionality for [[biblatex]].
+To do this for [[biblatex]] we can use the [[filecontents]] package to include 
+the bibliographies inline.
+(This solution requires [[biber]] to run anyway, so it will probably not be 
+accepted where the [[bibtex]] solution above will be.)
+
+First we want to use is to fill [[filecontents]] environments with the actual 
+content from the file.
+We provide a function which takes the filename as an argument and then 
+uncomments the environment and reads the file contents into the environment.
+<<function to fill filecontents environments>>=
+define filecontent
+${SED} "/^%\\\\begin{filecontents\\*\\?}{$(1)}/,/^%\\\\end{filecontents\\*\\?}/s/^%//" \
+  | ${SED} "/^\\\\begin{filecontents\\*\\?}{$(1)}/r $(1)"
+endef
+@
+
+Next, for this to work with [[biblatex]] we need to insert some extra code.
+<<function to insert biblatex bbl code>>=
+define _the_bblcode
+\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begingroup\\\\blx@bblstart\\\\input{\\\\jobname.bbl}\\\\blx@bblend\\\\endgroup\\\\csnumgdef{blx@labelnumber@\\\\the\\\\c@refsection}{0}}\\\\makeatother
+endef
+
+define bblcode
+${SED} "s/^%biblatex-bbl-code/${_the_bblcode}/"
+endef
+@
+
+Finally, with these functions we can write the following suffix rule, which 
+calls the above functions one by one.
+<<camera-ready recipe>>=
+cat $< \
+  | $(call filecontent,\
+    $(shell ${SED} -n "s/^%\\\\begin{filecontents\\*\\?}{\\([^}]*\\)}/\\1/p" \
+    $<)) \
+  | $(call bibliography,${<:.tex=.bbl}) \
+  | $(call bblcode) \
+  > $@
+@
+
+
+\section{Using encrypted files}
 
 The idea of this approach is to encrypt the confidential data in the 
 repository.
@@ -96,17 +227,3 @@ The set up we must do for this to work is to set a Git attribute.
 *.asc     filter=git-crypt
 @ This will yield similar behaviour as with the makefile approach, except that 
 many things are automated further.
-
-\subsection{Removing excessive build instructions}
-
-Sometimes we have extra build instructions in the internal repo, which are not 
-necessary for the exported source code.
-To do this we supply a target [[Makefile.export]] which filters out portions of
-a makefile.
-To use this target, we simply add the makefile to be filtered as its 
-prerequisite.
-<<target to remove internal building instructions>>=
-Makefile.export:
-	${SED} "/#export false/,/#export true/d" $< > $@
-@
-
