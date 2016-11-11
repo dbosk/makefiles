@@ -61,15 +61,15 @@ miun: ${MIUNFILES}
 PKG_PACKAGES?= 			main miun
 
 PKG_PREFIX=				/usr/local
-PKG_DIR=				/include
+PKG_INSTALL_DIR=		/include
 
 PKG_NAME-main= 			makefiles
-PKG_FILES-main= 		${MKFILES}
-PKG_TARBALL_FILES-main= ${PKG_FILES-main} ${OTHERS} Makefile README.md
+PKG_INSTALL_FILES-main=	${MKFILES}
+PKG_TARBALL_FILES-main=	${PKG_INSTALL_FILES-main} ${OTHERS} Makefile README.md
 
 PKG_NAME-miun=			build-all
-PKG_FILES-miun= 		${MIUNFILES}
-PKG_TARBALL_FILES-miun= ${PKG_FILES-miun} Makefile README.md
+PKG_INSTALL_FILES-miun=	${MIUNFILES}
+PKG_TARBALL_FILES-miun=	${PKG_INSTALL_FILES-miun} Makefile README.md
 
 PUB_SITES?= 			miun
 
