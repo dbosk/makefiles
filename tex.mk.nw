@@ -1,179 +1,180 @@
-This is the code:
-<<tex.mk>>=
-# $Id$
-# Author: Daniel Bosk <daniel.bosk@miun.se>
+\section{Introduction and usage}
+\label{tex:Intro}
 
+The aim of this include file is to make building LaTeX documents easier.
+First we want to add suffix rules for LaTeX similar to those already in 
+make(1)~\cite[see][Sect.\ 10.2]{GNUMake} for languages like C.
+
+We provide several suffix rules.
+First, for ordinary documents, i.e.\ to compile a [[.tex]] file to [[.pdf]], 
+[[.ps]] or [[.dvi]].
+Second, for classes and packages, i.e.\ to compile
+\begin{inparablank}
+\item a DocTeX [[.dtx]] file to [[.pdf]], [[.ps]] or [[.dvi]] and
+\item an [[.ins]] file to [[.cls]] or [[.sty]].
+\end{inparablank}
+The suffix rules we provide here follows the conventions set out 
+in~\cite[Sect.\ 10.2]{GNUMake}.
+
+The latex(1) and pdflatex(1) commands are controlled by
+<<variables>>=
+LATEX?=       latexmk
+PDFLATEX?=    latexmk -pdf
+@ Possible flags are controlled by
+<<variables>>=
+LATEXFLAGS?=
+@ The output directory is by default
+<<variables>>=
+TEX_OUTDIR?=  ltxobj
+VPATH+=       ${TEX_OUTDIR}
+@
+
+Similarly, the bibtex(1) command is controlled by
+<<variables>>=
+BIBTEX?=      bibtexu
+BIBTEXFLAGS?=
+BIBER?=       biber
+BIBERFLAGS?=
+@ And the makeindex(1) command is controlled by
+<<variables>>=
+MAKEINDEX?=   makeindex
+MAKEIDXFLAGS?=-s gind.ist
+@
+
+We also provide support for PythonTeX.
+<<variables>>=
+PYTHONTEX?=   pythontex3
+PYTHONTEXFLAGS?=
+@
+
+
+\section{Implementation overview}
+
+The structure of the include file is similar to a header file in C or C++.
+The include file uses the old C-style technique to prevent multiple inclusions.
+<<tex.mk>>=
 ifndef TEX_MK
 TEX_MK=true
 
-DOCUMENTS?=	
-TEXMF?=		${HOME}/texmf
+include ${INCLUDE_MAKEFILES}/portability.mk
 
-solutions?=	no
-handout?=	no
+<<variables>>
+<<targets for documents>>
+<<targets for class and package files>>
+<<targets for cleaning>>
 
-RM?=		/bin/rm -f
-MV?=		mv
-SED?=		sed
-SEDex?=		sed -E
-CAT?=		cat
-WC?= 		wc -w
-
-# variables used to compile LaTeX documents
-LATEX?=		latex
-PDFLATEX?=	pdflatex
-DETEX?= 	detex
-LATEXMK?= 	latexmk ${LATEXMKRC} -bibtex-cond
-LATEXMKRC?= 
-DVIPS?=		dvips
-PDFPS?=		pdf2ps
-LATEXFLAGS?=
-MAKEINDEX?=	makeindex
-BIBTEX?=	bibtex8
-PDFVIEW?=	evince
-PAPER?=		a4
-
-USE_LATEXMK?= 	yes
-USE_BIBLATEX?= 	yes
-
-MATCH_PRINTANSWERS="/\\\\\\\\\\printanswers/s/^%//"
-MATCH_HANDOUT="s/\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}/\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}/"
-
-.SUFFIXES: .ins .cls .sty
-.ins.sty .ins.cls: latex
-	${LATEX} $<
-
-.SUFFIXES: .dtx .pdf
-.dtx.pdf: latex
-	${PDFLATEX} ${LATEXFLAGS} $<
-ifneq (${USE_BIBLATEX},yes)
-	-${BIBTEX} ${<:.dtx=}
 endif
-	-${MAKEINDEX} -s gind.ist ${<:.dtx=}
-	-${MAKEINDEX} ${<:.dtx=.nlo} -s nomencl.ist -o ${<:.dtx=.nls}
-	while (${PDFLATEX} ${LATEXFLAGS} $<; \
-		grep "Rerun to get cross" ${<:.dtx=.log}) \
-		do true; done
-	${PDFLATEX} ${LATEXFLAGS} $<
+@ We include [[portability.mk]] (\cref{portability.mk}) to get portable 
+settings for several common utilities.
 
-.SUFFIXES: .dvi
-.dtx.dvi: latex
-	${LATEX} ${LATEXFLAGS} $<
-ifneq (${USE_BIBLATEX},yes)
-	-${BIBTEX} ${<:.dtx=}
-endif
-	-${MAKEINDEX} -s gind.ist ${<:.dtx=}
-	-${MAKEINDEX} ${<:.dtx=.nlo} -s nomencl.ist -o ${<:.dtx=.nls}
-	while (${LATEX} ${LATEXFLAGS} $<; \
-		grep "Rerun to get cross" ${<:.dtx=.log}) \
-		do true; done
-	${LATEX} ${LATEXFLAGS} $<
-
-# $1 = input file
-# $2 = output file
-define sed_transformations
-${CAT} $1 \
-	$(shell [ "${solutions}" = "no" ] || echo \
-	" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
-	$(shell [ "${handout}" = "no" ] || echo \
-	" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
-	> $2
-endef
-
-# $1 = latex version
-# $2 = input tex file
-define run_latex
-$1 ${LATEXFLAGS} $2
--${BIBTEX} ${1:.tex=}
--${MAKEINDEX} -s gind.ist ${2:.tex=}
--${MAKEINDEX} ${2:.tex=.nlo} -s nomencl.ist -o ${2:.tex=.nls}
-while ($1 ${LATEXFLAGS} $2; \
-	grep "Rerun to get cross" ${2:.tex=.log}) \
-	do true; done
-$1 ${LATEXFLAGS} $2
-endef
-
-# $1 = original file
-# $2 = new file
-# $3 = backup file
-define backup_file
-if diff -u $1 $2; then \
-	mv $1 $3 && mv $2 $1; \
-fi
-endef
-
-# $1 = backup file
-# $2 = original file
-define restore_file
-if [ -f $1 ]; then \
-	${MV} $1 $2; \
-fi
-endef
-
-.SUFFIXES: .tex
-.tex.pdf: latexmk
-ifeq (${USE_LATEXMK},yes)
-	${LATEXMK} -pdf ${LATEXFLAGS} $<
-else
-	$(call run_latex, ${PDFLATEX}, $<)
-endif
-
-.tex.dvi: latexmk
-ifeq (${USE_LATEXMK},yes)
-	${LATEXMK} -dvi ${LATEXFLAGS} $<
-else
-	$(call run_latex, ${PDFLATEX}, $<)
-endif
-
-.PHONY: all
-all: ${DOCUMENTS}
-
-.PHONY: clean-tex
-clean-tex: latexmk
-	${RM} *.log *.aux *.toc *.bbl *.blg *.ind *.ilg *.dvi
-	${RM} *.out *.idx *.nls *.nlo *.lof *.lot *.glo
-	${RM} *.core *.o *~ *.out
-	${RM} missfont.log *.nav *.snm *.vrb *-eps-converted-to.pdf
-	${RM} *.run.xml *-blx.bib
-	${RM} *.bcf *.fdb_latexmk *.fls
-	${RM} -R pythontex-files-* *.pytxcode *.py.err
-	@-for f in *.tex; do \
-		[ -f $$f.orig ] && mv $$f.orig $$f; \
-	done
-	@-${LATEXMK} -C
-	@if [ -L rfc.bib ]; then \
-		${RM} rfc.bib; \
-	fi
-
-.PHONY: clean
+We will start with the targets for cleaning.
+We provide two phony targets, [[clean-tex]] and [[distclean-tex]], and we 
+add them as prerequisites to [[clean]] and [[distclean]], respectively.
+<<targets for cleaning>>=
+.PHONY: clean clean-tex
 clean: clean-tex
 
-latexmkrc:
-	[ -e $@ ] || ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+clean-tex:
+	<<clean recipe>>
 
-.PHONY: clean-latexmkrc
-clean-depends: clean-latexmkrc
-clean-latexmkrc:
-	${RM} latexmkrc
+.PHONY: distclean distclean-tex
+distclean: distclean-tex
 
-endif
+distclean-tex:
+	<<distclean recipe>>
+@ We will add to the recipes in the remainder of the chapter.
+However, as latexmk(1) is set as the default in \cref{tex:Intro}, we can 
+already add the following line to the cleaning recipe.
+<<clean recipe>>=
+-${LATEXMK} -C
 @
 
-The related [[latexmkrc]] file:
+
+\section{Targets for documents}
+
+Now we will treat how to compile documents.
+<<targets for documents>>=
+<<auxillary files>>
+<<bibliography files>>
+<<indices files>>
+<<PythonTeX files>>
+<<document files>>
+<<target for latexmkrc>>
+@ These will be discussed in the following sections.
+However, since we use latexmk(1) by default (\cref{tex:Intro}), we will discuss 
+the relevant [[<<latexmkrc>>]] entries in parallel.
+We supply a target to easily use our [[<<latexmkrc>>]] with latexmk(1).
+<<target for latexmkrc>>=
+latexmkrc:
+	[ -e $@ ] || ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+@ We also add the corresponding line for cleaning.
+<<distclean recipe>>=
+${RM} latexmkrc
+@
+
+\subsection{Auxillary files}
+
+<<auxillary files>>=
+${TEX_OUTDIR}/%.aux: %.tex
+	<<run latex>>
+@
+
+<<run latex>>=
+${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+@
+
+\subsection{Bibliography files}
+
+<<bibliography files>>=
+${TEX_OUTDIR}/%.bcf: %.tex
+	<<run latex>>
+
+${TEX_OUTDIR}/%.bbl: %.aux
+	<<compile bbl with bibtex>>
+
+${TEX_OUTDIR}/%.bbl: %.bcf
+	<<compile bbl with biber>>
+@
+
+\subsection{Indices files}
+
+<<indices files>>=
+${TEX_OUTDIR}/%.idx: %.tex
+	<<run latex>>
+
+${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
+	<<compile index>>
+
+${TEX_OUTDIR}/%.nlo: %.tex
+	<<run latex>>
+
+${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
+	<<compile nomenclature>>
+@
+
 <<latexmkrc>>=
 # Custom dependency and function for nomencl package #
 add_cus_dep( 'nlo', 'nls', 0, 'makenlo2nls' );
 sub makenlo2nls {
 	system( "makeindex -s nomencl.ist -o \"$_[0].nls\" \"$_[0].nlo\"" );
 }
+@
 
+\subsection{PythonTeX files}
+
+<<PythonTeX files>>=
+pythontex-files-%/%.pytxmcr: %.tex
+	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
+@
+
+<<latexmkrc>>=
 #  This version has a fudge on the latex and pdflatex commands that
 #  allows the pythontex custom dependency to work even when $out_dir
 #  is used to set the output directory.  Without the fudge (done by
 #  trickery symbolic links) the custom dependency for using pythontex
 #  will not be detected.
 
-add_cus_dep('pytxcode', 'tex', 0, 'pythontex');
+add_cus_dep('pytxcode', 'pytxmcr', 0, 'pythontex');
 sub pythontex {
     # This subroutine is a fudge, because it from latexmk's point of
     # view, it makes the main .tex file depend on the .pytxcode file.
@@ -181,9 +182,8 @@ sub pythontex {
     # side effects in creating other files.  The dependence is a way
     # of triggering the rule to be run whenever the .pytxcode file
     # changes, and to do this before running latex/pdflatex again.
-    return system("pythontex --verbose --interpreter python:python3 \"$_[0]\"");
+    return system("pythontex3 --verbose \"$_[0]\"");
 }
-
 
 $pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
 $latex = 'internal mylatex %R %Z latex %O %S';
@@ -212,3 +212,256 @@ sub mylatex {
    return system @_;
 }
 @
+
+
+\subsection{Document files}
+
+<<document files>>=
+%.pdf: %.tex
+	<<compile PDF>>
+
+%.dvi: %.tex
+	<<compile DVI>>
+@
+
+<<compile bbl with bibtex>>=
+cd ${TEX_OUTDIR} && ${BIBTEX} ${BIBTEXFLAGS} ../$<
+@
+
+<<compile bbl with biber>>=
+${BIBER} -O $@ ${BIBERFLAGS} $<
+@
+
+<<compile index>>=
+${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} $<
+@
+
+<<compile nomenclature>>=
+${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} -s nomencl.ist $<
+@
+
+<<compile PDF>>=
+${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+  ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+done
+@
+
+<<compile DVI>>=
+${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+done
+@
+
+
+\section{The RFC bibliography}
+
+Occasionally we want to cite \ac{IETF} \acp{RFC}.
+Fortunately, Roland Bless of Karlsruher Institute of Technology provides an 
+up-to-date bibliography file for all \acp{RFC}, so we will use that one.
+<<targets for the RFC bibliography>>=
+rfc.bib:
+	<<download rfc.bib>>
+	<<change misc to techreport>>
+
+${TEXMF}/tex/latex/rfc.bib:
+	mkdir -p ${TEXMF}/tex/latex/
+	<<download rfc.bib>>
+	<<change misc to techreport>>
+@
+
+We will use wget(1) to download a compressed version from Bless' site.
+We let wget(1) output the contents to standard out and pipe it to the 
+uncompress(1) utility and, finally, redirect the result to the target file.
+<<download rfc.bib>>=
+${WGET} -O - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
+  | ${UNCOMPRESS} - > $@ ; \
+@
+
+According to \ac{IETF}~\cite[Sect.\ 5.2]{IETFCitingRFCs} the \acp{RFC} should 
+be cited as the [[techreport]] BibTeX type.
+<<change misc to techreport>>=
+${SED} -i "s/@misc/@techreport/" $@
+@
+
+We also provide a phony target for these two files.
+<<targets for the RFC bibliography>>=
+.PHONY: rfc
+rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
+@
+
+Finally, we provide a phony cleaning for cleaning.
+The target is named [[clean-rfc]] and is added as a prerequisite for 
+[[distclean]] --- this way its recipe will not interfere with any cleaning 
+recipe written by the user.
+<<targets for the RFC bibliography>>=
+.PHONY: distclean clean-rfc
+distclean: clean-rfc
+clean-rfc:
+	${RM} rfc.bib
+@
+
+
+\section{Targets for class and package files}
+
+There are two parts concerning class and package files.
+<<targets for class and package files>>=
+<<compile sty and cls files>>
+<<compile class and package documentation>>
+@
+
+We can normally create the [[.sty]] and [[.cls]] files by running latex(1) on 
+the [[.ins]] file.
+<<compile sty and cls files>>=
+.SUFFIXES: .ins .cls .sty
+.ins.sty .ins.cls:
+	${LATEX} $<
+@
+
+We can then compile the documentation similarly to how we compile normal 
+documents.
+<<compile class and package documentation>>=
+%.pdf: %.dtx
+	<<compile PDF>>
+
+%.dvi:
+	<<compile DVI>>
+@ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
+<<compile class and package documentation>>=
+%.aux: %.dtx
+	<<run latex>>
+
+%.bbl: %.aux
+	<<compile bbl with bibtex>>
+
+%.bcf: %.dtx
+	<<compile bcf>>
+
+%.bbl: %.bcf
+	<<compile bbl with biber>>
+@
+
+
+\section{External classes}
+
+<<targets for Springer and ACM classes>>=
+### Springer's Lecture Notes on Computer Science ###
+
+#LLNCS?=${TEXMF}/tex/latex/llncs
+LLNCS?= .
+
+${LLNCS}/llncs2e.zip:
+	wget -O $@ ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+
+LLNCS-files= 	llncs.cls
+LLNCS-files+= 	sprmindx.sty
+LLNCS-files+= 	splncs03.bst
+LLNCS-files+= 	aliascnt.sty
+LLNCS-files+= 	remreset.sty
+
+$(patsubst %,${LLNCS}/%,${LLNCS-files}): ${LLNCS}/llncs2e.zip
+	${UNZIP} ${LLNCS}/llncs2e.zip ${@:${LLNCS}/=} -d ${LLNCS}
+
+.PHONY: llncs clean-llncs
+llncs: ${LLNCS-files}
+distclean: clean-llncs
+clean-llncs:
+	${RM} $(patsubst %,${LLNCS}/%,${LLNCS-files}) ${LLNCS}/llncs2e.zip
+
+
+#BIBLATEX-LNCS?=	${TEXMF}/tex/latex/biblatex
+BIBLATEX-LNCS?= .
+BLTX-files= 	lncs.bbx
+BLTX-files+= 	lncs.cbx
+BLTX-files+= 	lncs.dbx
+
+biblatex-lncs-src:
+	if [ -e biblatex-lncs ]; then \
+		ln -s biblatex-lncs biblatex-lncs-src; \
+	else \
+		git clone https://github.com/neapel/biblatex-lncs.git \
+		biblatex-lncs-src; \
+	fi
+
+$(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}): biblatex-lncs-src
+	[ -e $@ ] || ln -s biblatex-lncs-src/${@:${BIBLATEX-LNCS}/=} $@
+
+.PHONY: biblatex-lncs clean-biblatex-lncs
+biblatex-lncs: $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files})
+distclean: clean-biblatex-lncs
+clean-biblatex-lncs:
+	find $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}) -type l | \
+		xargs ${RM}
+	${RM} -R biblatex-lncs-src
+
+### Springer's Monograph ###
+
+#SVMONO?= 	${TEXMF}/tex/latex/svmono
+SVMONO?= 	.
+
+${SVMONO}/svmono.zip:
+	wget -O $@ http://static.springer.com/sgw/documents/72921/application/zip/svmono.zip
+
+SVMONO-files= 	svind.ist
+SVMONO-files+= 	svmono.cls
+
+$(patsubst %,${SVMONO}/%,${SVMONO-files}): ${SVMONO}/svmono.zip
+	${UNZIP} ${SVMONO}/svmono.zip styles/${@:${SVMONO}/=} -d ${SVMONO}
+
+.PHONY: svmono clean-svmono
+svmono: $(patsubst %,${SVMONO}/%,${SVMONO-files})
+distclean: clean-svmono
+clean-svmono:
+	${RM} $(patsubst %,${SVMONO}/%,${SVMONO-files})
+
+### ACM SIG Proceedings ###
+
+#ACMSIG?= 	${TEXMF}/tex/latex/acm/proc
+ACMSIG?= 	.
+
+${ACMSIG}/acm_proc_article-sp.cls:
+	wget -O $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
+
+.PHONY: acmproc clean-acmproc
+acmproc: ${ACMSIG}/acm_proc_article-sp.cls
+distclean: clean-acmproc
+clean-acmproc:
+	${RM} ${ACMSIG}/acm_proc_article-sp.cls
+
+### ACM Small Standard ###
+
+#ACMSMALL?= 	${TEXTMF}/tex/latex/acm/small
+ACMSMALL?= 		.
+
+${ACMSMALL}/v2-acmsmall.zip:
+	wget -O $@ http://www.acm.org/publications/latex_style/v2-acmsmall.zip
+
+${ACMSMALL}/acmsmall.cls: ${ACMSMALL}/v2-acmsmall.zip
+	${UNZIP} ${ACMSMALL}/v2-acmsmall.zip acmsmall.cls -d ${ACMSMALL}
+
+.PHONY: acmsmall clean-acmsmall
+acmsmall: ${ACMSMALL}/acmsmall.cls
+distclean: clean-acmsmall
+clean-acmsmall:
+	${RM} ${ACMSMALL}/acmsmall.cls
+
+### ACM Large Standard ###
+
+#ACMLARGE?= 	${TEXTMF}/tex/latex/acm/large
+ACMLARGE?= 		.
+
+${ACMLARGE}/v2-acmlarge.zip:
+	wget -O $@ http://www.acm.org/publications/latex_style/v2-acmlarge.zip
+
+${ACMLARGE}/acmlarge.cls: ${ACMLARGE}/v2-acmlarge.zip
+	${UNZIP} ${ACMLARGE}/v2-acmlarge.zip acmlarge.cls -d ${ACMLARGE}
+
+.PHONY: acmlarge clean-acmlarge
+acmlarge: ${ACMLARGE}/acmlarge.cls
+distclean: clean-acmlarge
+clean-acmlarge:
+	${RM} ${ACMLARGE}/acmlarge.cls
+
+@
+

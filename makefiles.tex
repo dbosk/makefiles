@@ -29,8 +29,10 @@
 \let\nwdocspar=\smallbreak
 
 \usepackage[natbib,style=alphabetic,maxbibnames=99]{biblatex}
+\addbibresource{makefiles.bib}
 \addbibresource{exam.bib}
 \addbibresource{export.bib}
+\addbibresource{tex.bib}
 
 \usepackage{acro}
 \DeclareAcronym{ILO}{%
@@ -61,6 +63,18 @@
   short = {SVN},
   short-indefinite = {an},
   long = {Subversion},
+  long-indefinite = {a},
+}
+\DeclareAcronym{IETF}{%
+  short = {IETF},
+  short-indefinite = {an},
+  long = {Internet Engineering Task Force},
+  long-indefinite = {an},
+}
+\DeclareAcronym{RFC}{%
+  short = {RFC},
+  short-indefinite = {an},
+  long = {Request For Comments},
   long-indefinite = {a},
 }
 

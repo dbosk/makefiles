@@ -18,9 +18,10 @@ all: ${MKFILES}
 all: ${MIUNFILES}
 all: ${OTHERS}
 
-makefiles.pdf: makefiles.tex intro.tex
+makefiles.pdf: makefiles.tex intro.tex makefiles.bib
 makefiles.pdf: exam.bib
 makefiles.pdf: export.bib
+makefiles.pdf: tex.bib
 
 define makefiles_depends
 makefiles.pdf: $(1:.mk=.tex)

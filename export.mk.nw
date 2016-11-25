@@ -112,6 +112,47 @@ ExportFilter?=${SED} "/#export \\(false\\|no\\)/,/#export \\(true\\|yes\\)/d"
 OldExportFilter?=   ${SED} "/#export no/,/#endexport/d"
 @
 
+\subsection{Handouts and printanswers}
+
+<<variables>>=
+MATCH_PRINTANSWERS="/\\\\\\\\\\printanswers/s/^%//"
+MATCH_HANDOUT="s/\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}/\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}/"
+@
+
+<<transformations>>=
+.SUFFIXES: .dvi .ps
+.dvi.ps:
+	${DVIPS} ${DVIPSFLAGS} $<
+
+# $1 = input file
+# $2 = output file
+define sed_transformations
+${CAT} $1 \
+	$(shell [ "${solutions}" = "no" ] || echo \
+	" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
+	$(shell [ "${handout}" = "no" ] || echo \
+	" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
+	> $2
+endef
+
+# $1 = original file
+# $2 = new file
+# $3 = backup file
+define backup_file
+if diff -u $1 $2; then \
+	mv $1 $3 && mv $2 $1; \
+fi
+endef
+
+# $1 = backup file
+# $2 = original file
+define restore_file
+if [ -f $1 ]; then \
+	${MV} $1 $2; \
+fi
+endef
+@
+
 
 \section{Preparing camera-ready source}
 
