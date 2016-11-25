@@ -433,13 +433,13 @@ The commit functions are as expected for all three \acp{VCS}.
 autocommit-git = git commit ${PUB_COMMIT_OPTS}
 autocommit-svn = svn commit ${PUB_COMMIT_OPTS}
 autocommit-cvs = cvs commit ${PUB_COMMIT_OPTS}
-@ The tagging is similarly straight-forward for Git and CVS.
+@ The tagging is similarly straight-forward for Git and \ac{CVS}.
 <<autotag for git and cvs>>=
 autotag-git = git tag ${PUB_TAG_OPTS} ${PUB_TAG_NAME}
 autotag-cvs = cvs tag ${PUB_TAG_OPTS} ${PUB_TAG_NAME}
 @
 
-The tagging function for SVN is not as easy though.
+The tagging function for \ac{SVN} is not as easy though.
 The outline is as follows.
 <<autotag for svn>>=
 <<helper functions for svn tagging>>
