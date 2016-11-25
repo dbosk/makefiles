@@ -3,6 +3,7 @@ MKFILES+=		package.mk pub.mk transform.mk
 MKFILES+=		tex.mk doc.mk
 MKFILES+=		noweb.mk haskell.mk
 MKFILES+=		exam.mk results.mk
+#MKFILES+=		miun.port.mk
 
 MIUNFILES+=		miun.docs.mk miun.tex.mk miun.subdir.mk
 MIUNFILES+=		miun.package.mk miun.pub.mk miun.course.mk
@@ -15,7 +16,7 @@ OTHERS+=		gitattributes
 .PHONY: all
 all: makefiles.pdf
 all: ${MKFILES}
-all: ${MIUNFILES}
+#all: ${MIUNFILES}
 all: ${OTHERS}
 
 makefiles.pdf: makefiles.tex intro.tex makefiles.bib
@@ -51,6 +52,7 @@ clean:
 	${RM} exam.tex
 	${RM} results.tex
 	${RM} gitattributes
+#	${RM} miun.port.tex
 
 
 .PHONY: miun
@@ -65,19 +67,19 @@ PKG_NAME-main= 			makefiles
 PKG_INSTALL_FILES-main=	${MKFILES}
 PKG_TARBALL_FILES-main=	${PKG_INSTALL_FILES-main} ${OTHERS} Makefile README.md
 
-PKG_NAME-miun=			build-all
-PKG_INSTALL_FILES-miun=	${MIUNFILES}
-PKG_TARBALL_FILES-miun=	${PKG_INSTALL_FILES-miun} Makefile README.md
-
-
-PUB_SITES?= 			miun
-
-PUB_SERVER-miun?=		ver.miun.se
-PUB_DIR-miun?=			/srv/web/svn
-PUB_CATEGORY-miun?=		build
-PUB_METHOD-miun?= 		ssh
-PUB_GROUP-miun?= 		svn
-PUB_FILES-miun?=		${PKG_FILES-miun} ${PKG_NAME-miun}.tar.gz
+#PKG_NAME-miun=			build-all
+#PKG_INSTALL_FILES-miun=	${MIUNFILES}
+#PKG_TARBALL_FILES-miun=	${PKG_INSTALL_FILES-miun} Makefile README.md
+#
+#
+#PUB_SITES?= 			miun
+#
+#PUB_SERVER-miun?=		ver.miun.se
+#PUB_DIR-miun?=			/srv/web/svn
+#PUB_CATEGORY-miun?=		build
+#PUB_METHOD-miun?= 		ssh
+#PUB_GROUP-miun?= 		svn
+#PUB_FILES-miun?=		${PKG_FILES-miun} ${PKG_NAME-miun}.tar.gz
 
 
 INCLUDE_MAKEFILES=.
@@ -86,4 +88,4 @@ include ${INCLUDE_MAKEFILES}/pub.mk
 include ${INCLUDE_MAKEFILES}/package.mk
 include ${INCLUDE_MAKEFILES}/tex.mk
 include ${INCLUDE_MAKEFILES}/noweb.mk
-include ${INCLUDE_MAKEFILES}/miun.port.mk
+#include ${INCLUDE_MAKEFILES}/miun.port.mk
