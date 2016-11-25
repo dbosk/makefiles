@@ -1,11 +1,6 @@
 ifndef EXPORT_MK
 EXPORT_MK=true
 
-ifeq (${MAKE},gmake)
-SED?=     gsed
-else
-SED?=     sed
-endif
 EXPORT_SRC?=    .tex
 EXPORT_DST?=    .transformed.tex
 MATCH_PRINTANSWERS="/\\\\\\\\\\printanswers/s/^%//"
@@ -91,5 +86,7 @@ endef
 
 .tex.asc.tex:
 	${EXPORT_DEC} < $< > $@
+
+include ${INCLUDE_MAKEFILES}/portability.mk
 
 endif
