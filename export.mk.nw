@@ -20,7 +20,7 @@ EXPORT_MK=true
 <<variables>>
 <<suffix rule for transformations>>
 <<target generation for transformations>>
-<<suffix rule for camera-ready source>>
+<<suffix rules for camera-ready source>>
 <<suffix rules for encrypted files>>
 
 endif
