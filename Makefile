@@ -1,6 +1,6 @@
 MKFILES+=		portability.mk subdir.mk
-MKFILES+=		package.mk export.mk pub.mk
-MKFILES+=		doc.mk tex.mk
+MKFILES+=		package.mk pub.mk transform.mk
+MKFILES+=		tex.mk doc.mk
 MKFILES+=		noweb.mk haskell.mk
 MKFILES+=		exam.mk results.mk
 
@@ -20,7 +20,7 @@ all: ${OTHERS}
 
 makefiles.pdf: makefiles.tex intro.tex makefiles.bib
 makefiles.pdf: exam.bib
-makefiles.pdf: export.bib
+makefiles.pdf: transform.bib
 makefiles.pdf: tex.bib
 
 define makefiles_depends
@@ -68,6 +68,7 @@ PKG_TARBALL_FILES-main=	${PKG_INSTALL_FILES-main} ${OTHERS} Makefile README.md
 PKG_NAME-miun=			build-all
 PKG_INSTALL_FILES-miun=	${MIUNFILES}
 PKG_TARBALL_FILES-miun=	${PKG_INSTALL_FILES-miun} Makefile README.md
+
 
 PUB_SITES?= 			miun
 
