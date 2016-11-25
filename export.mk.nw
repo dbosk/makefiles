@@ -23,23 +23,10 @@ EXPORT_MK=true
 <<suffix rules for camera-ready source>>
 <<suffix rules for encrypted files>>
 
+include ${INCLUDE_MAKEFILES}/portability.mk
+
 endif
 @ We will now explore now these are implemented.
-
-\subsection{Portability}
-
-We will use the following programs and the possibility to override them.
-
-If we run on a BSD-system the make GNU utility will be called [[gmake]].
-On such systems we also have a different version of [[sed]], where the GNU 
-version of [[sed]] is called [[gsed]].
-<<variables>>=
-ifeq (${MAKE},gmake)
-SED?=     gsed
-else
-SED?=     sed
-endif
-@
 
 
 \section{A transformation mechanism}

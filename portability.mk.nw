@@ -1,149 +1,116 @@
-This is the code:
-<<depend.mk>>=
-# $Id$
-# Author: 	Daniel Bosk <daniel.bosk@miun.se>
+\label{portability.mk}
+\section{Introduction}
 
-ifndef DEPEND_MK
-DEPEND_MK=true
+The purpose of this include file is to improve portability of the include 
+files.
+The make(1) utility itself already provides certain portability between 
+platforms, here we want to extend this portability.
+I.e.\ we provide variables which substitute to system-specific commands which 
+corresponds to the expected action.
+For instance, MacOS uses an ancient version of [[unzip]], a version which does 
+not support the option [[-DD]] which is desirable.
+So, on MacOS the variable [[UNZIP]] will substitute to [[unzip]] which on other
+systems it will substitute to [[unzip -DD]].
+Another examples is BSD-systems, which does not use the GNU versions of [[sed]]
+and [[grep]] (and [[make]]).
+On these systems [[SED]] will substitute to [[gsed]], which is the GNU version 
+of the command.
+Probably the reader can skip this chapter on a first reading.
 
-CONF?= 	${HOME}/.mk.conf /etc/mk.conf
--include ${CONF}
+The include file is structures similarly to a header file in C.
+We use the same technique to prevent multiple inclusions.
+The outline is as follows.
+<<portability.mk>>=
+ifndef PORTABILITY_MK
+PORTABILITY_MK=true
 
-ifeq ($(shell uname),Linux)
-UNZIP?= unzip -DD
-else
-UNZIP?= unzip
+<<system-specific configuration>>
+
+<<the sed(1) utility>>
+<<the grep(1) utility>>
+<<the unzip(1) utility>>
+<<some standard utilities>>
+
 endif
+@ Since this file provides system-dependent configuration, we allow the user to
+provide a system-wide configuration file.
+<<system-specific configuration>>=
+PORTABILITY_CONF?=  ${HOME}/.mk.conf /etc/mk.conf
+-include ${PORTABILITY_CONF}
+@ The file in [[/etc/mk.conf]] is commonly available in BSDs.
+However, since these files might not exist, make(1) should not yield a fatal 
+error if the include directive fails.
 
-.PHONY: dvips
+
+\section{The ported utilities}
+
+Two of the most frequently used utilities are sed(1) and grep(1).
+The version of these that we want to use is the GNU version.
+On Linux systems, this is the default.
+On BSDs, however, they are available prefixed with the letter \enquote{g}.
+The same goes to the make(1) utility, which means that we can use that fact to 
+check for this.
+<<the sed(1) utility>>=
 ifeq (${MAKE},gmake)
-dvips:
-	which dvips || sudo pkg_add ghostscript
+SED?=     gsed
+SEDex?=   gsed -E
 else
-dvips:
-	which dvips || sudo apt-get install texlive-full
+SED?=     sed
+SEDex?=   sed -E
 endif
-
-.PHONY: pdf2ps
+@ Similarly, we let
+<<the grep(1) utility>>=
 ifeq (${MAKE},gmake)
-pdf2ps:
-	which pdf2ps || sudo pkg_add ghostscript
+GREP=     ggrep
+GREPex=   ggrep -E
 else
-pdf2ps:
-	which pdf2ps || sudo apt-get install texlive-full
+GREP=     grep
+GREPex=   grep -E
 endif
+@
 
-.PHONY: latex
-ifeq (${MAKE},gmake)
-latex:
-	which latex || sudo pkg_add texlive_texmf-full
+Some other standard utilities that has not yet broken on any system are the 
+following.
+<<some standard utilities>>=
+CAT?=     cat
+MV?=      mv
+CP?=      cp -R
+@ The make(1) utility already sets [[RM = rm -f]] by default~\cite[Sect.\ 
+10.3]{GNUMake}, so we need not repeat it.
+
+Another utility which is used is wc(1), which is used to count words in 
+[[tex.mk]].
+<<some standard utilities>>=
+WC?=      wc
+WCw?=     wc -w
+@
+
+Quite commonly we want to open files with the user's desired application, e.g.\
+to open PDFs in the user's PDF reader.
+For this we use the xdg-open(1) utility.
+<<some standard utilities>>=
+XDGOPEN?= xdg-open
+@
+
+The unzip(1) utility is used in [[tex.mk]].
+Unfortunately, MacOS ships with an ancient version of unzip(1), one which does 
+not support the desired [[-DD]] option.
+(The [[-DD]] option is desired to avoid unnecessary rebuilding by make(1).)
+Hence we check if the system is Darwin, if so, we skip the [[-DD]] option.
+<<the unzip(1) utility>>=
+ifeq ($(shell uname),Darwin)
+UNZIP?=   unzip
 else
-latex:
-	which latex || sudo apt-get install texlive-full
+UNZIP?=   unzip -DD
 endif
+@
 
-.PHONY: latexmk
-ifeq (${MAKE},gmake)
-latexmk:
-	which latexmk || sudo pkg_add latexmk
-else
-latexmk:
-	which latexmk || sudo apt-get install latexmk
-endif
+We also use gunzip(1) or uncompress(1).
+<<the unzip(1) utility>>=
+UNCOMPRESS?=  uncompress
+@
 
-.PHONY: pax
-ifeq (${MAKE},gmake)
-pax:
-	which pax
-else
-pax:
-	which pax || sudo apt-get install pax
-endif
-
-.PHONY: sed
-ifeq (${MAKE},gmake)
-SED= 	gsed
-SEDex= 	gsed -E
-sed gsed:
-	which gsed || sudo pkg_add gsed
-else
-sed gsed:
-	which sed
-endif
-
-.PHONY: grep
-ifeq (${MAKE},gmake)
-GREP= 		ggrep
-GREPex= 	ggrep -E
-grep ggrep:
-	which ggrep || sudo pkg_add ggrep
-else
-grep ggrep:
-	which grep
-endif
-
-.PHONY: git
-ifeq (${MAKE},gmake)
-git:
-	which git || sudo pkg_add git git-svn
-else
-git:
-	which git || sudo apt-get install git git-svn
-endif
-
-.PHONY: wget
-ifeq (${MAKE},gmake)
-wget:
-	which wget || sudo pkg_add wget
-else
-wget:
-	which wget || sudo apt-get install wget
-endif
-
-.PHONY: localc
-ifeq (${MAKE},gmake)
-localc:
-	which localc || sudo pkg_add libreoffice
-else
-localc:
-	which localc || sudo apt-get install libreoffice
-endif
-
-.PHONY: soffice
-ifeq (${MAKE},gmake)
-soffice:
-	which soffice || sudo pkg_add libreoffice
-else
-soffice:
-	which soffice || sudo apt-get install libreoffice
-endif
-
-.PHONY: dia
-ifeq (${MAKE},gmake)
-dia:
-	which dia || sudo pkg_add dia
-else
-dia:
-	which dia || sudo apt-get install dia
-endif
-
-.PHONY: inkscape
-ifeq (${MAKE},gmake)
-inkscape:
-	which inkscape || sudo pkg_add inkscape 
-else
-inkscape:
-	which inkscape || sudo apt-get install inkscape
-endif
-
-.PHONY: noweb
-ifeq (${MAKE},gmake)
-noweb:
-	which noweb || sudo pkg_add noweb 
-else
-noweb:
-	which noweb || sudo apt-get install noweb
-endif
-
-
+We also use wget(1).
+<<fetching files>>=
+WGET?=        wget
 @
