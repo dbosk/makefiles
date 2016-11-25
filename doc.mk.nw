@@ -36,9 +36,10 @@ We provide a target [[print]] to print all documents in a set.
 The usage is simply that documents are added as prerequisites, then the target 
 prints all documents in its dependency list.
 The printing is done using the [[lpr]] command by default.
-However, this can be changed with the [[DOC_LPR]] variable.
+However, this can be changed with the [[LPR]] variable.
 <<variables>>=
-DOC_LPR?=		lpr
+LPR?=       lpr
+LPRFLAGS?=
 @
 
 If [[lpr]] is used, we note that the files added as prerequisites for the 
@@ -53,13 +54,16 @@ the rest.
 The implementation is quite simple.
 We will iterate through the list of prerequisites and process them one by
 one.
-The iteration can be done in two ways: do it in the shell or do it using make's 
-built-in iteration.
-We choose the latter, because that will provide the best output to the user.
+For each document we will check if there is an overriding setting for the 
+printing command and its arguments, if there is not we use the default set 
+above.
 <<target for printing>>=
 .PHONY: print
 print:
-	$(foreach doc,$^,${DOC_LPR} ${doc})
+	$(foreach doc,$^,\
+	  $(if ${LPR-${doc}},${LPR-${doc}},${LPR}) \
+	  $(if ${LPRFLAGS-${doc}},${LPRFLAGS-${doc}},${LPRFLAGS}) \
+	  ${doc})
 @
 
 \subsection{Counting words}
@@ -74,16 +78,22 @@ The implementation is similar to that for [[print]].
 The counting is done using the [[wc]] command by default, but we allow 
 overrides using the following variable.
 <<variables>>=
-DOC_WC?=    wc -w
+WC?=        wc
+WCFLAGS?=   -w
 @
 
 We will simply iterate through the list of prerequisites and process them one 
 by one using [[wc]].
 We first print the name followed by a colon, then we print the word count.
+Similarly as above, we check for each document whether there is an overriding 
+setting for the word counting command.
 <<target for word counting>>=
 .PHONY: wc
 wc:
-	$(foreach doc,$^,echo -n "${doc}: "; ${DOC_WC} ${doc})
+	$(foreach doc,$^,echo -n "${doc}: "; \
+	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
+	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS}) \
+	  ${doc})
 @
 
 \subsection{Format conversion}
@@ -95,6 +105,7 @@ name but change the suffix (\enquote{file extension}).
 The conversions that are implemented are the following:
 <<suffix rules for format conversion>>=
 <<PDF to PS>>
+<<PS to PDF>>
 <<DVI to PS>>
 <<ODT to PDF>>
 
@@ -109,36 +120,43 @@ The conversions that are implemented are the following:
 
 To convert PDFs to PostScript format, we use the [[pdf2ps]] command by default.
 <<variables>>=
-PDF2PS?=        pdf2ps
-PDFPS?=         ${PDF2PS}
-DOC_PDF2PS?=    ${PDFPS}
+PDF2PS?=      pdf2ps
+PDF2PSFLAGS?=
+PS2PDF?=      ps2pdf
+PS2PDFFLAGS?=
 @ This allows us to specify the rule as follows.
 <<PDF to PS>>=
 .SUFFIXES: .ps .pdf
 .pdf.ps:
-	${DOC_PDF2PS} $<
+	${PDF2PS} ${PDF2PSFLAGS} $<
+@ We also have the other way around.
+<<PS to PDF>>=
+.SUFFIXES: .ps .pdf
+.ps.pdf:
+	${PS2PDF} ${PS2PDFFLAGS} $<
 @
 
 We do similarly for DVI-files that we want to convert to PostScript.
 <<variables>>=
-DVIPS?=         dvips
-DOC_DVI2PS?=    ${DVIPS}
+DVIPS?=       dvips
+DVIPSFLAGS?=
 @ With those variables we let
 <<DVI to PS>>=
 .SUFFIXES: .dvi .ps
 .dvi.ps:
-	${DOC_DVI2PS} $<
+	${DVIPS} ${DVIPSFLAGS} $<
 @
 
 There is no good conversion program for the Open Document Format (ODF) files.
 We will use LibreOffice.
 <<variables>>=
-DOC_ODT2PDF?=   soffice --headless --convert-to pdf
+ODT2PDF?=     soffice --convert-to pdf
+ODT2PDFFLAGS?=--headless
 @ This yields the following suffix rule.
 <<ODT to PDF>>=
 .SUFFIXES: .odt .pdf
 .odt.pdf:
-	${DOC_ODT2PDF} $<
+	${ODT2PDF} ${ODT2PDFFLAGS} $<
 @
 
 \subsubsection{Figure formats}
@@ -154,32 +172,34 @@ We will use Inkscape for working with SVGs, because Inkscape allows us to
 export the graphics part as PDF and all text in it as TeX.
 Unlike previously, we will only allow flags for [[inkscape]] to be set.
 <<variables>>=
-DOC_INKSCAPE_FLAGS?=  -D -z --export-latex
+INKSCAPE?=      inkscape
+INKSCAPEFLAGS?= -D -z --export-latex
 @
 <<SVG to PDF>>=
 .SUFFIXES: .svg .pdf
 .svg.pdf:
-	inkscape ${DOC_INKSCAPE_FLAGS} --file=$< --export-pdf=$@
+	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
 @ We can thus create similar rules for the formats PS and EPS, instead of PDF.
 <<SVG to PS>>=
 .SUFFIXES: .svg .eps .ps
 .svg.ps:
-	inkscape ${DOC_INKSCAPE_FLAGS} --file=$< --export-ps=$@
+	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
 
 .svg.eps:
-	inkscape ${DOC_INKSCAPE_FLAGS} --file=$< --export-eps=$@
+	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
 @
 
 Dia is a useful tool for making figures over network topologies etc.
 Fortunately, Dia can output native TeX.
 Similarly to Inkscape, we will only provide flags for Dia.
 <<variables>>=
-DOC_DIA_FLAGS?=
+DIA?=           dia
+DIAFLAGS?=
 @ That gives the suffix rule as follows.
 <<DIA to TeX>>=
 .SUFFIXES: .dia .tex
 .dia.tex:
-	dia ${DOC_DIA_FLAGS} -e $@ -t pgf-tex $<
+	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
 @
 
 \subsubsection{Text-based formats}
@@ -190,23 +210,25 @@ customary when working with text in the terminal.
 
 We use the [[pandoc]] program to convert between Markdown and TeX.
 <<variables>>=
-DOC_MD2TEX?=    pandoc -f markdown -t latex
+MD2TEX?=        pandoc -f markdown -t latex
+MD2TEXFLAGS?=
 @ This gives the following suffix rule.
 <<MD to TeX>>=
 .SUFFIXES: .md .tex
 .md.tex:
-	${DOC_MD2TEX} < $< > $@
+	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
 @
 
 There are times when we want to convert out TeX-files to plain text, e.g.\ to 
 count the words.
 To do this we simply use the [[detex]] program.
 <<variables>>=
-DOC_TEX2TEXT?=  detex
+TEX2TEXT?=      detex
+TEX2TEXTFLAGS?=
 @ This gives us the following suffix rule.
 <<TeX to text>>=
 .SUFFIXES: .tex .txt
 .tex.txt:
-	${DOC_TEX2TEXT} $< > $@
+	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
 @
 
