@@ -1,7 +1,4 @@
-# $Id$
-# Author: Daniel Bosk <daniel.bosk@miun.se>
-
-MKFILES+=		depend.mk subdir.mk
+MKFILES+=		portability.mk subdir.mk
 MKFILES+=		package.mk export.mk pub.mk
 MKFILES+=		doc.mk tex.mk
 MKFILES+=		noweb.mk haskell.mk
@@ -41,7 +38,7 @@ gitattributes: export.mk.nw
 
 .PHONY: clean
 clean:
-	${RM} depend.tex
+	${RM} portability.tex
 	${RM} subdir.tex
 	${RM} package.tex
 	${RM} export.tex
@@ -82,7 +79,7 @@ PUB_FILES-miun?=		${PKG_FILES-miun} ${PKG_NAME-miun}.tar.gz
 
 
 INCLUDE_MAKEFILES=.
-include ${INCLUDE_MAKEFILES}/depend.mk
+include ${INCLUDE_MAKEFILES}/portability.mk
 include ${INCLUDE_MAKEFILES}/pub.mk
 include ${INCLUDE_MAKEFILES}/package.mk
 include ${INCLUDE_MAKEFILES}/tex.mk
