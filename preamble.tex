@@ -1,0 +1,79 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[british]{babel}
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\usepackage[capitalize]{cleveref}
+\usepackage{csquotes}
+\usepackage{authblk}
+\usepackage[defblank]{paralist}
+
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{thmtools}
+\declaretheorem[style=definition]{example}
+
+\usepackage{listings}
+\lstset{%
+  numbers=left,
+  basicstyle=\small
+}
+
+\usepackage{noweb}
+% Needed to relax penalty for breaking code chunks across pages, otherwise 
+% there might be a lot of space following a code chunk.
+\def\nwendcode{\endtrivlist \endgroup}
+\let\nwdocspar=\smallbreak
+
+\usepackage[natbib,style=alphabetic,maxbibnames=99]{biblatex}
+\addbibresource{makefiles.bib}
+\addbibresource{exam.bib}
+\addbibresource{transform.bib}
+\addbibresource{tex.bib}
+
+\usepackage{acro}
+\DeclareAcronym{ILO}{%
+  short = {ILO},
+  short-indefinite = {an},
+  long = {intended learning outcome},
+  long-indefinite = {an},
+}
+\DeclareAcronym{SSH}{%
+  short = {SSH},
+  short-indefinite = {an},
+  long = {Secure SHell},
+  long-indefinite = {a},
+}
+\DeclareAcronym{VCS}{%
+  short = {VCS},
+  short-indefinite = {a},
+  long = {version control system},
+  long-indefinite = {a},
+}
+\DeclareAcronym{CVS}{%
+  short = {CVS},
+  short-indefinite = {a},
+  long = {Concurrent Versions System},
+  long-indefinite = {a},
+}
+\DeclareAcronym{SVN}{%
+  short = {SVN},
+  short-indefinite = {an},
+  long = {Subversion},
+  long-indefinite = {a},
+}
+\DeclareAcronym{IETF}{%
+  short = {IETF},
+  short-indefinite = {an},
+  long = {Internet Engineering Task Force},
+  long-indefinite = {an},
+}
+\DeclareAcronym{RFC}{%
+  short = {RFC},
+  short-indefinite = {an},
+  long = {Request For Comments},
+  long-indefinite = {a},
+}
+
