@@ -18,10 +18,10 @@ NOWEB_TANGLE_FLAGS?= -t2
 	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
 .SUFFIXES: .nw .py.nw .py
 .nw.py .py.nw.py:
-	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< | cpif $@
+	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< > $@
 # implicit rules for make(1) includes
 .SUFFIXES: .nw .mk.nw .mk
 .nw.mk .mk.nw.mk:
-	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< | cpif $@
+	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< > $@
 
 endif

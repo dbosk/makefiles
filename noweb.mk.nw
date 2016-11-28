@@ -108,11 +108,11 @@ set above.
 <<suffix rules for Python>>=
 .SUFFIXES: .nw .py.nw .py
 .nw.py .py.nw.py:
-	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< | cpif $@
+	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< > $@
 @ It is the same case for makefiles.
 <<suffix rules for Make>>=
 # implicit rules for make(1) includes
 .SUFFIXES: .nw .mk.nw .mk
 .nw.mk .mk.nw.mk:
-	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< | cpif $@
+	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< > $@
 @
