@@ -34,16 +34,18 @@ $(foreach mkfile,${MKFILES},$(eval $(call makefiles_depends,${mkfile})))
 latexmkrc: tex.mk.nw
 	notangle -t2 -R$@ $^ | cpif $@
 
-gitattributes: export.mk.nw
+gitattributes: transform.mk.nw
 	notangle -t2 -R$@ $^ | cpif $@
 
 
 .PHONY: clean
 clean:
+	${RM} makefiles.pdf
 	${RM} portability.tex
 	${RM} subdir.tex
 	${RM} package.tex
-	${RM} export.tex
+	${RM} transform.tex
+	${RM} gitattributes
 	${RM} pub.tex
 	${RM} tex.tex
 	${RM} doc.tex
@@ -51,14 +53,14 @@ clean:
 	${RM} haskell.tex
 	${RM} exam.tex
 	${RM} results.tex
-	${RM} gitattributes
 #	${RM} miun.port.tex
 
 
 .PHONY: miun
 miun: ${MIUNFILES}
 
-PKG_PACKAGES?= 			main miun
+#PKG_PACKAGES?= 			main miun
+PKG_PACKAGES?=			main
 
 PKG_PREFIX=				/usr/local
 PKG_INSTALL_DIR=		/include
@@ -84,8 +86,8 @@ PKG_TARBALL_FILES-main=	${PKG_INSTALL_FILES-main} ${OTHERS} Makefile README.md
 
 INCLUDE_MAKEFILES=.
 include ${INCLUDE_MAKEFILES}/portability.mk
-include ${INCLUDE_MAKEFILES}/pub.mk
-include ${INCLUDE_MAKEFILES}/package.mk
-include ${INCLUDE_MAKEFILES}/tex.mk
 include ${INCLUDE_MAKEFILES}/noweb.mk
+include ${INCLUDE_MAKEFILES}/tex.mk
+include ${INCLUDE_MAKEFILES}/package.mk
+include ${INCLUDE_MAKEFILES}/pub.mk
 #include ${INCLUDE_MAKEFILES}/miun.port.mk
