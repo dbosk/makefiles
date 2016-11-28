@@ -27,6 +27,7 @@ UNCOMPRESS?=  uncompress
 CAT?=     cat
 MV?=      mv
 CP?=      cp -R
+LN?=      ln
 WC?=      wc
 WCw?=     wc -w
 XDGOPEN?= xdg-open

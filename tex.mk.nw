@@ -18,7 +18,7 @@ in~\cite[Sect.\ 10.2]{GNUMake}.
 
 The latex(1) and pdflatex(1) commands are controlled by
 <<variables>>=
-LATEX?=       latexmk
+LATEX?=       latexmk -dvi
 PDFLATEX?=    latexmk -pdf
 @ Possible flags are controlled by
 <<variables>>=
@@ -26,22 +26,47 @@ LATEXFLAGS?=
 @ The output directory is by default
 <<variables>>=
 TEX_OUTDIR?=  ltxobj
-VPATH+=       ${TEX_OUTDIR}
-@
+@ We note that we add this output directory to the search path for 
+prerequisites~\cite[see][Sect.\ 4.5.1]{GNUMake}.
+The reason for this is that we might need some out the objects as prerequisites 
+for other files.
 
-Similarly, the bibtex(1) command is controlled by
+Normally, the above is all that is needed.
+However, if you need to manually build the bibliography, you can either add the
+[[.bbl]] file as a prerequisite or set the following variable to a non-empty 
+string.
+<<variables>>=
+TEX_BBL?=
+@ Similarly as for the main LaTeX commands, the bibtex(1) command is controlled 
+by
 <<variables>>=
 BIBTEX?=      bibtexu
 BIBTEXFLAGS?=
+@ And, in case we use biblatex, the biber(1) command is controlled by
+<<variables>>=
 BIBER?=       biber
 BIBERFLAGS?=
-@ And the makeindex(1) command is controlled by
+@
+
+Similarly as for the bibliography, to enable indexing you can either manually 
+add the [[.ind]] file as a prerequisite, or you can set the following variable 
+to a non-empty string.
+<<variables>>=
+TEX_IND?=
+@ The indexing-related programs are the following.
 <<variables>>=
 MAKEINDEX?=   makeindex
-MAKEIDXFLAGS?=-s gind.ist
+MAKEIDXFLAGS?=
+XINDY?=       texindy
+XINDYFLAGS?=
 @
 
 We also provide support for PythonTeX.
+This is enabled by the following variable.
+<<variables>>=
+TEX_PYTHONTEX?=
+@ Then the required command and flags are controlled with the following 
+variables.
 <<variables>>=
 PYTHONTEX?=   pythontex3
 PYTHONTEXFLAGS?=
@@ -86,7 +111,7 @@ distclean-tex:
 However, as latexmk(1) is set as the default in \cref{tex:Intro}, we can 
 already add the following line to the cleaning recipe.
 <<clean recipe>>=
--${LATEXMK} -C
+-latexmk -C -output-directory=${TEX_OUTDIR}
 @
 
 
@@ -112,44 +137,118 @@ latexmkrc:
 ${RM} latexmkrc
 @
 
+We will now discuss the different files we need latex(1) to generate.
+Note that in many cases we want latex(1) to generate more files, e.g.\ [[.toc]]
+files, but we do not have to care about these here.
+The reason we can ignore those files is that they do not require any external 
+tool, e.g.\ bibtex(1), to be run, these files just requires another run of 
+latex(1).
+
 \subsection{Auxillary files}
 
+Many steps in compiling a LaTeX document needs the [[.aux]] file.
+Thus we will first introduce a rule for creating the [[.aux]] file.
+We will create it in the specified output directory.
 <<auxillary files>>=
 ${TEX_OUTDIR}/%.aux: %.tex
-	<<run latex>>
+	<<try to create output directory>>
+	<<run pdflatex>>
+@ To create the output directory we simply try mkdir(1).
+<<try to create output directory>>=
+${MKDIR} ${TEX_OUTDIR}
+@ We can the simply run latex(1) with the specified output directory.
+Note that it does not matter whether we run latex(1) or pdflatex(1) to generate
+the [[.aux]] file.
+<<run pdflatex>>=
+${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 @
 
-<<run latex>>=
-${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-@
+\subsection{Bibliographies}
 
-\subsection{Bibliography files}
-
+One file that is commonly needed is the one used to create the bibliography, 
+the [[.bbl]] file.
+There are two ways to create this file, either using classical bibtex(1) or 
+using the [[biblatex]] package and biber(1).
 <<bibliography files>>=
-${TEX_OUTDIR}/%.bcf: %.tex
-	<<run latex>>
-
-${TEX_OUTDIR}/%.bbl: %.aux
-	<<compile bbl with bibtex>>
-
-${TEX_OUTDIR}/%.bbl: %.bcf
-	<<compile bbl with biber>>
+<<bbl target for bibtex>>
+<<bbl target for biber>>
 @
 
-\subsection{Indices files}
+The first approach, using bibtex(1), depends on the [[.aux]] file.
+This means that we can have a target creating the desired [[.bbl]] file from 
+the [[.aux]] file.
+<<bbl target for bibtex>>=
+${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
+	<<compile bbl with bibtex>>
+@ To compile the [[.bbl]] file using bibtex(1) and to put the output files in 
+the desired output directory, we can do this.
+<<compile bbl with bibtex>>=
+${BIBTEX} ${BIBTEXFLAGS} $<
+${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
+@
 
+The second approach uses the [[biblatex]] package~\cite{biblatex} and 
+biber(1)~\cite{biber}.
+They do not rely on the [[.aux]] file, instead [[biblatex]] creates a [[.bcf]] 
+file.
+Thus its target is exactly the same as that of the [[.aux]] file.
+<<bbl target for biber>>=
+${TEX_OUTDIR}/%.bcf: %.tex
+	<<try to create output directory>>
+	<<run pdflatex>>
+@ This [[.bcf]] file is in turn used by biber(1) to create the [[.bbl]] file.
+To compile the [[.bbl]] with biber(1) and put the output files in the desired
+directory, we do the following.
+<<bbl target for biber>>=
+${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
+	${BIBER} -O $@ ${BIBERFLAGS} $<
+@
+
+As mentioned in \cref{tex:Intro}, we can automatically add the [[.bbl]] file as
+a prerequisite if the variable [[TEX_BBL]] is set.
+<<bibliography files>>=
+ifneq (${TEX_BBL},)
+%.pdf: ${TEX_OUTDIR}/%.bbl
+endif
+@
+
+\subsection{Indices}
+
+There are several time we need to work with indices, e.g.\ when working with 
+standard indices but also glossaries.
+Here we provide some suffix rules to make it easier to build such indices.
+
+Before we start, however, we will note that many of these rules are not needed 
+if the [[imakeidx]] package~\cite{imakeidx} is used.
+We do recommend to use this package.
+Furthermore, we provide rules for the [[nomencl]] package, however, we 
+recommend to use the [[glossaries]] package~\cite{glossaries} instead.
+The [[glossaries]] package also has native support for xindy(1).
+Although the [[glossaries]] package supports abbreviations and acronyms, we 
+recommend the [[acro]] package~\cite{acro} for this instead.
+
+The standard LaTeX index uses an [[.idx]] file, which is generated similarly as
+the [[.aux]] file.
+Thus we can use the same type of target.
 <<indices files>>=
 ${TEX_OUTDIR}/%.idx: %.tex
-	<<run latex>>
-
+	<<try to create output directory>>
+	<<run pdflatex>>
+@ The actual index, which resides in a [[.ind]] file, can then be generated as 
+follows.
+<<indices files>>=
 ${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
-	<<compile index>>
+	${XINDY} -o $@ ${XINDYFLAGS} $<
+@
 
+<<indices files>>=
 ${TEX_OUTDIR}/%.nlo: %.tex
-	<<run latex>>
+	<<try to create output directory>>
+	<<run pdflatex>>
 
 ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
-	<<compile nomenclature>>
+	<<try to create output directory>>
+	${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} -s nomencl.ist $<
 @
 
 <<latexmkrc>>=
@@ -160,10 +259,19 @@ sub makenlo2nls {
 }
 @
 
-\subsection{PythonTeX files}
+As mentioned in \cref{tex:Intro}, we can automatically add the [[.ind]] file as
+a prerequisite if the variable [[TEX_IND]] is set.
+<<bibliography files>>=
+ifneq (${TEX_IND},)
+%.pdf: ${TEX_OUTDIR}/%.ind
+endif
+@
 
+\subsection{PythonTeX}
+
+% XXX Finish PythonTeX
 <<PythonTeX files>>=
-pythontex-files-%/%.pytxmcr: %.tex
+pythontex-files-%/%.pytxcode: %.tex
 	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
 @
 
@@ -213,40 +321,42 @@ sub mylatex {
 }
 @
 
+As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
+file as a prerequisite if the variable [[TEX_PYTHONTEX]] is set.
+<<bibliography files>>=
+ifneq (${TEX_PYTHONTEX},)
+%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
+endif
+@
 
 \subsection{Document files}
 
+Now that we have all prerequisite files, we can actually compile the document.
+For simplicity we add file in both the current working directory and the 
+[[TEX_OUTDIR]] as targets.
+The reason for this is that it makes the makefile easier to write, usually we 
+prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in 
+the [[TEX_OUTDIR]] directory.
+And for the same reason, we create a hard link between them after compilation 
+--- this allows make(1) to track modification times correctly.
 <<document files>>=
-%.pdf: %.tex
+%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
 	<<compile PDF>>
+	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi: %.tex
+%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
 	<<compile DVI>>
+	-${LN} ${TEX_OUTDIR}/$@ $@
 @
 
-<<compile bbl with bibtex>>=
-cd ${TEX_OUTDIR} && ${BIBTEX} ${BIBTEXFLAGS} ../$<
-@
-
-<<compile bbl with biber>>=
-${BIBER} -O $@ ${BIBERFLAGS} $<
-@
-
-<<compile index>>=
-${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} $<
-@
-
-<<compile nomenclature>>=
-${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} -s nomencl.ist $<
-@
-
+Then the compilation step is the usual.
+We compile once, then we recompile as long as the log file tells us.
 <<compile PDF>>=
 ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
   ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 done
-@
-
+@ And the same for DVI files.
 <<compile DVI>>=
 ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
@@ -325,27 +435,30 @@ documents.
 %.pdf: %.dtx
 	<<compile PDF>>
 
-%.dvi:
+%.dvi: %.dtx
 	<<compile DVI>>
 @ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
 <<compile class and package documentation>>=
 %.aux: %.dtx
-	<<run latex>>
-
-%.bbl: %.aux
-	<<compile bbl with bibtex>>
+	<<run pdflatex>>
 
 %.bcf: %.dtx
-	<<compile bcf>>
-
-%.bbl: %.bcf
-	<<compile bbl with biber>>
+	<<run pdflatex>>
 @
 
 
 \section{External classes}
 
-<<targets for Springer and ACM classes>>=
+% XXX Finish external classes
+<<targets for external classes>>=
+<<Springer LNCS>>
+<<Springer mono>>
+<<ACM SIG>>
+@
+
+\subsection{Springer LNCS}
+
+<<Springer LNCS>>=
 ### Springer's Lecture Notes on Computer Science ###
 
 #LLNCS?=${TEXMF}/tex/latex/llncs
@@ -394,7 +507,11 @@ clean-biblatex-lncs:
 	find $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}) -type l | \
 		xargs ${RM}
 	${RM} -R biblatex-lncs-src
+@
 
+\subsection{Springer monograph}
+
+<<Springer mono>>=
 ### Springer's Monograph ###
 
 #SVMONO?= 	${TEXMF}/tex/latex/svmono
@@ -414,7 +531,11 @@ svmono: $(patsubst %,${SVMONO}/%,${SVMONO-files})
 distclean: clean-svmono
 clean-svmono:
 	${RM} $(patsubst %,${SVMONO}/%,${SVMONO-files})
+@
 
+\subsection{ACM SIG proceedings}
+
+<<ACM SIG>>=
 ### ACM SIG Proceedings ###
 
 #ACMSIG?= 	${TEXMF}/tex/latex/acm/proc
@@ -462,6 +583,5 @@ acmlarge: ${ACMLARGE}/acmlarge.cls
 distclean: clean-acmlarge
 clean-acmlarge:
 	${RM} ${ACMLARGE}/acmlarge.cls
-
 @
 

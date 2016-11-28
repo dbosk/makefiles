@@ -75,6 +75,7 @@ following.
 CAT?=     cat
 MV?=      mv
 CP?=      cp -R
+LN?=      ln
 @ The make(1) utility already sets [[RM = rm -f]] by default~\cite[Sect.\ 
 10.3]{GNUMake}, so we need not repeat it.
 
