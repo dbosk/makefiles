@@ -111,7 +111,7 @@ We also use gunzip(1) or uncompress(1).
 UNCOMPRESS?=  uncompress
 @
 
-We also use wget(1).
+We also use curl(1).
 <<fetching files>>=
-WGET?=        wget
+CURL?=        curl
 @

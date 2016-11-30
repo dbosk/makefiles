@@ -385,7 +385,7 @@ We will use wget(1) to download a compressed version from Bless' site.
 We let wget(1) output the contents to standard out and pipe it to the 
 uncompress(1) utility and, finally, redirect the result to the target file.
 <<download rfc.bib>>=
-${WGET} -O - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
+${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
   | ${UNCOMPRESS} - > $@ ; \
 @
 
