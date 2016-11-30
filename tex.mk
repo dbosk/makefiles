@@ -20,6 +20,16 @@ XINDYFLAGS?=
 TEX_PYTHONTEX?=
 PYTHONTEX?=   pythontex3
 PYTHONTEXFLAGS?=
+TEX_LNCS?=    lncs
+LNCS-files+=  llncs.cls
+LNCS-files+=  sprmindx.sty
+LNCS-files+=  splncs03.bst
+LNCS-files+=  aliascnt.sty
+LNCS-files+=  remreset.sty
+BIBLTX-files= 	lncs.bbx
+BIBLTX-files+= 	lncs.cbx
+BIBLTX-files+= 	lncs.dbx
+TEX_BIBLATEX-LNCS?=   .
 ${TEX_OUTDIR}/%.aux: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
@@ -69,24 +79,28 @@ pythontex-files-%/%.pytxcode: %.tex
 	-${LN} ${TEX_OUTDIR}/$@ $@
 latexmkrc:
 	[ -e $@ ] || ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@
-.SUFFIXES: .ins .cls .sty
-.ins.sty .ins.cls:
+%.cls %.sty: %.ins
 	${LATEX} $<
-%.pdf: %.dtx
+%.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
 	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
 	  ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 	done
+	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi: %.dtx
+%.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
 	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 	done
-%.aux: %.dtx
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.aux: %.dtx
 	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 
-%.bcf: %.dtx
+${TEX_OUTDIR}/%.bcf: %.dtx
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+
+${TEX_OUTDIR}/%.idx: %.dtx
 	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 .PHONY: clean clean-tex
 clean: clean-tex

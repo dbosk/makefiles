@@ -419,118 +419,207 @@ There are two parts concerning class and package files.
 <<targets for class and package files>>=
 <<compile sty and cls files>>
 <<compile class and package documentation>>
-@
+@ These are very similar to what we have done above, especially the 
+documentation.
 
+Compiling a class or package from DocTeX source is easier than compiling 
+a document.
 We can normally create the [[.sty]] and [[.cls]] files by running latex(1) on 
 the [[.ins]] file.
 <<compile sty and cls files>>=
-.SUFFIXES: .ins .cls .sty
-.ins.sty .ins.cls:
+%.cls %.sty: %.ins
 	${LATEX} $<
 @
 
 We can then compile the documentation similarly to how we compile normal 
 documents.
 <<compile class and package documentation>>=
-%.pdf: %.dtx
+%.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
 	<<compile PDF>>
+	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi: %.dtx
+%.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
 	<<compile DVI>>
+	-${LN} ${TEX_OUTDIR}/$@ $@
 @ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
 <<compile class and package documentation>>=
-%.aux: %.dtx
+${TEX_OUTDIR}/%.aux: %.dtx
 	<<run pdflatex>>
 
-%.bcf: %.dtx
+${TEX_OUTDIR}/%.bcf: %.dtx
+	<<run pdflatex>>
+
+${TEX_OUTDIR}/%.idx: %.dtx
 	<<run pdflatex>>
 @
 
 
-\section{External classes}
+\section{External classes and packages}
 
-% XXX Finish external classes
+Occasionally, we are required to use document classes that are not in 
+\ac{CTAN}.
+Here we provide targets for some such classes and packages.
 <<targets for external classes>>=
 <<Springer LNCS>>
-<<Springer mono>>
 <<ACM SIG>>
 @
 
 \subsection{Springer LNCS}
 
+Springer's \ac{LNCS} series is used for the proceedings of many 
+conferences.
+The style files are available on Springer's web site, but unfortunately not 
+under any permissive license\footnote{%
+  It would be most desirable that they were made available in \ac{CTAN} under 
+  an open license.
+}.
+So, we must, each and every one of us, connect to Springer's server and 
+download our own copy.
+This is what we automate here.
 <<Springer LNCS>>=
-### Springer's Lecture Notes on Computer Science ###
-
-#LLNCS?=${TEXMF}/tex/latex/llncs
-LLNCS?= .
-
-${LLNCS}/llncs2e.zip:
-	wget -O $@ ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
-
-LLNCS-files= 	llncs.cls
-LLNCS-files+= 	sprmindx.sty
-LLNCS-files+= 	splncs03.bst
-LLNCS-files+= 	aliascnt.sty
-LLNCS-files+= 	remreset.sty
-
-$(patsubst %,${LLNCS}/%,${LLNCS-files}): ${LLNCS}/llncs2e.zip
-	${UNZIP} ${LLNCS}/llncs2e.zip ${@:${LLNCS}/=} -d ${LLNCS}
-
-.PHONY: llncs clean-llncs
-llncs: ${LLNCS-files}
-distclean: clean-llncs
-clean-llncs:
-	${RM} $(patsubst %,${LLNCS}/%,${LLNCS-files}) ${LLNCS}/llncs2e.zip
-
-
-#BIBLATEX-LNCS?=	${TEXMF}/tex/latex/biblatex
-BIBLATEX-LNCS?= .
-BLTX-files= 	lncs.bbx
-BLTX-files+= 	lncs.cbx
-BLTX-files+= 	lncs.dbx
-
-biblatex-lncs-src:
-	if [ -e biblatex-lncs ]; then \
-		ln -s biblatex-lncs biblatex-lncs-src; \
-	else \
-		git clone https://github.com/neapel/biblatex-lncs.git \
-		biblatex-lncs-src; \
-	fi
-
-$(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}): biblatex-lncs-src
-	[ -e $@ ] || ln -s biblatex-lncs-src/${@:${BIBLATEX-LNCS}/=} $@
-
-.PHONY: biblatex-lncs clean-biblatex-lncs
-biblatex-lncs: $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files})
-distclean: clean-biblatex-lncs
-clean-biblatex-lncs:
-	find $(patsubst %,${BIBLATEX-LNCS}/%,${BLTX-files}) -type l | \
-		xargs ${RM}
-	${RM} -R biblatex-lncs-src
+<<target for downloading LNCS>>
+<<target for installing LNCS>>
+<<target for cleaning LNCS>>
+<<target for biblatex LNCS style>>
 @
 
-\subsection{Springer monograph}
+We start with the cleaning, since then we can fill the recipe while discussing 
+the installation.
+The cleaning target is simply a phony target that we add as a prerequisite to 
+the [[distclean]] target.
+<<target for cleaning LNCS>>=
+.PHONY: distclean clean-lncs
+distclean: clean-lncs
+clean-lncs:
+	<<lncs cleaning recipe>>
+@
 
-<<Springer mono>>=
-### Springer's Monograph ###
+We control where to install the \ac{LNCS} style files with the variable 
+[[TEX_LNCS]].
+By default we set it to [[TEX_OUTDIR]].
+However, to install it globally, we could use [[TEXMF]] instead.
+<<variables>>=
+TEX_LNCS?=    lncs
+@
 
-#SVMONO?= 	${TEXMF}/tex/latex/svmono
-SVMONO?= 	.
+We will download the zip file to the specified output directory.
+<<target for downloading LNCS>>=
+${TEX_LNCS}/llncs2e.zip:
+	${CURL} -o $@ ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+@ The archive contains many files, we are only interested in a few of them.
+The ones that we are interested in are the following.
+<<variables>>=
+LNCS-files+=  llncs.cls
+LNCS-files+=  sprmindx.sty
+LNCS-files+=  splncs03.bst
+LNCS-files+=  aliascnt.sty
+LNCS-files+=  remreset.sty
+@ To install these files, we simply extract them from the archive.
+Note that the archive is a tarbomb, and we want to specify which files to 
+extract.
+That is why we need to remove the path from the target, to only get the file 
+name.
+<<target for installing LNCS>>=
+$(addprefix ${TEX_LNCS}/,${LNCS-files}): ${TEX_LNCS}/llncs2e.zip
+	${UNZIP} $< ${@:${TEX_LNCS}/=} -d ${TEX_LNCS}
+@ This gives us the following cleaning to do.
+<<lncs cleaning recipe>>=
+${RM} $(addprefix ${TEX_LNCS}/,${LNCS-files})
+${RM} ${TEX_LNCS}/llncs2e.zip
+@
 
-${SVMONO}/svmono.zip:
-	wget -O $@ http://static.springer.com/sgw/documents/72921/application/zip/svmono.zip
+To make it easy to add these style files as prerequisites, we create the 
+following phony targets.
+(The target [[llncs]] is for backwards compatibility, and due to Springer's 
+name for the document class.)
+<<target for installing LNCS>>=
+.PHONY: lncs llncs
+lncs llncs: $(addprefix ${TEX_LNCS}/,${LNCS-files})
+@
 
-SVMONO-files= 	svind.ist
-SVMONO-files+= 	svmono.cls
+\subsection{LNCS style for [[biblatex]]}
 
-$(patsubst %,${SVMONO}/%,${SVMONO-files}): ${SVMONO}/svmono.zip
-	${UNZIP} ${SVMONO}/svmono.zip styles/${@:${SVMONO}/=} -d ${SVMONO}
+There is also \iac{LNCS} style for the [[biblatex]] package available on 
+GitHub.
+Since it is available on GitHub, we recommend adding it as a Git submodule.
+I.e.\ run the following command.
+\begin{lstlisting}
+git submodule add https://github.com/neapel/biblatex-lncs.git
+\end{lstlisting}
+This will add a directory [[biblatex-lncs]] to the current directory.
 
-.PHONY: svmono clean-svmono
-svmono: $(patsubst %,${SVMONO}/%,${SVMONO-files})
-distclean: clean-svmono
-clean-svmono:
-	${RM} $(patsubst %,${SVMONO}/%,${SVMONO-files})
+Now we will proceed to the discussion of the targets.
+<<target for biblatex LNCS style>>=
+<<targets for biblatex-lncs files>>
+<<target for biblatex-lncs repo>>
+<<cleaning for biblatex-lncs>>
+@ Similarly as before, we will start with the cleaning.
+<<cleaning for biblatex-lncs>>=
+.PHONY: distclean clean-biblatex-lncs
+distclean: clean-biblatex-lncs
+clean-biblatex-lncs:
+  <<recipe for clean-biblatex-lncs>>
+@
+
+The files that we are interested in, and that [[biblatex]] must be able to 
+find\footnote{%
+  [[biblatex]] must be able to find them either in the current working 
+  directory, or any of the TeX directories, i.e. [[TEXMF]].
+}, are the following.
+<<variables>>=
+BIBLTX-files= 	lncs.bbx
+BIBLTX-files+= 	lncs.cbx
+BIBLTX-files+= 	lncs.dbx
+@ These files will be located somewhere else, but we will add symbolic links to
+them.
+More specifically, they will reside in the repository above, with the same 
+names.
+
+We will allow the user to put the repository in another directory, this is 
+controlled by the following variable.
+<<variables>>=
+TEX_BIBLATEX-LNCS?=   .
+@ By default we assume the repository is located in the same directory as the 
+main makefile.
+
+We set a dependency between the files that we want [[biblatex]] to find and the
+corresponding file in the repository.
+<<targets for biblatex-lncs files>>=
+$(foreach file,${BIBLTX-files},$(eval \
+  ${file}: ${TEX_BIBLATEX-LNCS}/biblatex-lncs/${file}))
+@ Then we add the recipe for creating these files from their prerequisites, 
+i.e.\ create a symbolic link.
+<<targets for biblatex-lncs files>>=
+${BIBLTX-files}:
+	[ -e $@ ] || ln -s $< $@
+@ Consequently, when we do cleaning, we want to remove these symbolic links.
+<<recipe for clean-biblatex-lncs>>=
+find ${BIBLTX-files} -type l \
+  | xargs ${RM}
+@
+
+If we have added the [[biblatex-lncs]] repository as a submodule, then 
+everything will work --- since the files exists in the repository.
+However, if they do not exist, we want to add them.
+The way we create them is by cloning the repository.
+<<target for biblatex-lncs repo>>=
+$(addprefix ${TEX_BIBLATEX-LNCS}/biblatex-lncs/,${BIBLTX-files}):
+	${MKDIR} ${TEX_BIBLATEX-LNCS}
+	git clone https://github.com/neapel/biblatex-lncs.git \
+	  ${TEX_BIBLATEX-LNCS}/biblatex-lncs
+@ So, during cleaning we want to remove this repository.
+However, we must first check if [[biblatex-lncs]] is a submodule, and in that 
+case, we do not want to remove it.
+<<recipe for clean-biblatex-lncs>>=
+( git submodule | grep "biblatex-lncs" ) \
+  || ${RM} ${TEX_BIBLATEX-LNCS}/biblatex-lncs
+@
+
+Finally, to make it easy to add [[biblatex-lncs]] as a dependency for 
+a document, we provide the following phony target.
+<<target for biblatex LNCS style>>=
+.PHONY: biblatex-lncs
+biblatex-lncs: ${BIBLTX-files}
 @
 
 \subsection{ACM SIG proceedings}
