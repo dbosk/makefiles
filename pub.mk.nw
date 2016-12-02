@@ -166,23 +166,6 @@ PUB_COMMIT_OPTS?=   -av
 @ Finally, we note that the tag is not worth much if everything is not 
 committed, thus the automatic tagging implies the automatic committing.
 
-\subsection{Portability}
-
-For portability we use the following variables instead of the programs 
-directly.
-<<variables>>=
-SSH?=       ssh
-SCP?=       scp -r
-SFTP?=      sftp
-PAX=        pax -wL
-UNPAX=      pax -r
-CP?=        cp -R
-MKDIR?=     mkdir -p
-MKTMPDIR?=  mktemp -d
-CHOWN?=     chown -R
-CHMOD?=     chmod -R
-@
-
 
 \section{Implementation}
 

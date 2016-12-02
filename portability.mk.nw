@@ -115,3 +115,21 @@ We also use curl(1).
 <<fetching files>>=
 CURL?=        curl
 @
+
+\subsection{pub.mk}
+
+For portability we use the following variables instead of the programs 
+directly.
+<<variables>>=
+SSH?=       ssh
+SCP?=       scp -r
+SFTP?=      sftp
+PAX=        pax -wL
+UNPAX=      pax -r
+MKDIR?=     mkdir -p
+MKTMPDIR?=  mktemp -d
+CHOWN?=     chown -R
+CHMOD?=     chmod -R
+@
+
+
