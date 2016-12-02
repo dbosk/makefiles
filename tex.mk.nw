@@ -415,7 +415,7 @@ Here we provide targets for some such classes and packages.
 <<targets for external classes>>=
 <<a general downloader>>
 <<Springer LNCS>>
-<<ACM SIG>>
+<<ACM classes>>
 <<the RFC bibliography>>
 @
 
@@ -684,30 +684,48 @@ a document, we provide the following phony target.
 biblatex-lncs: ${BIBLTX-files}
 @
 
-\subsection{ACM SIG proceedings}
+\subsection{ACM classes}
 
-<<ACM SIG>>=
-### ACM SIG Proceedings ###
+We provide targets for the following \ac{ACM} classes.
+<<ACM classes>>=
+<<ACM SIG proceedings>>
+<<ACM small standard>>
+<<ACM large standard>>
+@
 
-#ACMSIG?= 	${TEXMF}/tex/latex/acm/proc
-ACMSIG?= 	.
+\subsubsection{Special Interest Group proceedings}
 
-${ACMSIG}/acm_proc_article-sp.cls:
-	wget -O $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
+The structure is similar as above.
+We use a variable to control the destination, current directory by default.
+<<variables>>=
+TEX_ACMSIG?=    .
+@ Then we download the class file to that directory.
+<<ACM SIG proceedings>>=
+${TEX_ACMSIG}/acm_proc_article-sp.cls:
+	${CURL} -o $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
+@ We also add the phony target [[acmsig]] to easily add this class as 
+a prerequisite for a document.
+<<ACM SIG proceedings>>=
+.PHONY: acmproc
+acmsig: ${TEX_ACMSIG}/acm_proc_article-sp.cls
+@
 
-.PHONY: acmproc clean-acmproc
-acmproc: ${ACMSIG}/acm_proc_article-sp.cls
+The cleaning will only need to remove the single document class that we 
+downloaded.
+<<ACM SIG proceedings>>=
+.PHONY: distclean clean-acmproc
 distclean: clean-acmproc
 clean-acmproc:
-	${RM} ${ACMSIG}/acm_proc_article-sp.cls
+	${RM} ${TEX_ACMSIG}/acm_proc_article-sp.cls
+@
 
-### ACM Small Standard ###
+\subsubsection{ACM small standard}
 
-#ACMSMALL?= 	${TEXTMF}/tex/latex/acm/small
+<<ACM small standard>>=
 ACMSMALL?= 		.
 
 ${ACMSMALL}/v2-acmsmall.zip:
-	wget -O $@ http://www.acm.org/publications/latex_style/v2-acmsmall.zip
+	${CURL} -o $@ http://www.acm.org/publications/latex_style/v2-acmsmall.zip
 
 ${ACMSMALL}/acmsmall.cls: ${ACMSMALL}/v2-acmsmall.zip
 	${UNZIP} ${ACMSMALL}/v2-acmsmall.zip acmsmall.cls -d ${ACMSMALL}
@@ -717,14 +735,15 @@ acmsmall: ${ACMSMALL}/acmsmall.cls
 distclean: clean-acmsmall
 clean-acmsmall:
 	${RM} ${ACMSMALL}/acmsmall.cls
+@
 
-### ACM Large Standard ###
+\subsubsection{ACM large standard}
 
-#ACMLARGE?= 	${TEXTMF}/tex/latex/acm/large
+<<ACM large standard>>=
 ACMLARGE?= 		.
 
 ${ACMLARGE}/v2-acmlarge.zip:
-	wget -O $@ http://www.acm.org/publications/latex_style/v2-acmlarge.zip
+	${CURL} -o $@ http://www.acm.org/publications/latex_style/v2-acmlarge.zip
 
 ${ACMLARGE}/acmlarge.cls: ${ACMLARGE}/v2-acmlarge.zip
 	${UNZIP} ${ACMLARGE}/v2-acmlarge.zip acmlarge.cls -d ${ACMLARGE}
