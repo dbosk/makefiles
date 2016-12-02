@@ -86,6 +86,7 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 <<variables>>
 <<targets for documents>>
 <<targets for class and package files>>
+<<targets for external classes>>
 <<targets for cleaning>>
 
 endif
@@ -365,54 +366,6 @@ done
 @
 
 
-\section{The RFC bibliography}
-
-Occasionally we want to cite \ac{IETF} \acp{RFC}.
-Fortunately, Roland Bless of Karlsruher Institute of Technology provides an 
-up-to-date bibliography file for all \acp{RFC}, so we will use that one.
-<<targets for the RFC bibliography>>=
-rfc.bib:
-	<<download rfc.bib>>
-	<<change misc to techreport>>
-
-${TEXMF}/tex/latex/rfc.bib:
-	mkdir -p ${TEXMF}/tex/latex/
-	<<download rfc.bib>>
-	<<change misc to techreport>>
-@
-
-We will use wget(1) to download a compressed version from Bless' site.
-We let wget(1) output the contents to standard out and pipe it to the 
-uncompress(1) utility and, finally, redirect the result to the target file.
-<<download rfc.bib>>=
-${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
-  | ${UNCOMPRESS} - > $@ ; \
-@
-
-According to \ac{IETF}~\cite[Sect.\ 5.2]{IETFCitingRFCs} the \acp{RFC} should 
-be cited as the [[techreport]] BibTeX type.
-<<change misc to techreport>>=
-${SED} -i "s/@misc/@techreport/" $@
-@
-
-We also provide a phony target for these two files.
-<<targets for the RFC bibliography>>=
-.PHONY: rfc
-rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
-@
-
-Finally, we provide a phony cleaning for cleaning.
-The target is named [[clean-rfc]] and is added as a prerequisite for 
-[[distclean]] --- this way its recipe will not interfere with any cleaning 
-recipe written by the user.
-<<targets for the RFC bibliography>>=
-.PHONY: distclean clean-rfc
-distclean: clean-rfc
-clean-rfc:
-	${RM} rfc.bib
-@
-
-
 \section{Targets for class and package files}
 
 There are two parts concerning class and package files.
@@ -462,6 +415,7 @@ Here we provide targets for some such classes and packages.
 <<targets for external classes>>=
 <<Springer LNCS>>
 <<ACM SIG>>
+<<the RFC bibliography>>
 @
 
 \subsection{Springer LNCS}
@@ -672,5 +626,53 @@ acmlarge: ${ACMLARGE}/acmlarge.cls
 distclean: clean-acmlarge
 clean-acmlarge:
 	${RM} ${ACMLARGE}/acmlarge.cls
+@
+
+\subsection{The RFC bibliography}
+
+Occasionally we want to cite \ac{IETF} \acp{RFC}.
+Fortunately, Roland Bless of Karlsruher Institute of Technology provides an 
+up-to-date bibliography file for all \acp{RFC}, so we will use that one.
+This is a single file, so we do not need to use the downloader.
+<<the RFC bibliography>>=
+rfc.bib:
+	<<download rfc.bib>>
+	<<change misc to techreport>>
+
+${TEXMF}/tex/latex/rfc.bib:
+	mkdir -p ${TEXMF}/tex/latex/
+	<<download rfc.bib>>
+	<<change misc to techreport>>
+@
+
+We will use curl(1) to download a compressed version from Bless' site.
+We let curl(1) output the contents to standard out and pipe it to the 
+uncompress(1) utility and, finally, redirect the result to the target file.
+<<download rfc.bib>>=
+${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
+  | ${UNCOMPRESS} - > $@ ; \
+@
+
+According to \ac{IETF}~\cite[Sect.\ 5.2]{IETFCitingRFCs} the \acp{RFC} should 
+be cited as the [[techreport]] BibTeX type.
+<<change misc to techreport>>=
+${SED} -i "s/@misc/@techreport/" $@
+@
+
+We also provide a phony target for these two files.
+<<the RFC bibliography>>=
+.PHONY: rfc
+rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
+@
+
+Finally, we provide a phony cleaning for cleaning.
+The target is named [[clean-rfc]] and is added as a prerequisite for 
+[[distclean]] --- this way its recipe will not interfere with any cleaning 
+recipe written by the user.
+<<the RFC bibliography>>=
+.PHONY: distclean clean-rfc
+distclean: clean-rfc
+clean-rfc:
+	${RM} rfc.bib
 @
 
