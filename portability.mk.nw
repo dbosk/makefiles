@@ -43,6 +43,9 @@ error if the include directive fails.
 
 \section{Standard Unix commands}
 
+In this section we provide default commands with options for the standard Unix 
+command line.
+More specifically, we cover the following areas.
 <<standard unix commands>>=
 <<file system commands>>
 <<printing file contents>>
@@ -51,8 +54,10 @@ error if the include directive fails.
 <<statistics on file contents>>
 @
 
-Some other standard utilities that has not yet broken on any system are the 
-following.
+\subsection{File system commands}
+
+We commonly use the commands to interact with the file system.
+The following basic commands cover most uses.
 <<file system commands>>=
 MV?=      mv
 CP?=      cp -R
@@ -61,19 +66,23 @@ MKDIR?=   mkdir -p
 MKTMPDIR?=mktemp -d
 CHOWN?=   chown -R
 CHMOD?=   chmod -R
-@
-
-<<printing file contents>>=
-CAT?=     cat
 @ The make(1) utility already sets [[RM = rm -f]] by default~\cite[Sect.\ 
 10.3]{GNUMake}, so we need not repeat it.
+
+\subsection{Viewing file contents}
 
 Quite commonly we want to open files with the user's desired application, e.g.\
 to open PDFs in the user's PDF reader.
 For this we use the xdg-open(1) utility.
 <<opening files depending on file type>>=
 XDGOPEN?= xdg-open
+@ However, for text files, we prefer to just print the contents to standard 
+output.
+<<printing file contents>>=
+CAT?=     cat
 @
+
+\subsection{Filtering and transformations}
 
 Two of the most frequently used utilities are sed(1) and grep(1).
 The version of these that we want to use is the GNU version.
@@ -100,8 +109,10 @@ GREPex=   grep -E
 endif
 @
 
-Another utility which is used is wc(1), which is used to count words in 
-[[tex.mk]].
+\subsection{Statistics}
+
+We also need to count words in a few places.
+We use wc(1) for this.
 <<statistics on file contents>>=
 WC?=      wc
 WCw?=     wc -w
@@ -110,20 +121,21 @@ WCw?=     wc -w
 
 \section{Networking commands}
 
+We also need some network related commands.
 <<networking commands>>=
 <<fetching files>>
 <<remote execution>>
 @
 
-We also use curl(1).
+We have some common commands for fetching and copying files between remote 
+hosts.
 <<fetching files>>=
 CURL?=    curl
 SFTP?=    sftp
 SCP?=     scp -r
 @
 
-For portability we use the following variables instead of the programs 
-directly.
+We also need commands for remote execution.
 <<remote execution>>=
 SSH?=     ssh
 @
