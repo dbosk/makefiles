@@ -26,10 +26,9 @@ PORTABILITY_MK=true
 
 <<system-specific configuration>>
 
-<<the sed(1) utility>>
-<<the grep(1) utility>>
-<<the unzip(1) utility>>
-<<some standard utilities>>
+<<standard unix commands>>
+<<networking commands>>
+<<compressed files and archives>>
 
 endif
 @ Since this file provides system-dependent configuration, we allow the user to
@@ -42,7 +41,39 @@ However, since these files might not exist, make(1) should not yield a fatal
 error if the include directive fails.
 
 
-\section{The ported utilities}
+\section{Standard Unix commands}
+
+<<standard unix commands>>=
+<<file system commands>>
+<<printing file contents>>
+<<opening files depending on file type>>
+<<filtering and transforming file contents>>
+<<statistics on file contents>>
+@
+
+Some other standard utilities that has not yet broken on any system are the 
+following.
+<<file system commands>>=
+MV?=      mv
+CP?=      cp -R
+LN?=      ln
+MKDIR?=   mkdir -p
+MKTMPDIR?=mktemp -d
+CHOWN?=   chown -R
+CHMOD?=   chmod -R
+@
+
+<<printing file contents>>=
+CAT?=     cat
+@ The make(1) utility already sets [[RM = rm -f]] by default~\cite[Sect.\ 
+10.3]{GNUMake}, so we need not repeat it.
+
+Quite commonly we want to open files with the user's desired application, e.g.\
+to open PDFs in the user's PDF reader.
+For this we use the xdg-open(1) utility.
+<<opening files depending on file type>>=
+XDGOPEN?= xdg-open
+@
 
 Two of the most frequently used utilities are sed(1) and grep(1).
 The version of these that we want to use is the GNU version.
@@ -50,7 +81,7 @@ On Linux systems, this is the default.
 On BSDs, however, they are available prefixed with the letter \enquote{g}.
 The same goes to the make(1) utility, which means that we can use that fact to 
 check for this.
-<<the sed(1) utility>>=
+<<filtering and transforming file contents>>=
 ifeq (${MAKE},gmake)
 SED?=     gsed
 SEDex?=   gsed -E
@@ -59,7 +90,7 @@ SED?=     sed
 SEDex?=   sed -E
 endif
 @ Similarly, we let
-<<the grep(1) utility>>=
+<<filtering and transforming file contents>>=
 ifeq (${MAKE},gmake)
 GREP=     ggrep
 GREPex=   ggrep -E
@@ -69,67 +100,181 @@ GREPex=   grep -E
 endif
 @
 
-Some other standard utilities that has not yet broken on any system are the 
-following.
-<<some standard utilities>>=
-CAT?=     cat
-MV?=      mv
-CP?=      cp -R
-LN?=      ln
-@ The make(1) utility already sets [[RM = rm -f]] by default~\cite[Sect.\ 
-10.3]{GNUMake}, so we need not repeat it.
-
 Another utility which is used is wc(1), which is used to count words in 
 [[tex.mk]].
-<<some standard utilities>>=
+<<statistics on file contents>>=
 WC?=      wc
 WCw?=     wc -w
 @
 
-Quite commonly we want to open files with the user's desired application, e.g.\
-to open PDFs in the user's PDF reader.
-For this we use the xdg-open(1) utility.
-<<some standard utilities>>=
-XDGOPEN?= xdg-open
-@
 
-The unzip(1) utility is used in [[tex.mk]].
-Unfortunately, MacOS ships with an ancient version of unzip(1), one which does 
-not support the desired [[-DD]] option.
-(The [[-DD]] option is desired to avoid unnecessary rebuilding by make(1).)
-Hence we check if the system is Darwin, if so, we skip the [[-DD]] option.
-<<the unzip(1) utility>>=
-ifeq ($(shell uname),Darwin)
-UNZIP?=   unzip
-else
-UNZIP?=   unzip -DD
-endif
-@
+\section{Networking commands}
 
-We also use gunzip(1) or uncompress(1).
-<<the unzip(1) utility>>=
-UNCOMPRESS?=  uncompress
+<<networking commands>>=
+<<fetching files>>
+<<remote execution>>
 @
 
 We also use curl(1).
 <<fetching files>>=
-CURL?=        curl
+CURL?=    curl
+SFTP?=    sftp
+SCP?=     scp -r
 @
-
-\subsection{pub.mk}
 
 For portability we use the following variables instead of the programs 
 directly.
-<<variables>>=
-SSH?=       ssh
-SCP?=       scp -r
-SFTP?=      sftp
-PAX=        pax -wL
-UNPAX=      pax -r
-MKDIR?=     mkdir -p
-MKTMPDIR?=  mktemp -d
-CHOWN?=     chown -R
-CHMOD?=     chmod -R
+<<remote execution>>=
+SSH?=     ssh
 @
 
 
+\section{Compressed files and archives}
+
+We want to provide functionality to make it easy to uncompress files or extract 
+files from archives of different kinds.
+We will construct two functionalities.
+<<compressed files and archives>>=
+<<variables for compression programs>>
+<<general pattern rule for compression>>
+<<general pattern rule for uncompression>>
+
+<<variables for archive programs>>
+<<general pattern rule for archiving>>
+<<function to generate extraction targets>>
+@ Both will use the type of construction outlined in~\cite[Sect.\ 
+10.2]{GNUMake}:
+the variable [[EXTRACT.suf]] ([[UNCOMPRESS.suf]]) will contain the command to 
+extract a file from an archive (decompress a file) with suffix [[.suf]];
+the variable [[ARCHIVE.suf]] ([[COMPRESS.suf]]) will contain the command to 
+update an archive of suffix [[.suf]] with a file (compress a file).
+
+\subsection{Compressing and uncompressing files}
+
+A compressed file is a file whose data is compressed --- this is not 
+necessarily an archive.
+A compressed file can be uncompressed, i.e.\ the compression is removed.
+Compressed files usually get the added suffix of the compression algorithm, 
+e.g.\ a [[.tar]] file usually get the suffix [[.tar.gz]] when it is also 
+compressed using gzip(1).
+Another common file to compress is PostScript, i.e.\ turning [[.ps]] to 
+[[.ps.gz]].
+We want to form pattern rules for the compression and uncompression operations.
+
+There are, of course, a myriad different compression formats.
+We will let the variable [[COMPRESS_SUFFIXES]] and [[UNCOMPRESS_SUFFIXES]] 
+contain space-separated lists of suffixes supported for the two operations.
+
+To compress a file, we simply passes its contents through a compression 
+program, e.g.\ gzip(1) (gets the [[.gz]] suffix).
+We can use the following general pattern rule for compression and then use 
+[[COMPRESS_SUFFIXES]] to automatically generate all the pattern rules.
+<<general pattern rule for compression>>=
+define compress
+%$(1): %
+	${COMPRESS$(1)}
+endef
+$(foreach suf,${COMPRESS_SUFFIXES},$(eval $(call compress,${suf})))
+@ In a similar fashion, we can use the following general pattern rule for 
+uncompression.
+<<general pattern rule for uncompression>>=
+define uncompress
+%: %$(1)
+	${UNCOMPRESS$(1)}
+endef
+$(foreach suf,${UNCOMPRESS_SUFFIXES},$(eval $(call uncompress,${suf})))
+@
+
+Now, let us write what we need to automatically handle the gzip(1) format.
+To uncompress a gzipped file we can use gunzip(1).
+<<variables for compression programs>>=
+UNCOMPRESS_SUFFIXES+= .gz .z
+GUNZIP?=              gunzip
+UNCOMPRESS.gz?=       ${GUNZIP} $<
+UNCOMPRESS.z?=        ${UNCOMPRESS.gz}
+@ To compress a file using gzip(1) we can use the following.
+<<variables for compression programs>>=
+COMPRESS_SUFFIXES+=   .gz
+GZIP?=                gzip
+COMPRESS.gz?=         ${GZIP} $<
+@
+
+\subsection{Packing and extracting from archives}
+
+We can (ab)use the archive syntax~\cite[Chap.\ 11]{GNUMake} of make(1) to 
+create a pattern rule for creating archives.
+This rule will work for all archive types that support adding files to an 
+existing archive.
+However, make(1) cannot check the modification times of these archive members, 
+so they will be updated every time instead of only when necessary.
+
+The pattern rule matches all archive member targets.
+Then it determines which variable to use as recipe by looking at the suffix of 
+the archive.
+<<general pattern rule for archiving>>=
+(%):
+	${ARCHIVE$(suffix $@)}
+@
+
+We do not want to break the native archive functionality of make(1), so we 
+provide the following to retain that.
+<<variables for archive programs>>=
+ARCHIVE.a?=   ar r $@ $%
+@
+
+Now to a more interesting format, let us create tarballs using this syntax.
+We can use the [[-u]] option to tar(1) to update an existing archive with 
+a file.
+<<variables for archive programs>>=
+TAR?=         tar
+ARCHIVE.tar?= ${TAR} -uf $@ $%
+@ We can also create zip(1) archives.
+<<variables for archive programs>>=
+ZIP?=         zip
+ARCHIVE.zip?= ${ZIP} -u $@ $%
+@
+
+Unfortunately, we cannot create any pattern rules for file extraction from 
+archives.
+However, we can provide a function which create such targets automatically.
+<<function to generate extraction targets>>=
+define extract
+$(1): $(2)
+	${EXTRACT$(suffix $(2))}
+endef
+@ Now we only need to provide the [[EXTRACT.XXX]] for every type of archive we 
+might want to use.
+Then we can use the function [[extract]] in our makefiles.
+
+We start with tarballs.
+For extraction, we do not want to restore the modification times from inside 
+the archive.
+If we restore the modification times, then the archive will always be newer 
+that the files extracted from it and thus make(1) will re-extract the file 
+every time.
+To prevent this we add the [[-m]] option to tar(1).
+<<variables for archive programs>>=
+UNTAR?=       tar -xm
+EXTRACT.tar?= ${UNTAR} -f $< $@
+@ It will be similar for zip archives.
+The option to prevent resetting the modification time for unzip(1) is [[-DD]].
+Unfortunately, MacOS ships with an ancient version of unzip(1), one which does 
+not support the desired [[-DD]] option.
+Hence we check if the system is Darwin, if so, we skip the [[-DD]] option.
+<<variables for archive programs>>=
+ifeq ($(shell uname),Darwin)
+UNZIP?=       unzip
+else
+UNZIP?=       unzip -DD
+endif
+@
+
+Finally, we occasionally use the pax(1) command to create and extract tarballs.
+The reason for this is that pax(1) has a good interface for filtering and 
+transforming file names using regular expressions.
+The BSD tar(1) has this too, but the GNU tar(1) does not.
+So we provide the following variables for pax(1).
+<<variables for archive programs>>=
+PAX=          pax -wL
+UNPAX=        pax -r -p m
+@
