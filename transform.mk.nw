@@ -13,17 +13,18 @@ This include file provides some tools to achieve this.
 The structure is similar to other include files.
 We want to prevent repeated inclusion, so we use a C-style technique to avoid 
 that.
-<<export.mk>>=
+<<transform.mk>>=
 ifndef EXPORT_MK
 EXPORT_MK=true
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
 
 <<variables>>
 <<suffix rule for transformations>>
 <<target generation for transformations>>
 <<suffix rules for camera-ready source>>
 <<suffix rules for encrypted files>>
-
-include ${INCLUDE_MAKEFILES}/portability.mk
 
 endif
 @ We will now explore now these are implemented.
