@@ -68,15 +68,10 @@ $(foreach pkg,${PKG_PACKAGES},$(eval $(call variables,${pkg})))
 For portability, this include file requires the following programs to be 
 available.
 <<variables>>=
-MKDIR?=     mkdir -p
-CP?=        cp -R
-RM?=        rm -Rf
-TAR=        pax -wzLx ustar
-UNTAR=      pax -rz
 ifneq (${MAKE},gmake)
-INSTALL?=   install -Dp
+INSTALL?=     install -Dp
 else
-INSTALL?=   install -CSp
+INSTALL?=     install -CSp
 endif
 @
 
@@ -89,6 +84,9 @@ Then the overview of the structure is as follows.
 <<package.mk>>=
 ifndef PACKAGE_MK
 PACKAGE_MK=true
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
 
 <<variables>>
 <<the all target>>

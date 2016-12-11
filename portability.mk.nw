@@ -235,10 +235,14 @@ ARCHIVE.a?=   ar r $@ $%
 @
 
 Now to a more interesting format, let us create tarballs using this syntax.
-We can use the [[-u]] option to tar(1) to update an existing archive with 
-a file.
+We use the pax(1) command to create and extract tarballs.
+The reason for this is that pax(1) has a good interface for filtering and 
+transforming file names using regular expressions.
+The BSD tar(1) has this too, but the GNU tar(1) does not.
+We can use the [[-u]] option to both tar(1) and pax(1) to update an existing 
+archive with a file.
 <<variables for archive programs>>=
-TAR?=         tar
+TAR?=         pax -wzLx ustar
 ARCHIVE.tar?= ${TAR} -uf $@ $%
 @ We can also create zip(1) archives.
 <<variables for archive programs>>=
@@ -266,8 +270,8 @@ that the files extracted from it and thus make(1) will re-extract the file
 every time.
 To prevent this we add the [[-m]] option to tar(1).
 <<variables for archive programs>>=
-UNTAR?=       tar -xm
-EXTRACT.tar?= ${UNTAR} -f $< $@
+UNTAR?=       pax -rzp m
+EXTRACT.tar?= ${UNTAR} -f $$< $$@
 @ It will be similar for zip archives.
 The option to prevent resetting the modification time for unzip(1) is [[-DD]].
 Unfortunately, MacOS ships with an ancient version of unzip(1), one which does 
