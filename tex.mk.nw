@@ -81,6 +81,7 @@ The include file uses the old C-style technique to prevent multiple inclusions.
 ifndef TEX_MK
 TEX_MK=true
 
+INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
 <<variables>>
