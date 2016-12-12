@@ -162,6 +162,7 @@ the variable [[ARCHIVE.suf]] ([[COMPRESS.suf]]) will contain the command to
 update an archive of suffix [[.suf]] with a file (compress a file).
 
 \subsection{Compressing and uncompressing files}
+\label{CompressingFiles}
 
 A compressed file is a file whose data is compressed --- this is not 
 necessarily an archive.
@@ -195,23 +196,25 @@ define uncompress
 	${UNCOMPRESS$(1)}
 endef
 $(foreach suf,${UNCOMPRESS_SUFFIXES},$(eval $(call uncompress,${suf})))
-@
+@ We note that due to to the [[call]] and [[eval]] above, we must escape the 
+target and prerequisite variables, [[$$@]] and [[$$<]], respectively.
 
 Now, let us write what we need to automatically handle the gzip(1) format.
 To uncompress a gzipped file we can use gunzip(1).
 <<variables for compression programs>>=
 UNCOMPRESS_SUFFIXES+= .gz .z
 GUNZIP?=              gunzip
-UNCOMPRESS.gz?=       ${GUNZIP} $<
+UNCOMPRESS.gz?=       ${GUNZIP} $$<
 UNCOMPRESS.z?=        ${UNCOMPRESS.gz}
 @ To compress a file using gzip(1) we can use the following.
 <<variables for compression programs>>=
 COMPRESS_SUFFIXES+=   .gz
 GZIP?=                gzip
-COMPRESS.gz?=         ${GZIP} $<
+COMPRESS.gz?=         ${GZIP} $$<
 @
 
 \subsection{Packing and extracting from archives}
+\label{Archives}
 
 We can (ab)use the archive syntax~\cite[Chap.\ 11]{GNUMake} of make(1) to 
 create a pattern rule for creating archives.
@@ -226,7 +229,9 @@ the archive.
 <<general pattern rule for archiving>>=
 (%):
 	${ARCHIVE$(suffix $@)}
-@
+@ Unlike for the compression targets above (\cref{CompressingFiles}), we do not 
+need to escape [[$@]] and
+[[$<]] --- since we have only one (lazy) evaluation.
 
 We do not want to break the native archive functionality of make(1), so we 
 provide the following to retain that.
@@ -261,6 +266,8 @@ endef
 @ Now we only need to provide the [[EXTRACT.XXX]] for every type of archive we 
 might want to use.
 Then we can use the function [[extract]] in our makefiles.
+Note that we are now in the same situation as for the compression targets 
+(\cref{CompressingFiles}), so we must escape the variables.
 
 We start with tarballs.
 For extraction, we do not want to restore the modification times from inside 
@@ -283,14 +290,5 @@ UNZIP?=       unzip
 else
 UNZIP?=       unzip -DD
 endif
-@
-
-Finally, we occasionally use the pax(1) command to create and extract tarballs.
-The reason for this is that pax(1) has a good interface for filtering and 
-transforming file names using regular expressions.
-The BSD tar(1) has this too, but the GNU tar(1) does not.
-So we provide the following variables for pax(1).
-<<variables for archive programs>>=
-PAX=          pax -wL
-UNPAX=        pax -r -p m
+EXTRACT.zip?= ${UNZIP} $$< $$@
 @
