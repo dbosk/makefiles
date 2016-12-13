@@ -34,20 +34,26 @@ endif
 \subsection{Weaving documentation}
 
 We will use the [[noweave]] command to weave the documentation.
-The default options that we will use can be controlled with the following 
+<<variables>>=
+NOWEAVE?=       noweave
+@ The default options that we will use can be controlled with the following 
 variable.
 <<variables>>=
-NOWEB_WEAVE_FLAGS?= -x -n -delay -t2
+NOWEAVEFLAGS?=  -x -n -delay -t2
 @
 
 Now we need to specify all the suffixes to use and then construct suffix rules 
 for all of them.
 Fortunately we can use the same recipe for all, so we only need to write one 
 recipe for multiple targets.
+We will use a variable [[NOWEB_SUFFIXES]] to keep a list of supported suffixes.  
+Since these suffixes only matter for tangling, we will set the variable in that
+section.
+For now, we only use it.
 <<suffix rules for weaving documentation>>=
-.SUFFIXES: .nw .tex .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
-.nw.tex .py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex:
-	noweave ${NOWEB_WEAVE_FLAGS} $< > $@
+.SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
+.nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
+	${NOWEAVE} ${NOWEAVEFLAGS} $< > $@
 @
 
 For Haskell code, if the code is written using Haskell's native literate 
@@ -56,63 +62,140 @@ So we need not do any weaving for [[.lhs]] files.
 
 \subsection{Tangling code}
 
-We will now cover the suffix rules for tangling the source code for different 
+We will now cover the rules for tangling the source code for different 
 languages.
 <<suffix rules for tangling code>>=
-<<suffix rules for C and C++>>
-<<suffix rules for Haskell>>
-<<suffix rules for Python>>
-<<suffix rules for Make>>
-@ We will see later that we use a command [[cpif]].
+<<general tangling rules>>
+<<special rules for different languages>>
+@ We will first write some general pattern rules, then supply ways to adapt 
+this rule to the different languages.
+
+We will use notangle(1).
+<<variables>>=
+NOTANGLE?=      notangle
+NOTANGLEFLAGS?= -t2
+@ We will also use the command cpif(1).
 This command only updates the files if they have changed.
 We need this since many files may reside in the same NOWEB source file, but 
 only some of them are updated.
 Without [[cpif]], make would normally \emph{update all files} if \emph{any has 
-changed} --- undesirable.
-
-As for the weaving, we will use the following variable for the general tangling
-flags.
+changed} --- which is clearly undesirable.
 <<variables>>=
-NOWEB_TANGLE_FLAGS?= -t2
+CPIF?=          cpif
+@ However, since we use this variable, cpif(1) can be substituted for tee(1) in 
+desirable situations.
+
+\paragraph{General pattern rules}
+
+There are two general pattern rules that we will add.
+<<general tangling rules>>=
+<<tangle source files with suffix>>
+<<tangle source files without suffix>>
+@ In the first one, we will tangle a file with suffix [[.suf]] from the source 
+file with suffix [[.suf.nw]] and in the second a source file with suffix 
+[[.nw]].
+
+We can start with the second.
+In this rule, we have a file with a supported suffix [[.suf]] depend on the 
+NOWEB source file with suffix [[.nw]].
+Then we let the recipe be set by the variable [[NOTANGLE.suf]], which is the 
+convention followed by make(1)~\cite[Sect.\ 10.2]{GNUMake}.
+<<tangle source files without suffix>>=
+$(addprefix %,${NOWEB_SUFFIXES}): %.nw
+	${NOTANGLE$(suffix $@)}
+@
+
+The case with suffixes can paradoxically be done without introducing the 
+suffixes.
+<<tangle source files with suffix>>=
+%: %.nw
+	${NOTANGLE$(suffix $@)}
+@ The reason for this is that the suffix is now captured by the pattern on both
+sides, i.e.\ for target \emph{and} prerequisite.
+However, this rule does not capture some thing we want, e.g.\ we cannot tangle 
+a header file [[.h]] from a [[.cpp.nw]] file.
+We must add these rules manually, which we do below.
+
+\paragraph{Rules for different languages}
+
+We will now cover specialized instances of the general pattern rules defined 
+above.
+We will simply set the default variables.
+<<variables>>=
+<<defaults for for C and C++>>
+<<defaults for Haskell>>
+<<defaults for Python>>
+<<defaults for Make>>
+@ As noted above, we need some special rules for the C and C++ header files, 
+but no extra rules for any other language.
+<<special rules for different languages>>=
+<<rules for C and C++>>
+@
+
+For the languages of the C-family, we will use the [[-L]] option to get the 
+line preprocessor-directive in the generated source --- this will allow [[gdb]] 
+and the compiler to point to lines in the NOWEB source file, and not to the 
+generated file.
+<<defaults for C and C++>>=
+NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
+NOTANGLEFLAGS.c?=   ${NOTANGLEFLAGS} -L
+NOTANGLE.c?=        ${NOTANGLE} ${NOTANGLEFLAGS.c} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
+NOTANGLE.cc?=       ${NOTANGLE} ${NOTANGLEFLAGS.cc} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.cpp?= ${NOTANGLEFLAGS.c}
+NOTANGLE.cpp?=      ${NOTANGLE} ${NOTANGLEFLAGS.cpp} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
+NOTANGLE.cxx?=      ${NOTANGLE} ${NOTANGLEFLAGS.cxx} -R$@ $< | ${CPIF} $@
 @
 
 For C-family source code, we will assume that the header files (declarations) 
 are written together with the definitions, so that we can extract both files 
 from the same NOWEB source.
-Since the language is of the C-family, we will use the [[-L]] option to get the 
-line preprocessor-directive in the generated source --- this will allow [[gdb]] 
-and the compiler to point to lines in the NOWEB source file, and not to the 
-generated file.
-<<suffix rules for C and C++>>=
-.SUFFIXES: .nw .c.nw .cpp.nw .cxx.nw .c .cpp .cxx
-.nw.c .c.nw.c .nw.cpp .cpp.nw.cpp .nw.cxx .cxx.nw.cxx:
-	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
+However, for this we must add extra pattern rules.
+<<rules for C and C++>>=
+%.h: %.c.nw
+	${NOTANGLE.h}
 
-.SUFFIXES: .h .hpp .hxx
-.nw.h .c.nw.h .nw.hpp .cpp.nw.hpp .nw.hxx .cxx.nw.hxx:
-	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
+%.hh: %.cc.nw
+	${NOTANGLE.hh}
+
+%.hpp: %.cpp.nw
+	${NOTANGLE.hpp}
+
+%.hxx: %.cxx.nw
+	${NOTANGLE.hxx}
+@ Finally, we can define the variables used for tangling.
+<<defaults for C and C++>>=
+NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
+NOTANGLEFLAGS.h?=   ${NOTANGLEFLAGS} -L
+NOTANGLE.h?=        ${NOTANGLE} ${NOTANGLEFLAGS.h} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
+NOTANGLE.hh?=       ${NOTANGLE} ${NOTANGLEFLAGS.hh} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.hpp?= ${NOTANGLEFLAGS.h}
+NOTANGLE.hpp?=      ${NOTANGLE} ${NOTANGLEFLAGS.hpp} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
+NOTANGLE.hxx?=      ${NOTANGLE} ${NOTANGLEFLAGS.hxx} -R$@ $< | ${CPIF} $@
 @
 
 The suffix rules for Haskell is similar to those for C and C++, due to the 
 Glasgow Haskell Compiler (GHC) being very close to the C and C++ compilers.
-<<suffix rules for Haskell>>=
-.SUFFIXES: .hs.nw .hs
-.nw.hs .hs.nw.hs:
-	notangle ${NOWEB_TANGLE_FLAGS} -L -R$@ $< | cpif $@
+<<defaults for Haskell>>=
+NOWEB_SUFFIXES+=    .hs
+NOTANGLEFLAGS.hs?=  ${NOTANGLEFLAGS} -L
+NOTANGLE.hs?=       ${NOTANGLE} ${NOTANGLEFLAGS.hs} -R$@ $< | ${CPIF} $@
 @ We also note that we do not need any suffix rule for [[.lhs]] files, for the 
 same reason as for the weaving, GHC automatically tangles Haskell's native 
 literate files ([[.lhs]]).
 
 For Python, there is no special processing needed, we simply use the flags we 
 set above.
-<<suffix rules for Python>>=
-.SUFFIXES: .nw .py.nw .py
-.nw.py .py.nw.py:
-	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< > $@
+<<defaults for Python>>=
+NOWEB_SUFFIXES+=    .py
+NOTANGLEFLAGS.py?=  ${NOTANGLEFLAGS}
+NOTANGLE.py?=       ${NOTANGLE} ${NOTANGLEFLAGS.py} -R$@ $< > $@
 @ It is the same case for makefiles.
-<<suffix rules for Make>>=
-# implicit rules for make(1) includes
-.SUFFIXES: .nw .mk.nw .mk
-.nw.mk .mk.nw.mk:
-	notangle ${NOWEB_TANGLE_FLAGS} -R$@ $< > $@
+<<defaults for Make>>=
+NOWEB_SUFFIXES+=    .mk
+NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS}
+NOTANGLE.mk?=       ${NOTANGLE} ${NOTANGLEFLAGS.mk} -R$@ $< > $@
 @
