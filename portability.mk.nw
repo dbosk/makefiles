@@ -213,7 +213,7 @@ COMPRESS.gz?=         ${GZIP} $$<
 @
 
 \subsection{Packing and extracting from archives}
-\label{Archives}
+\label{portability:Archives}
 
 We can (ab)use the archive syntax~\cite[Chap.\ 11]{GNUMake} of make(1) to 
 create a pattern rule for creating archives.

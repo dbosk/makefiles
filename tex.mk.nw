@@ -416,6 +416,7 @@ Here we provide targets for some such classes and packages.
 <<targets for external classes>>=
 <<a general downloader>>
 <<Springer LNCS>>
+<<biblatex LNCS style>>
 <<ACM classes>>
 <<the RFC bibliography>>
 @
@@ -473,8 +474,7 @@ $(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}): \
   ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}
 @ Now we turn to the recipe.
 In the case of an archive, we must extract the desired files.
-We can use the [[extract]] function from [[portability.mk]] 
-(\cref{portability:Archives}).
+We let the variable [[TEX_EXT_EXTRACT]] contain the extraction command.
 <<targets for archive>>=
 $(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
 	${TEX_EXT_EXTRACT-$(1)}
@@ -521,65 +521,16 @@ under any permissive license\footnote{%
 So, we must, each and every one of us, connect to Springer's server and 
 download our own copy.
 This is what we automate here.
+
+We use the downloader described above.
 <<Springer LNCS>>=
-<<target for downloading LNCS>>
-<<target for installing LNCS>>
-<<target for cleaning LNCS>>
-<<target for biblatex LNCS style>>
-@
+TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.sty
+TEX_EXT_DIR-lncs?=    lncs
+TEX_EXT_SRC-lncs?=    llncs2e.zip
+TEX_EXT_URL-lncs?=    ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+TEX_EXT_EXTRACT-lncs?=${UNZIP} $< -d ${TEX_EXT_DIR-lncs}
 
-We start with the cleaning, since then we can fill the recipe while discussing 
-the installation.
-The cleaning target is simply a phony target that we add as a prerequisite to 
-the [[distclean]] target.
-<<target for cleaning LNCS>>=
-.PHONY: distclean clean-lncs
-distclean: clean-lncs
-clean-lncs:
-	<<lncs cleaning recipe>>
-@
-
-We control where to install the \ac{LNCS} style files with the variable 
-[[TEX_LNCS]].
-By default we set it to [[TEX_OUTDIR]].
-However, to install it globally, we could use [[TEXMF]] instead.
-<<variables>>=
-TEX_LNCS?=    lncs
-@
-
-We will download the zip file to the specified output directory.
-<<target for downloading LNCS>>=
-${TEX_LNCS}/llncs2e.zip:
-	${CURL} -o $@ ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
-@ The archive contains many files, we are only interested in a few of them.
-The ones that we are interested in are the following.
-<<variables>>=
-LNCS-files+=  llncs.cls
-LNCS-files+=  sprmindx.sty
-LNCS-files+=  splncs03.bst
-LNCS-files+=  aliascnt.sty
-LNCS-files+=  remreset.sty
-@ To install these files, we simply extract them from the archive.
-Note that the archive is a tarbomb, and we want to specify which files to 
-extract.
-That is why we need to remove the path from the target, to only get the file 
-name.
-<<target for installing LNCS>>=
-$(addprefix ${TEX_LNCS}/,${LNCS-files}): ${TEX_LNCS}/llncs2e.zip
-	${UNZIP} $< ${@:${TEX_LNCS}/=} -d ${TEX_LNCS}
-@ This gives us the following cleaning to do.
-<<lncs cleaning recipe>>=
-${RM} $(addprefix ${TEX_LNCS}/,${LNCS-files})
-${RM} ${TEX_LNCS}/llncs2e.zip
-@
-
-To make it easy to add these style files as prerequisites, we create the 
-following phony targets.
-(The target [[llncs]] is for backwards compatibility, and due to Springer's 
-name for the document class.)
-<<target for installing LNCS>>=
-.PHONY: lncs llncs
-lncs llncs: $(addprefix ${TEX_LNCS}/,${LNCS-files})
+$(eval $(call download_archive,lncs))
 @
 
 \subsection{LNCS style for [[biblatex]]}
@@ -593,78 +544,14 @@ git submodule add https://github.com/neapel/biblatex-lncs.git
 \end{lstlisting}
 This will add a directory [[biblatex-lncs]] to the current directory.
 
-Now we will proceed to the discussion of the targets.
-<<target for biblatex LNCS style>>=
-<<targets for biblatex-lncs files>>
-<<target for biblatex-lncs repo>>
-<<cleaning for biblatex-lncs>>
-@ Similarly as before, we will start with the cleaning.
-<<cleaning for biblatex-lncs>>=
-.PHONY: distclean clean-biblatex-lncs
-distclean: clean-biblatex-lncs
-clean-biblatex-lncs:
-  <<recipe for clean-biblatex-lncs>>
-@
+If we do not add it as a submodule we can use the downloader above.
+<<biblatex LNCS style>>=
+TEX_EXT_FILES-biblatex-lncs?= lncs.bbx lncs.cbx lncs.dbx
+TEX_EXT_DIR-biblatex-lncs?=   lncs
+TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
+TEX_EXT_URL-biblatex-lncs?=   https://github.com/neapel/biblatex-lncs.git
 
-The files that we are interested in, and that [[biblatex]] must be able to 
-find\footnote{%
-  [[biblatex]] must be able to find them either in the current working 
-  directory, or any of the TeX directories, i.e. [[TEXMF]].
-}, are the following.
-<<variables>>=
-BIBLTX-files= 	lncs.bbx
-BIBLTX-files+= 	lncs.cbx
-BIBLTX-files+= 	lncs.dbx
-@ These files will be located somewhere else, but we will add symbolic links to
-them.
-More specifically, they will reside in the repository above, with the same 
-names.
-
-We will allow the user to put the repository in another directory, this is 
-controlled by the following variable.
-<<variables>>=
-TEX_BIBLATEX-LNCS?=   .
-@ By default we assume the repository is located in the same directory as the 
-main makefile.
-
-We set a dependency between the files that we want [[biblatex]] to find and the
-corresponding file in the repository.
-<<targets for biblatex-lncs files>>=
-$(foreach file,${BIBLTX-files},$(eval \
-  ${file}: ${TEX_BIBLATEX-LNCS}/biblatex-lncs/${file}))
-@ Then we add the recipe for creating these files from their prerequisites, 
-i.e.\ create a symbolic link.
-<<targets for biblatex-lncs files>>=
-${BIBLTX-files}:
-	[ -e $@ ] || ln -s $< $@
-@ Consequently, when we do cleaning, we want to remove these symbolic links.
-<<recipe for clean-biblatex-lncs>>=
-find ${BIBLTX-files} -type l \
-  | xargs ${RM}
-@
-
-If we have added the [[biblatex-lncs]] repository as a submodule, then 
-everything will work --- since the files exists in the repository.
-However, if they do not exist, we want to add them.
-The way we create them is by cloning the repository.
-<<target for biblatex-lncs repo>>=
-$(addprefix ${TEX_BIBLATEX-LNCS}/biblatex-lncs/,${BIBLTX-files}):
-	${MKDIR} ${TEX_BIBLATEX-LNCS}
-	git clone https://github.com/neapel/biblatex-lncs.git \
-	  ${TEX_BIBLATEX-LNCS}/biblatex-lncs
-@ So, during cleaning we want to remove this repository.
-However, we must first check if [[biblatex-lncs]] is a submodule, and in that 
-case, we do not want to remove it.
-<<recipe for clean-biblatex-lncs>>=
-( git submodule | grep "biblatex-lncs" ) \
-  || ${RM} ${TEX_BIBLATEX-LNCS}/biblatex-lncs
-@
-
-Finally, to make it easy to add [[biblatex-lncs]] as a dependency for 
-a document, we provide the following phony target.
-<<target for biblatex LNCS style>>=
-.PHONY: biblatex-lncs
-biblatex-lncs: ${BIBLTX-files}
+$(eval $(call download_repo,biblatex-lncs))
 @
 
 \subsection{ACM classes}
@@ -681,16 +568,18 @@ We provide targets for the following \ac{ACM} classes.
 The structure is similar as above.
 We use a variable to control the destination, current directory by default.
 <<variables>>=
-TEX_ACMSIG?=    .
+TEX_EXT_DIR-acmproc?=     acm
 @ Then we download the class file to that directory.
 <<ACM SIG proceedings>>=
-${TEX_ACMSIG}/acm_proc_article-sp.cls:
+${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls:
 	${CURL} -o $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
-@ We also add the phony target [[acmsig]] to easily add this class as 
+acm_proc_article-sp.cls: ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
+	${LN} $^ $@
+@ We also add the phony target [[acmproc]] to easily add this class as 
 a prerequisite for a document.
 <<ACM SIG proceedings>>=
 .PHONY: acmproc
-acmsig: ${TEX_ACMSIG}/acm_proc_article-sp.cls
+acmproc: acm_proc_article-sp.cls
 @
 
 The cleaning will only need to remove the single document class that we 
@@ -699,43 +588,34 @@ downloaded.
 .PHONY: distclean clean-acmproc
 distclean: clean-acmproc
 clean-acmproc:
-	${RM} ${TEX_ACMSIG}/acm_proc_article-sp.cls
+	${RM} acm_proc_article-sp.cls
+	${RM} ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
 @
 
 \subsubsection{ACM small standard}
 
+We can use the downloader for the small standard.
 <<ACM small standard>>=
-ACMSMALL?= 		.
+TEX_EXT_FILES-acmsmall?=  acmsmall.cls
+TEX_EXT_DIR-acmsmall?=    acm
+TEX_EXT_SRC-acmsmall?=    v2-acmsmall.zip
+TEX_EXT_URL-acmsmall?=    http://www.acm.org/publications/latex_style/v2-acmsmall.zip
+TEX_EXT_EXTRACT-acmsmall?=${UNZIP} $< -d ${TEX_EXT_DIR-acmsmall}
 
-${ACMSMALL}/v2-acmsmall.zip:
-	${CURL} -o $@ http://www.acm.org/publications/latex_style/v2-acmsmall.zip
-
-${ACMSMALL}/acmsmall.cls: ${ACMSMALL}/v2-acmsmall.zip
-	${UNZIP} ${ACMSMALL}/v2-acmsmall.zip acmsmall.cls -d ${ACMSMALL}
-
-.PHONY: acmsmall clean-acmsmall
-acmsmall: ${ACMSMALL}/acmsmall.cls
-distclean: clean-acmsmall
-clean-acmsmall:
-	${RM} ${ACMSMALL}/acmsmall.cls
+$(eval $(call download_archive,acmsmall))
 @
 
 \subsubsection{ACM large standard}
 
+As for the small standard, we can use the downloader.
 <<ACM large standard>>=
-ACMLARGE?= 		.
+TEX_EXT_FILES-acmlarge?=  acmlarge.cls
+TEX_EXT_DIR-acmlarge?=    acm
+TEX_EXT_SRC-acmlarge?=    v2-acmlarge.zip
+TEX_EXT_URL-acmlarge?=    http://www.acm.org/publications/latex_style/v2-acmlarge.zip
+TEX_EXT_EXTRACT-acmlarge?=${UNZIP} $< -d ${TEX_EXT_DIR-acmlarge}
 
-${ACMLARGE}/v2-acmlarge.zip:
-	${CURL} -o $@ http://www.acm.org/publications/latex_style/v2-acmlarge.zip
-
-${ACMLARGE}/acmlarge.cls: ${ACMLARGE}/v2-acmlarge.zip
-	${UNZIP} ${ACMLARGE}/v2-acmlarge.zip acmlarge.cls -d ${ACMLARGE}
-
-.PHONY: acmlarge clean-acmlarge
-acmlarge: ${ACMLARGE}/acmlarge.cls
-distclean: clean-acmlarge
-clean-acmlarge:
-	${RM} ${ACMLARGE}/acmlarge.cls
+$(eval $(call download_archive,acmlarge))
 @
 
 \subsection{The RFC bibliography}
