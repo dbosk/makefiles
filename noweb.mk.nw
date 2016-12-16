@@ -125,7 +125,7 @@ We will now cover specialized instances of the general pattern rules defined
 above.
 We will simply set the default variables.
 <<variables>>=
-<<defaults for for C and C++>>
+<<defaults for C and C++>>
 <<defaults for Haskell>>
 <<defaults for Python>>
 <<defaults for Make>>
