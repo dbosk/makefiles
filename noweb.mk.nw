@@ -108,8 +108,11 @@ $(addprefix %,${NOWEB_SUFFIXES}): %.nw
 The case with suffixes can paradoxically be done without introducing the 
 suffixes.
 <<tangle source files with suffix>>=
-%: %.nw
-	${NOTANGLE$(suffix $@)}
+define with_suffix_target
+%$(1): %$(1).nw
+	$${NOTANGLE$$(suffix $$@)}
+endef
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call with_suffix_target,${suf})))
 @ The reason for this is that the suffix is now captured by the pattern on both
 sides, i.e.\ for target \emph{and} prerequisite.
 However, this rule does not capture some thing we want, e.g.\ we cannot tangle 
