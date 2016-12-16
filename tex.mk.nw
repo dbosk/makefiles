@@ -428,18 +428,17 @@ repository ([[TEX_EXT_SRC]]), extract the files we are interested in
 finally, create symbolic links to those files from the current working 
 directory.
 <<a general downloader>>=
-<<downloader helper functions>>
 define download_archive
-<<create targets for symlinks>>
-<<create targets for desired files>>
-<<create targets for archive>>
-<<create target for cleaning>>
+<<targets for symlinks>>
+<<targets for desired files>>
+<<targets for archive>>
+<<target for cleaning>>
 endef
 define download_repo
-<<create targets for symlinks>>
-<<create targets for desired files>>
-<<create targets for repo>>
-<<create target for cleaning>>
+<<targets for symlinks>>
+<<targets for desired files>>
+<<targets for repo>>
+<<target for cleaning>>
 endef
 @
 
@@ -448,83 +447,66 @@ create the symbolic links, assuming that the target files already exists.
 First we set up a dependency between the files we are interested in and where 
 that file is actually located.
 Then we create a recipe which will create a symbolic link between them.
-<<create targets for symlinks>>=
+We use the [[notdir]] function~\cite[Sect.\ 8.3]{GNUMake} to remove any 
+directory-part since we want to create the symbolic link in the current working
+directory.
+<<targets for symlinks>>=
 $(foreach file,${TEX_EXT_FILES-$(1)},\
-  $(eval $(call create_dependency,${file},${TEX_EXT_DIR-$(1)}/${file})))
-$(eval $(call symlink_prereq_target,${TEX_EXT_FILES-$(1)}))
-@ The helper functions that we call are defined as follows.
-<<downloader helper functions>>=
-define create_dependency
-$(1): $(2)
-endef
-define symlink_prereq_target
-$(1):
-	${LN} -s $$^ $$@
-endef
-@ To make it easier to add these files as prerequisites to a target, we provide
-the following phony target.
-<<create targets for symlinks>>=
-$(eval .PHONY: $(1))
-$(eval $(1): ${TEX_EXT_FILES-$(1)})
+  $(eval $(notdir ${file}): ${TEX_EXT_DIR-$(1)}/${file}))
+$(notdir ${TEX_EXT_FILES-$(1)}):
+	${LN} $$^ $$@
+@ Note that we need the [[eval]] command above to evaluate the rule for each 
+file, otherwise we would get \emph{one line} with many colons --- which is not 
+valid syntax for make(1).
+To make it easier to add these files as prerequisites to a target, we also 
+provide the following phony target.
+<<targets for symlinks>>=
+.PHONY: $(1)
+$(1): $(notdir ${TEX_EXT_FILES-$(1)})
 @
 
 Now we need something to trigger the download of the archive or the repository.
 One way to do this is to add a prerequisite for the files from the archive or 
 repository.
-<<create targets for desired files>>=
-$(eval $(call create_dependency,\
-  $(addprefix ${TEX_DIR-$(1)},${TEX_EXT_FILES-$(1)}),\
-  $(addprefix ${TEX_DIR-$(1)},${TEX_EXT_SRC-$(1)})))
-@ The file [[TEX_EXT_SRC]] can be either an archive or a repository.
+<<targets for desired files>>=
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}): \
+  ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}
+@ Now we turn to the recipe.
+In the case of an archive, we must extract the desired files.
+We can use the [[extract]] function from [[portability.mk]] 
+(\cref{portability:Archives}).
+<<targets for archive>>=
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
+	${TEX_EXT_EXTRACT-$(1)}
+@ For a repository we can simply copy the file or create a link.
+We prefer the latter.
+<<targets for repo>>=
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
+	${LN} ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}/$${@:${TEX_EXT_DIR-$(1)}/%=%} $$@
+@
+
+The file [[TEX_EXT_SRC]] can be either an archive or a repository.
 We let [[TEX_EXT_URL]] be the \ac{URL} to fetch it from in both cases.
-<<create targets for archive>>=
-$(eval $(call create_archive_target,$(1)))
-@ Where the helper function is defined as follows.
-<<downloader helper functions>>=
-define create_archive_target
+In the case of an archive we do the following.
+<<targets for archive>>=
 ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
 	${MKDIR} ${TEX_EXT_DIR-$(1)}
 	${CURL} -o $$@ ${TEX_EXT_URL-$(1)}
-endef
-@ Now we only need a recipe which can extract the desired files.
-<<downloader helper functions>>=
-define extract_file
-$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
-	${UNPAX} -p am -f $$< $@
-endef
-@ We must also call this function, so we add the following.
-<<create targets for archive>>=
-$(eval $(call extract_file,$(1)))
-@
-
-We can do something similar for a repository, although then we do not need any 
-extraction.
-<<downloader helper functions>>=
-define create_repo_target
+@ In the case of a repository, we simply clone it.
+<<targets for repo>>=
 ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
-	git clone ${TEX_EXT_URL-$(1)} ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}
-endef
-@ Now we create such a target.
-<<create targets for repo>>=
-$(eval $(call create_repo_target,$(1)))
-@ To activate this target, we add this directory as an order-only 
+	git clone ${TEX_EXT_URL-$(1)} $$@
+@ We note that the directory of the repo should be an order-only 
 prerequisite~\cite[see][Sect.\ 4.3]{GNUMake} for the files inside.
-<<create targets for repo>>=
-$(eval ${TEX_EXT_FILES-$(1)}: | ${TEX_DIR-$(1)}/${TEX_EXT_SRC-$(1)})
-@
+Unfortunately this is not the case at the moment.
 
 Finally, we must also do some cleaning.
-<<downloader helper functions>>=
-define create_clean
+<<target for cleaning>>=
 .PHONY: distclean clean-$(1)
 distclean: clean-$(1)
 clean-$(1):
 	${RM} ${TEX_EXT_FILES-$(1)}
-	${RM} ${TEX_EXT_DIR-$(1)}
-endef
-@ Thus we add a call to this function as well.
-<<create target for cleaning>>=
-$(eval $(call create_clean,$(1)))
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
 @
 
 \subsection{Springer LNCS}
