@@ -148,7 +148,6 @@ files from archives of different kinds.
 We will construct two functionalities.
 <<compressed files and archives>>=
 <<variables for compression programs>>
-<<general pattern rule for compression>>
 <<general pattern rule for uncompression>>
 
 <<variables for archive programs>>
