@@ -20,7 +20,7 @@ WC?= 		wc -w
 # variables used to compile LaTeX documents
 LATEX?=		latex
 PDFLATEX?=	pdflatex
-DETEXT?= 	detex
+DETEX?= 	detex
 LATEXMK?= 	latexmk ${LATEXMKRC} -bibtex-cond
 LATEXMKRC?= 
 DVIPS?=		dvips
@@ -199,13 +199,29 @@ endef
 .PHONY: submission
 submission: ${DOCUMENTS:.pdf=.submission.tex}
 
-.SUFFIXES: .nw .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw
-.nw.tex .py.nw.tex .c.nw.tex .h.nw.tex .cpp.nw.tex .hpp.nw.tex .mk.nw.tex: noweb
+.SUFFIXES: .nw
+.nw.tex: noweb
 	noweave -x -n -delay -t2 $< > $@
+
+NOWEB_SUFFIXES+= .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw .hs.nw
+.SUFFIXES: ${NOWEB_SUFFIXES}
+$(foreach suffix,${NOWEB_SUFFIXES},${suffix}.tex): noweb
+	noweave -x -n -t2 $< > $@
+
+.SUFFIXES: .md
+.md.tex: pandoc
+	pandoc $< -t latex -o $@
 
 .PHONY: wc
 wc:
 	for f in $^; do echo -n "$${f}: "; ${DETEX} $${f} | ${WC}; done
+
+.SUFFIXES: .asc .tex.asc
+.tex.tex.asc:
+	gpg -aes $(foreach recipient,${TEX_RECIPIENTS},-r ${recipient}) $<
+
+.tex.asc.tex:
+	gpg --output $@ -d $<.SUFFIXES: .gpg
 
 
 ### INCLUDES ###

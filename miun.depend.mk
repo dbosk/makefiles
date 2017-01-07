@@ -7,6 +7,8 @@ MIUN_DEPEND_MK=true
 CONF?= 	/etc/mk.conf
 -include ${CONF}
 
+CURRENT_URL=https://github.com/dbosk/miuntex/releases/download/v1.0
+
 
 .PHONY: clean-depends
 
@@ -25,7 +27,7 @@ ${miunmisc-depend} ${logo-depend}:
 
 MIUNMISC_FILES= 	MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
 MIUNMISC_FILES+= 	MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
-MIUNMISC_FILES+= 	miunmisc.ins miunmisc.dtx
+MIUNMISC_FILES+= 	miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict
 
 ifdef INCLUDE_MIUNTEX
 $(foreach f,${MIUNMISC_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunmisc/$f))
@@ -33,12 +35,8 @@ ${MIUNMISC_FILES}:
 	ln -s $^ $@
 else
 ${MIUNMISC_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunmisc/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
-
-miunmisc.pdf miunmisc.ps: miunmisc.dtx
-miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict: miunmisc.ins
-miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict: miunmisc.dtx
 
 .PHONY: miunmisc miunlogo
 miunlogo: MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
@@ -74,7 +72,7 @@ ${MIUNART_FILES}:
 	ln -s $^ $@
 else
 ${MIUNART_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunart/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunart
@@ -103,7 +101,7 @@ ${MIUNASGN_FILES}:
 	ln -s $^ $@
 else
 ${MIUNASGN_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunasgn/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunasgn
@@ -132,7 +130,7 @@ ${MIUNEXAM_FILES}:
 	ln -s $^ $@
 else
 ${MIUNEXAM_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunexam/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunexam
@@ -154,7 +152,7 @@ ${miunlett-depend}:
 	cd /tmp/miunlett && ${MAKE} install
 
 miunlett.cls:
-	wget -O $@ http://ver.miun.se/latex/miunlett/$@
+	wget -O $@ ${CURRENT_URL}/$@
 
 .PHONY: miunlett
 miunlett: miunlett.cls miunlogo
@@ -182,7 +180,7 @@ ${MIUNPROT_FILES}:
 	ln -s $^ $@
 else
 ${MIUNPROT_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunprot/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunprot
@@ -211,7 +209,7 @@ ${MIUNTHES_FILES}:
 	ln -s $^ $@
 else
 ${MIUNTHES_FILES}:
-	wget -O $@ http://ver.miun.se/latex/miunthes/$@
+	wget -O $@ ${CURRENT_URL}/$@
 endif
 
 .PHONY: miunthes
