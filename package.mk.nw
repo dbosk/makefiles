@@ -89,7 +89,7 @@ INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
 <<variables>>
-<<the all target>>
+<<an all-like target>>
 <<targets for packaging>>
 <<targets for cleaning>>
 <<targets for installation>>
@@ -97,18 +97,13 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 endif
 @
 
-The [[all]] target should, of course, have all tarballs as prerequisites.
-Similarly, we provide a [[package]] target which also has the tarballs as 
-prerequisites.
-The reason for this is that the [[all]] target might have more prerequisites 
-from the main makefile and other include files.
-<<the all target>>=
-.PHONY: all package
-define all_and_package
-all:      ${PKG_TARBALL-$(1)}
-package:  ${PKG_TARBALL-$(1)}
-endef
-$(foreach pkg,${PKG_PACKAGES},$(eval $(call all_and_package,${pkg})))
+We want to have an all-like target, we call it [[package]].
+The [[package]] target should, of course, have all tarballs as prerequisites.
+The reason for not using [[all]] is that we leave the [[all]] target for the 
+user, with its prerequisites defined in the main makefile.
+<<an all-like target>>=
+.PHONY: package
+package: $(foreach pkg,${PKG_PACKAGES},${PKG_TARBALL-${pkg}})
 @
 
 \subsection{Packaging}
