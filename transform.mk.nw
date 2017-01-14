@@ -8,14 +8,14 @@ teachers, to improve the assignments and their solutions.
 This include file provides some tools to achieve this.
 
 
-\section{Implementation}
+\section{Implementation overview}
 
 The structure is similar to other include files.
 We want to prevent repeated inclusion, so we use a C-style technique to avoid 
 that.
 <<transform.mk>>=
-ifndef EXPORT_MK
-EXPORT_MK=true
+ifndef TRANSFORM_MK
+TRANSFORM_MK=true
 
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
@@ -33,17 +33,17 @@ endif
 \section{A transformation mechanism}
 
 We want to provide suffix rules for transforming files in different ways.
-We will transform any file with a suffix in [[EXPORT_SRC]] for which there is 
-a corresponding target in [[EXPORT_DST]].
+We will transform any file with a suffix in [[TRANSFORM_SRC]] for which there is 
+a corresponding target in [[TRANSFORM_DST]].
 <<variables>>=
-EXPORT_SRC?=    .tex
-EXPORT_DST?=    .transformed.tex
+TRANSFORM_SRC?=    .tex
+TRANSFORM_DST?=    .transformed.tex
 @ Then we can form the following suffix rule, which covers all combinations of 
 sources and destinations.
 <<suffix rule for transformations>>=
 <<transformations>>
-.SUFFIXES: ${EXPORT_SRC} ${EXPORT_DST}
-$(foreach src,${EXPORT_SRC},$(foreach dst,${EXPORT_DST},${src}${dst})):
+.SUFFIXES: ${TRANSFORM_SRC} ${TRANSFORM_DST}
+$(foreach src,${TRANSFORM_SRC},$(foreach dst,${TRANSFORM_DST},${src}${dst})):
 	<<transformation recipe>>
 @ The [[<<transformations>>]] will be covered below, we start with how they are 
 applied.
@@ -64,24 +64,33 @@ output.
 
 Now back to our [[<<transformation recipe>>]].
 This is a suffix rule, but we want the transformation to be target-dependent.
-To solve this, we will have a variable [[EXPORT_TRANSFORM-target]] containing 
+To solve this, we will have a variable [[TRANSFORM_LIST-target]] containing 
 the space separated list of transforms to apply to the target.
+We will also use [[TRANSFORM_LIST.suf]], where [[.suf]] is the suffix of the 
+target file.
 Thus we can just apply this list using the function above.
 <<transformation recipe>>=
-$(call transform,$^,${EXPORT_TRANSFORM-$@},$@)
+$(call transform,\
+  $$^,\
+  $${TRANSFORM_LIST$$(suffix $$@)} $${TRANSFORM_LIST-$$@},\
+  $$@)
+@ We will let [[TRANSFORM_LIST]] be the default list of transformations 
+applied.
+<<variables>>=
+$(foreach suf,${TRANSFORM_DST},$(eval TRANSFORM_LIST${suf}?=${TRANSFORM_LIST}))
 @
 
 This will work well for a lot of cases, however, there are cases where suffix 
 rules simply will not work.
 For these we must generate specific targets.
-Let [[EXPORT_TARGETS]] contain a space separated list of target files.
+Let [[TRANSFORM_TARGETS]] contain a space separated list of target files.
 <<target generation for transformations>>=
 define target_recipe
 $(1):
-	$(call transform,$^,${EXPORT_TRANSFORM-$@},$@)
+	<<transformation recipe>>
 endef
-$(foreach target,${EXPORT_TARGETS},$(eval $(call target_recipe,${target})))
-@
+$(foreach target,${TRANSFORM_TARGETS},$(eval $(call target_recipe,${target})))
+@ Note that we use the same recipe as above.
 
 \subsection{Removing solutions}
 
@@ -230,17 +239,17 @@ We need a command to encrypt, the recipients and a command to decrypt.
 We will use the following by default.
 <<variables>>=
 GPG?=                 gpg
-EXPORT_ENC?=          ${GPG} -aes
-EXPORT_RECIPIENTS?=   me
-EXPORT_DEC?=          ${GPG} -d
+TRANSFORM_ENC?=          ${GPG} -aes
+TRANSFORM_RECIPIENTS?=   me
+TRANSFORM_DEC?=          ${GPG} -d
 @ This will yield the following suffix rules.
 <<suffix rules for encrypted files>>=
 .SUFFIXES: .tex .tex.asc
 .tex.tex.asc:
-	${EXPORT_ENC} $(foreach r,${EXPORT_RECIPIENTS}, -r $r) < $< > $@
+	${TRANSFORM_ENC} $(foreach r,${TRANSFORM_RECIPIENTS}, -r $r) < $< > $@
 
 .tex.asc.tex:
-	${EXPORT_DEC} < $< > $@
+	${TRANSFORM_DEC} < $< > $@
 @
 
 An alternative approach, probably less prone to errors, is to use Git.
