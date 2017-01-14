@@ -33,6 +33,9 @@ NOTANGLE.py?=       ${NOTANGLE} ${NOTANGLEFLAGS.py} -R$@ $< > $@
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS}
 NOTANGLE.mk?=       ${NOTANGLE} ${NOTANGLEFLAGS.mk} -R$@ $< > $@
+NOWEB_SUFFIXES+=    .sh
+NOTANGLEFLAGS.sh?=  ${NOTANGLEFLAGS}
+NOTANGLE.sh?=       ${NOTANGLE} ${NOTANGLEFLAGS.sh} -R$@ $< > $@
 .SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
 .nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
 	${NOWEAVE} ${NOWEAVEFLAGS} $< > $@

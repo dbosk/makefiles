@@ -129,6 +129,7 @@ We will simply set the default variables.
 <<defaults for Haskell>>
 <<defaults for Python>>
 <<defaults for Make>>
+<<defaults for shell scripts>>
 @ As noted above, we need some special rules for the C and C++ header files, 
 but no extra rules for any other language.
 <<special rules for different languages>>=
@@ -201,4 +202,9 @@ NOTANGLE.py?=       ${NOTANGLE} ${NOTANGLEFLAGS.py} -R$@ $< > $@
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS}
 NOTANGLE.mk?=       ${NOTANGLE} ${NOTANGLEFLAGS.mk} -R$@ $< > $@
+@ And also for shell scripts.
+<<defaults for shell scripts>>=
+NOWEB_SUFFIXES+=    .sh
+NOTANGLEFLAGS.sh?=  ${NOTANGLEFLAGS}
+NOTANGLE.sh?=       ${NOTANGLE} ${NOTANGLEFLAGS.sh} -R$@ $< > $@
 @
