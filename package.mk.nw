@@ -11,7 +11,11 @@ This is controlled by the [[PKG_NAME]] variable.
 PKG_NAME?=          ${PACKAGE}
 @ Its default value is set for backwards compatibility, so that makefiles using 
 the old variable names will still work.
-The package name will determine the name of the tarball that is generated.
+The package name will, by default, determine the name of the tarball that is 
+generated.
+<<variables>>=
+PKG_TARBALL?=       ${PKG_NAME}.tar.gz
+@
 
 The next thing we need is to control which files are included.
 There are two types of files: files that should be installed and files that 
@@ -54,7 +58,7 @@ PKG_INSTALL_FILES-$(1)?= 	${PKG_INSTALL_FILES}
 PKG_PREFIX-$(1)?=         ${PKG_PREFIX}
 PKG_INSTALL_DIR-$(1)?=    ${PKG_INSTALL_DIR}
 
-PKG_TARBALL-$(1)?=        ${PKG_NAME-$(1)}.tar.gz
+PKG_TARBALL-$(1)?=        ${PKG_TARBALL}
 PKG_TARBALL_FILES-$(1)?=  ${PKG_TARBALL_FILES}
 PKG_IGNORE-$(1)?=         ${PKG_IGNORE}
 endef
