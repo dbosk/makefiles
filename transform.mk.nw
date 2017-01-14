@@ -105,49 +105,39 @@ NoSolutions?= ${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d"
 Sometimes we have extra build instructions in the internal repo, which are not 
 necessary for the exported source code.
 <<transformations>>=
-ExportFilter?=${SED} "/#export \\(false\\|no\\)/,/#export \\(true\\|yes\\)/d"
-OldExportFilter?=   ${SED} "/#export no/,/#endexport/d"
+ExportFilter?=    ${SED} "/#export \\(false\\|no\\)/,/#export \\(true\\|yes\\)/d"
+OldExportFilter?= ${SED} "/#export no/,/#endexport/d"
 @
 
-\subsection{Handouts and printanswers}
+\subsection{Handouts and solutions}
 
-<<variables>>=
-MATCH_PRINTANSWERS="/\\\\\\\\\\printanswers/s/^%//"
-MATCH_HANDOUT="s/\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}/\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}/"
-@
-
+It is common that we want to produce handouts from slides and solutions for 
+assignments or exams.
+We do not want to do this by hand, so we add two transformations that can be 
+used to do this for us.
 <<transformations>>=
-.SUFFIXES: .dvi .ps
-.dvi.ps:
-	${DVIPS} ${DVIPSFLAGS} $<
+PrintAnswers?=    ${SED} "${MATCH_PRINTANSWERS}"
+Handout?=         ${SED} "${MATCH_HANDOUT}"
+@ We will need quite a few layers of escaping for these two regular 
+expressions.
 
-# $1 = input file
-# $2 = output file
-define sed_transformations
-${CAT} $1 \
-	$(shell [ "${solutions}" = "no" ] || echo \
-	" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
-	$(shell [ "${handout}" = "no" ] || echo \
-	" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
-	> $2
-endef
+First we will handle the printing of solutions.
+We want to add the [[\printanswers]] command~\cite{ExamClass} to the preamble.
+What we do is to match on the exam document class, then we insert the 
+[[\printanswers]] command directly after it.
+<<variables>>=
+exam_class=       "(\\\\\\\\\\documentclass\\[?.*\\]?{.*exam.*})"
+with_print=       "\\1\\\\\\\\\\printanswers"
+SED_PRINTANSWERS= "s/${exam_class}/${with_print}/"
+@
 
-# $1 = original file
-# $2 = new file
-# $3 = backup file
-define backup_file
-if diff -u $1 $2; then \
-	mv $1 $3 && mv $2 $1; \
-fi
-endef
-
-# $1 = backup file
-# $2 = original file
-define restore_file
-if [ -f $1 ]; then \
-	${MV} $1 $2; \
-fi
-endef
+Now we will solve the handouts.
+What we want to do is to add the [[handout]] option to the Beamer document 
+class~\cite{Beamer}.
+<<variables>>=
+without_handout=  "\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}"
+with_handout=     "\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}"
+SED_HANDOUT=      "s/${without_handout}/${with_handout}/"
 @
 
 
