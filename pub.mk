@@ -1,6 +1,9 @@
 ifndef PUB_MK
 PUB_MK=true
 
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
 PUB_FILES?=
 IGNORE_FILES?=      \(\.svn\|\.git\|CVS\)
 PUB_IGNORE?=        ${IGNORE_FILES}
@@ -40,16 +43,6 @@ PUB_TAG_OPTS?=
 PUB_TAG_NAME?=      $(shell date +%Y%m%d-%H%M)
 PUB_AUTOCOMMIT?=    false
 PUB_COMMIT_OPTS?=   -av
-SSH?=       ssh
-SCP?=       scp -r
-SFTP?=      sftp
-PAX=        pax -wL
-UNPAX=      pax -r
-CP?=        cp -R
-MKDIR?=     mkdir -p
-MKTMPDIR?=  mktemp -d
-CHOWN?=     chown -R
-CHMOD?=     chmod -R
 PUB_REGEX?=     "|^(.*)$$$$|\1|p"
 $(foreach site,${PKG_SITES},$(eval PUB_REGEX-${site}?=${PUB_REGEX}))
 $(foreach site,${PUB_SITES},$(eval MKTMPDIR-${site}?=${MKTMPDIR}))
@@ -85,10 +78,10 @@ endef
 define publish-ssh
 ${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}
 [ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
-xargs ${PAX} \
+xargs ${TAR} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
   -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
-${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
+${SSH} ${PUB_SERVER-$(1)} ${UNTAR} \
   -s "\"|^|$(strip ${PUB_DIR-$(1)})/|p\""
 $(call chown,$(1))
 $(call chmod,$(1))
@@ -98,10 +91,10 @@ ${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}
 TMPPUB=$$(${SSH} ${PUB_SERVER-$(1)} "export TMPDIR=${PUB_TMPDIR-$(1)} && \
   ${MKTMPDIR-$(1)}"); \
 [ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
-xargs ${PAX} \
+xargs ${TAR} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
   -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
-${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
+${SSH} ${PUB_SERVER-$(1)} ${UNTAR} \
   -s "\"|^|$${TMPPUB}/|p\""; \
 ${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
   echo 'mv ${PUB_FILES-$(1)} ${PUB_DIR-$(2)};' \
@@ -113,7 +106,7 @@ ${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
 endef
 define publish-git
 git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
-  | ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),";
+  | ${SSH} ${PUB_SERVER-$(1)} ${UNTAR} -s ",^,$(strip ${PUB_DIR-$(1)}),";
 $(call chown,$(1))
 $(call chmod,$(1))
 endef

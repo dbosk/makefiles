@@ -1,59 +1,44 @@
-ifndef EXPORT_MK
-EXPORT_MK=true
+ifndef TRANSFORM_MK
+TRANSFORM_MK=true
 
-EXPORT_SRC?=    .tex
-EXPORT_DST?=    .transformed.tex
-MATCH_PRINTANSWERS="/\\\\\\\\\\printanswers/s/^%//"
-MATCH_HANDOUT="s/\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}/\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}/"
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
+TRANSFORM_SRC?=    .tex
+TRANSFORM_DST?=    .transformed.tex
+$(foreach suf,${TRANSFORM_DST},$(eval TRANSFORM_LIST${suf}?=${TRANSFORM_LIST}))
+exam_class=       "(\\\\\\\\\\documentclass\\[?.*\\]?{.*exam.*})"
+with_print=       "\\1\\\\\\\\\\printanswers"
+SED_PRINTANSWERS= "s/${exam_class}/${with_print}/"
+without_handout=  "\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}"
+with_handout=     "\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}"
+SED_HANDOUT=      "s/${without_handout}/${with_handout}/"
 GPG?=                 gpg
-EXPORT_ENC?=          ${GPG} -aes
-EXPORT_RECIPIENTS?=   me
-EXPORT_DEC?=          ${GPG} -d
+TRANSFORM_ENC?=          ${GPG} -aes
+TRANSFORM_RECIPIENTS?=   me
+TRANSFORM_DEC?=          ${GPG} -d
 define transform
 cat $(1) $(foreach t,$(2),| $(call ${t})) > $(3)
 endef
 NoSolutions?= ${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d"
-ExportFilter?=${SED} "/#export \\(false\\|no\\)/,/#export \\(true\\|yes\\)/d"
-OldExportFilter?=   ${SED} "/#export no/,/#endexport/d"
-.SUFFIXES: .dvi .ps
-.dvi.ps:
-	${DVIPS} ${DVIPSFLAGS} $<
-
-# $1 = input file
-# $2 = output file
-define sed_transformations
-${CAT} $1 \
-	$(shell [ "${solutions}" = "no" ] || echo \
-	" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
-	$(shell [ "${handout}" = "no" ] || echo \
-	" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
-	> $2
-endef
-
-# $1 = original file
-# $2 = new file
-# $3 = backup file
-define backup_file
-if diff -u $1 $2; then \
-	mv $1 $3 && mv $2 $1; \
-fi
-endef
-
-# $1 = backup file
-# $2 = original file
-define restore_file
-if [ -f $1 ]; then \
-	${MV} $1 $2; \
-fi
-endef
-.SUFFIXES: ${EXPORT_SRC} ${EXPORT_DST}
-$(foreach src,${EXPORT_SRC},$(foreach dst,${EXPORT_DST},${src}${dst})):
-	$(call transform,$^,${EXPORT_TRANSFORM-$@},$@)
+ExportFilter?=    ${SED} "/#export \\(false\\|no\\)/,/#export \\(true\\|yes\\)/d"
+OldExportFilter?= ${SED} "/#export no/,/#endexport/d"
+PrintAnswers?=    ${SED} "${MATCH_PRINTANSWERS}"
+Handout?=         ${SED} "${MATCH_HANDOUT}"
+.SUFFIXES: ${TRANSFORM_SRC} ${TRANSFORM_DST}
+$(foreach src,${TRANSFORM_SRC},$(foreach dst,${TRANSFORM_DST},${src}${dst})):
+	$(call transform,\
+	  $$^,\
+	  $${TRANSFORM_LIST$$(suffix $$@)} $${TRANSFORM_LIST-$$@},\
+	  $$@)
 define target_recipe
 $(1):
-	$(call transform,$^,${EXPORT_TRANSFORM-$@},$@)
+	$(call transform,\
+	  $$^,\
+	  $${TRANSFORM_LIST$$(suffix $$@)} $${TRANSFORM_LIST-$$@},\
+	  $$@)
 endef
-$(foreach target,${EXPORT_TARGETS},$(eval $(call target_recipe,${target})))
+$(foreach target,${TRANSFORM_TARGETS},$(eval $(call target_recipe,${target})))
 define bibliography
 ${SED} \
   -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1)" \
@@ -82,11 +67,9 @@ endef
 	  > $@
 .SUFFIXES: .tex .tex.asc
 .tex.tex.asc:
-	${EXPORT_ENC} $(foreach r,${EXPORT_RECIPIENTS}, -r $r) < $< > $@
+	${TRANSFORM_ENC} $(foreach r,${TRANSFORM_RECIPIENTS}, -r $r) < $< > $@
 
 .tex.asc.tex:
-	${EXPORT_DEC} < $< > $@
-
-include ${INCLUDE_MAKEFILES}/portability.mk
+	${TRANSFORM_DEC} < $< > $@
 
 endif

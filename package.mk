@@ -1,6 +1,9 @@
 ifndef PACKAGE_MK
 PACKAGE_MK=true
 
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
 PKG_NAME?=          ${PACKAGE}
 PKG_INSTALL_FILES?= ${INSTALL_FILES}
 PKG_TARBALL_FILES?= ${PACKAGE_FILES} ${PKG_INSTALL_FILES}
@@ -20,24 +23,15 @@ PKG_TARBALL_FILES-$(1)?=  ${PKG_TARBALL_FILES}
 PKG_IGNORE-$(1)?=         ${PKG_IGNORE}
 endef
 $(foreach pkg,${PKG_PACKAGES},$(eval $(call variables,${pkg})))
-MKDIR?=     mkdir -p
-CP?=        cp -R
-RM?=        rm -Rf
-TAR=        pax -wzLx ustar
-UNTAR=      pax -rz
 ifneq (${MAKE},gmake)
-INSTALL?=   install -Dp
+INSTALL?=     install -Dp
 else
-INSTALL?=   install -CSp
+INSTALL?=     install -CSp
 endif
 PKG_REGEX?=     "|^(.*)$$$$|\1|p"
 $(foreach pkg,${PKG_PACKAGES},$(eval PKG_REGEX-${pkg}?=${PKG_REGEX}))
-.PHONY: all package
-define all_and_package
-all:      ${PKG_TARBALL-$(1)}
-package:  ${PKG_TARBALL-$(1)}
-endef
-$(foreach pkg,${PKG_PACKAGES},$(eval $(call all_and_package,${pkg})))
+.PHONY: package
+package: $(foreach pkg,${PKG_PACKAGES},${PKG_TARBALL-${pkg}})
 define tarball
 ${PKG_TARBALL-$(1)}: ${PKG_TARBALL_FILES-$(1)}
 endef
