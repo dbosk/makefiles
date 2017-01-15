@@ -148,7 +148,6 @@ files from archives of different kinds.
 We will construct two functionalities.
 <<compressed files and archives>>=
 <<variables for compression programs>>
-<<general pattern rule for uncompression>>
 
 <<variables for archive programs>>
 <<general pattern rule for archiving>>
@@ -180,7 +179,14 @@ contain space-separated lists of suffixes supported for the two operations.
 To compress a file, we simply passes its contents through a compression 
 program, e.g.\ gzip(1) (gets the [[.gz]] suffix).
 We can use the following general pattern rule for compression and then use 
-[[COMPRESS_SUFFIXES]] to automatically generate all the pattern rules.
+[[COMPRESS_SUFFIXES]] to automatically generate all the pattern 
+rules\footnote{
+  Note that the pattern rules in the code blocks
+  [[<<general pattern rule for compression>>]] and
+  [[<<general pattern rule for uncompression>>]] are not included in
+  [[<<compressed files and archives>>]] above, and thus not enabled by default.
+  This is due to causing circular dependencies.
+}.
 <<general pattern rule for compression>>=
 define compress
 %$(1): %
@@ -203,13 +209,13 @@ To uncompress a gzipped file we can use gunzip(1).
 <<variables for compression programs>>=
 UNCOMPRESS_SUFFIXES+= .gz .z
 GUNZIP?=              gunzip
-UNCOMPRESS.gz?=       ${GUNZIP} $$<
+UNCOMPRESS.gz?=       ${GUNZIP} $<
 UNCOMPRESS.z?=        ${UNCOMPRESS.gz}
 @ To compress a file using gzip(1) we can use the following.
 <<variables for compression programs>>=
 COMPRESS_SUFFIXES+=   .gz
 GZIP?=                gzip
-COMPRESS.gz?=         ${GZIP} $$<
+COMPRESS.gz?=         ${GZIP} $<
 @
 
 \subsection{Packing and extracting from archives}
