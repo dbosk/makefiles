@@ -114,51 +114,16 @@ package: $(foreach pkg,${PKG_PACKAGES},${PKG_TARBALL-${pkg}})
 
 The packaging step shall take the files specified and create a tarball 
 containing them.
-What we will do is to create a target for the tarball, add the files it is 
-supposed to contain as prerequisites.
+What we will do is to create a target for the tarball.
+We will do this by using the archive functionality of make(1) and the 
+compression functionality we added in \cref{portability:Archives}.
 <<targets for packaging>>=
 define tarball
-${PKG_TARBALL-$(1)}: ${PKG_TARBALL_FILES-$(1)}
+$(foreach f,${PKG_TARBALL_FILES-$(1)},\
+  $(eval ${PKG_TARBALL-$(1)}(${f}): ${f}))
+${PKG_TARBALL-$(1)}: ${PKG_TARBALL-$(1)}(${PKG_TARBALL_FILES-$(1)})
 endef
 $(foreach pkg,${PKG_PACKAGES},$(eval $(call tarball,${pkg})))
-@
-
-Now this gives no recipe for building the actual tarball.
-We could have added a recipe for each tarball in the block above.
-The problem with this is that two different packages might have the same 
-tarball, i.e.\ [[PKG_TARBALL-X]] and [[PKG_TARBALL-Y]] might be equal.
-Thus we will sort the list of tarballs and keep only one entry for each 
-tarball.
-Then we will provide a general recipe which uses only the [[$^]] and [[$@]] 
-variables (prerequisites and target, respectively).
-<<targets for packaging>>=
-$(sort $(foreach pkg,${PKG_PACKAGES},${PKG_TARBALL-${pkg}})):
-	<<tarball recipe>>
-@
-
-The recipe first checks that the list of prerequisites is non-empty.
-If that is the case we proceed using [[find]] to filter out only files and 
-symbolic links.
-These are then stored in the archive.
-<<tarball recipe>>=
-[ -n "$^" ] && \
-  find $^ -type f -or -type l \
-  | xargs ${TAR} -f $@ \
-    $(foreach regex,${PKG_REGEX-$(1)},-s ${regex}) \
-    -s "|^.*/${PKG_IGNORE-$(1)}/.*$$$$||p" \
-    -s "|^|${PKG_NAME-$(1)}/|p"
-@ We see that we transform the paths with two regular expressions.
-The first expression filters out files in out ignore list.
-The second expression inserts the package name as a directory, this is to 
-prevent our tarball from being a tarbomb.
-Finally, there is a [[foreach]]-statement which allows the user to provide 
-a space-separated list of regular expressions that also are applied to each 
-file before being put in the tarball.
-This can be controlled with the following variable, and it allows different 
-lists of expressions for different packages.
-<<variables>>=
-PKG_REGEX?=     "|^(.*)$$$$|\1|p"
-$(foreach pkg,${PKG_PACKAGES},$(eval PKG_REGEX-${pkg}?=${PKG_REGEX}))
 @
 
 \subsection{Cleaning}
