@@ -295,7 +295,7 @@ we must generate a list of the entire hierarchy included.
 @ Once we have the list we can use pax(1) to put them into an archive, an 
 archive which is written to standard out.
 <<pack the files>>=
-xargs ${TAR} \
+xargs ${PAX} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
   -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
 @ We also filter the file list through a series of regular expressions.
@@ -309,7 +309,7 @@ $(foreach site,${PKG_SITES},$(eval PUB_REGEX-${site}?=${PUB_REGEX}))
 Finally, we extract the files on the server by running the corresponding pax(1) 
 instance over \ac{SSH}.
 <<extract the files on the server>>=
-${SSH} ${PUB_SERVER-$(1)} ${UNTAR} \
+${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
   -s "\"|^|$(strip ${PUB_DIR-$(1)})/|p\""
 @
 
@@ -347,7 +347,7 @@ The difference between this and previous upload is the extraction.
 We will now use a different regular expression, one which prepends the 
 temporary directory to all files.
 <<extract the files in the temporary directory>>=
-${SSH} ${PUB_SERVER-$(1)} ${UNTAR} \
+${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
   -s "\"|^|$${TMPPUB}/|p\""; \
 @
 
@@ -381,7 +381,7 @@ Then we pipe the archive to the server, unpack as before and finally run
 <<git method>>=
 define publish-git
 git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
-  | ${SSH} ${PUB_SERVER-$(1)} ${UNTAR} -s ",^,$(strip ${PUB_DIR-$(1)}),";
+  | ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),";
 $(call chown,$(1))
 $(call chmod,$(1))
 endef
