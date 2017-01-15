@@ -78,10 +78,10 @@ endef
 define publish-ssh
 ${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}
 [ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
-xargs ${TAR} \
+xargs ${PAX} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
   -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
-${SSH} ${PUB_SERVER-$(1)} ${UNTAR} \
+${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
   -s "\"|^|$(strip ${PUB_DIR-$(1)})/|p\""
 $(call chown,$(1))
 $(call chmod,$(1))
@@ -91,10 +91,10 @@ ${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}
 TMPPUB=$$(${SSH} ${PUB_SERVER-$(1)} "export TMPDIR=${PUB_TMPDIR-$(1)} && \
   ${MKTMPDIR-$(1)}"); \
 [ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
-xargs ${TAR} \
+xargs ${PAX} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
   -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
-${SSH} ${PUB_SERVER-$(1)} ${UNTAR} \
+${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
   -s "\"|^|$${TMPPUB}/|p\""; \
 ${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
   echo 'mv ${PUB_FILES-$(1)} ${PUB_DIR-$(2)};' \
@@ -106,7 +106,7 @@ ${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
 endef
 define publish-git
 git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
-  | ${SSH} ${PUB_SERVER-$(1)} ${UNTAR} -s ",^,$(strip ${PUB_DIR-$(1)}),";
+  | ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),";
 $(call chown,$(1))
 $(call chmod,$(1))
 endef

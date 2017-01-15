@@ -29,21 +29,14 @@ INSTALL?=     install -Dp
 else
 INSTALL?=     install -CSp
 endif
-PKG_REGEX?=     "|^(.*)$$$$|\1|p"
-$(foreach pkg,${PKG_PACKAGES},$(eval PKG_REGEX-${pkg}?=${PKG_REGEX}))
 .PHONY: package
 package: $(foreach pkg,${PKG_PACKAGES},${PKG_TARBALL-${pkg}})
 define tarball
-${PKG_TARBALL-$(1)}: ${PKG_TARBALL_FILES-$(1)}
+$(foreach f,${PKG_TARBALL_FILES-$(1)},\
+  $(eval ${PKG_TARBALL-$(1)}(${f}): ${f}))
+${PKG_TARBALL-$(1)}: ${PKG_TARBALL-$(1)}(${PKG_TARBALL_FILES-$(1)})
 endef
 $(foreach pkg,${PKG_PACKAGES},$(eval $(call tarball,${pkg})))
-$(sort $(foreach pkg,${PKG_PACKAGES},${PKG_TARBALL-${pkg}})):
-	[ -n "$^" ] && \
-	  find $^ -type f -or -type l \
-	  | xargs ${TAR} -f $@ \
-	    $(foreach regex,${PKG_REGEX-$(1)},-s ${regex}) \
-	    -s "|^.*/${PKG_IGNORE-$(1)}/.*$$$$||p" \
-	    -s "|^|${PKG_NAME-$(1)}/|p"
 .PHONY: clean clean-package
 clean: clean-package
 define clean-package
@@ -70,9 +63,8 @@ define do-install
 .PHONY: do-install-$(1)
 do-install: do-install-$(1)
 do-install-$(1): pre-install-$(1)
-	${MKDIR} ${PKG_PREFIX-$(1)}${PKG_INSTALL_DIR-$(1)}/
 	for f in ${PKG_INSTALL_FILES-$(1)}; do \
-	  [ -d "$$$$f" ] || ${INSTALL} "$$$$f" ${PKG_PREFIX-$(1)}${PKG_INSTALL_DIR-$(1)}/; \
+	  [ -d "$$$$f" ] || ${INSTALL} -t ${PKG_PREFIX-$(1)}${PKG_INSTALL_DIR-$(1)}/ "$$$$f"; \
 	done
 endef
 $(foreach pkg,${PKG_PACKAGES},$(eval $(call do-install,${pkg})))

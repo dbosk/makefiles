@@ -35,23 +35,20 @@ SCP?=     scp -r
 SSH?=     ssh
 UNCOMPRESS_SUFFIXES+= .gz .z
 GUNZIP?=              gunzip
-UNCOMPRESS.gz?=       ${GUNZIP} $$<
+UNCOMPRESS.gz?=       ${GUNZIP} $<
 UNCOMPRESS.z?=        ${UNCOMPRESS.gz}
 COMPRESS_SUFFIXES+=   .gz
 GZIP?=                gzip
-COMPRESS.gz?=         ${GZIP} $$<
-define uncompress
-%: %$(1)
-	${UNCOMPRESS$(1)}
-endef
-$(foreach suf,${UNCOMPRESS_SUFFIXES},$(eval $(call uncompress,${suf})))
+COMPRESS.gz?=         ${GZIP} $<
 
 ARCHIVE.a?=   ar r $@ $%
-TAR?=         pax -wzLx ustar
-ARCHIVE.tar?= ${TAR} -uf $@ $%
+TAR?=         tar -u
+PAX?=         pax -wzLx ustar
+ARCHIVE.tar?= ${TAR} -f $@ $%
 ZIP?=         zip
 ARCHIVE.zip?= ${ZIP} -u $@ $%
-UNTAR?=       pax -rzp m
+UNTAR?=       tar -xm
+UNPAX?=       pax -rzx ustar -p m
 EXTRACT.tar?= ${UNTAR} -f $$< $$@
 ifeq ($(shell uname),Darwin)
 UNZIP?=       unzip
