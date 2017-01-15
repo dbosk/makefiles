@@ -211,8 +211,7 @@ The procedure is straight-forward.
 We first create the target directory, with a possible prefix.
 Then, for every non-directory, we install using the [[install]] command.
 <<default do-install recipe>>=
-${MKDIR} ${PKG_PREFIX-$(1)}${PKG_INSTALL_DIR-$(1)}/
 for f in ${PKG_INSTALL_FILES-$(1)}; do \
-  [ -d "$$$$f" ] || ${INSTALL} "$$$$f" ${PKG_PREFIX-$(1)}${PKG_INSTALL_DIR-$(1)}/; \
+  [ -d "$$$$f" ] || ${INSTALL} -t ${PKG_PREFIX-$(1)}${PKG_INSTALL_DIR-$(1)}/ "$$$$f"; \
 done
 @
