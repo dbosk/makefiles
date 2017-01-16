@@ -192,6 +192,7 @@ clean: clean-tex
 
 clean-tex:
 	-latexmk -C -output-directory=${TEX_OUTDIR}
+	${RM} -R ${TEX_OUTDIR}
 
 .PHONY: distclean distclean-tex
 distclean: distclean-tex
