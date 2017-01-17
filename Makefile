@@ -41,6 +41,7 @@ gitattributes: transform.mk.nw
 .PHONY: clean
 clean:
 	${RM} makefiles.pdf
+	${RM} makefiles.tar.gz
 	${RM} portability.tex
 	${RM} subdir.tex
 	${RM} package.tex
