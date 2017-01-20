@@ -70,7 +70,7 @@ pythontex-files-%/%.pytxcode: %.tex
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
 latexmkrc:
-	[ -e $@ ] || ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+	[ -e $@ ] || ${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
 %.cls %.sty: %.ins
 	${LATEX} $<
 %.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
@@ -193,11 +193,13 @@ clean: clean-tex
 clean-tex:
 	-latexmk -C -output-directory=${TEX_OUTDIR}
 	${RM} -R ${TEX_OUTDIR}
+	${RM} *.pytxcode
+	${RM} pythontex-files-*
 
 .PHONY: distclean distclean-tex
 distclean: distclean-tex
 
 distclean-tex:
-	${RM} latexmkrc
+	[ ! -L latexmkrc ] || ${RM} latexmkrc
 
 endif

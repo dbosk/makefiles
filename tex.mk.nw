@@ -127,6 +127,8 @@ already add the following line to the cleaning recipe.
 <<clean recipe>>=
 -latexmk -C -output-directory=${TEX_OUTDIR}
 ${RM} -R ${TEX_OUTDIR}
+${RM} *.pytxcode
+${RM} pythontex-files-*
 @
 
 
@@ -146,10 +148,10 @@ the relevant [[<<latexmkrc>>]] entries in parallel.
 We supply a target to easily use our [[<<latexmkrc>>]] with latexmk(1).
 <<target for latexmkrc>>=
 latexmkrc:
-	[ -e $@ ] || ln -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+	[ -e $@ ] || ${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
 @ We also add the corresponding line for cleaning.
 <<distclean recipe>>=
-${RM} latexmkrc
+[ ! -L latexmkrc ] || ${RM} latexmkrc
 @
 
 We will now discuss the different files we need latex(1) to generate.
