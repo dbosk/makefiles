@@ -6,7 +6,7 @@ PORTABILITY_CONF?=  ${HOME}/.mk.conf /etc/mk.conf
 
 MV?=      mv
 CP?=      cp -R
-LN?=      ln
+LN?=      ln -f
 MKDIR?=   mkdir -p
 MKTMPDIR?=mktemp -d
 CHOWN?=   chown -R
