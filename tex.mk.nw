@@ -549,7 +549,7 @@ TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.
 TEX_EXT_DIR-lncs?=    lncs
 TEX_EXT_SRC-lncs?=    llncs2e.zip
 TEX_EXT_URL-lncs?=    ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
-TEX_EXT_EXTRACT-lncs?=${UNZIP} $< -d ${TEX_EXT_DIR-lncs}
+TEX_EXT_EXTRACT-lncs?=${UNZIP} $$< -d ${TEX_EXT_DIR-lncs}
 
 $(eval $(call download_archive,lncs))
 @
