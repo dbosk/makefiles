@@ -61,7 +61,7 @@ The following basic commands cover most uses.
 <<file system commands>>=
 MV?=      mv
 CP?=      cp -R
-LN?=      ln -f
+LN?=      ln -sf
 MKDIR?=   mkdir -p
 MKTMPDIR?=mktemp -d
 CHOWN?=   chown -R
