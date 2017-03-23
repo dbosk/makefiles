@@ -110,7 +110,7 @@ git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
 $(call chown,$(1))
 $(call chmod,$(1))
 endef
-autocommit-git = git commit ${PUB_COMMIT_OPTS}
+autocommit-git = git diff --quiet --cached || git commit ${PUB_COMMIT_OPTS}
 autocommit-svn = svn commit ${PUB_COMMIT_OPTS}
 autocommit-cvs = cvs commit ${PUB_COMMIT_OPTS}
 autotag-git = git tag ${PUB_TAG_OPTS} ${PUB_TAG_NAME}
