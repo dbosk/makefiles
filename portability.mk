@@ -48,7 +48,7 @@ ARCHIVE.tar?= ${TAR} -f $@ $%
 ZIP?=         zip
 ARCHIVE.zip?= ${ZIP} -u $@ $%
 UNTAR?=       tar -xm
-UNPAX?=       pax -rzx ustar -p m
+UNPAX?=       pax -rzp m
 EXTRACT.tar?= ${UNTAR} -f $$< $$@
 ifeq ($(shell uname),Darwin)
 UNZIP?=       unzip

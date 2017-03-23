@@ -284,7 +284,7 @@ every time.
 To prevent this we add the [[-m]] option to tar(1).
 <<variables for archive programs>>=
 UNTAR?=       tar -xm
-UNPAX?=       pax -rzx ustar -p m
+UNPAX?=       pax -rzp m
 EXTRACT.tar?= ${UNTAR} -f $$< $$@
 @ It will be similar for zip archives.
 The option to prevent resetting the modification time for unzip(1) is [[-DD]].
