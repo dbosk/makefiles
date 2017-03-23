@@ -61,39 +61,39 @@ endif
 define publish_target
 .PHONY: publish-$(1)
 publish-$(1): $(foreach file,${PUB_FILES-$(1)},${file})
-	$(call publish-${PUB_METHOD-$(1)},$(1))
+	$$(call publish-${PUB_METHOD-$(1)},$(1))
 endef
 
 $(foreach site,${PUB_SITES},$(eval $(call publish_target,${site})))
 define chown
 $(if ${PUB_GROUP-$(1)},\
-  -${SSH} ${PUB_SERVER-$(1)}\
-  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)}) ${PUB_DIR-$(1),)
+  ${SSH} ${PUB_SERVER-$(1)}\
+  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)}) ${PUB_DIR-$(1)};,)
 endef
 define chmod
 $(if ${PUB_CHMOD-$(1)},\
-  -${SSH} ${PUB_SERVER-$(1)}\
-  ${CHMOD} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)},)
+  ${SSH} ${PUB_SERVER-$(1)}\
+  ${CHMOD} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)};,)
 endef
 define publish-ssh
-${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}
+${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}; \
 [ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
 xargs ${PAX} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
   -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
 ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
-  -s "\"|^|$(strip ${PUB_DIR-$(1)})/|p\""
-$(call chown,$(1))
+  -s "\"|^|$(strip ${PUB_DIR-$(1)})/|p\""; \
+$(call chown,$(1)) \
 $(call chmod,$(1))
 endef
 define publish-at
 ${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}
 TMPPUB=$$(${SSH} ${PUB_SERVER-$(1)} "export TMPDIR=${PUB_TMPDIR-$(1)} && \
   ${MKTMPDIR-$(1)}"); \
-[ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
+[ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l
 xargs ${PAX} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
-  -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
+  -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p"
 ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
   -s "\"|^|$${TMPPUB}/|p\""; \
 ${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
