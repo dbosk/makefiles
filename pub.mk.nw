@@ -163,8 +163,7 @@ PUB_AUTOCOMMIT?=    false
 @ The command and options are similarly set with the following.
 <<variables>>=
 PUB_COMMIT_OPTS?=   -av
-@ Finally, we note that the tag is not worth much if everything is not 
-committed, thus the automatic tagging implies the automatic committing.
+@
 
 
 \section{Implementation}
@@ -401,7 +400,7 @@ autocommit:
 	$(call autocommit-${PUB_VCS})
 
 .PHONY: autotag
-autotag: autocommit
+autotag:
 	$(call autotag-${PUB_VCS})
 @ Below we will cover the different \acp{VCS}.
 

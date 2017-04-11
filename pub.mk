@@ -87,13 +87,13 @@ $(call chown,$(1)) \
 $(call chmod,$(1))
 endef
 define publish-at
-${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}
+${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}; \
 TMPPUB=$$(${SSH} ${PUB_SERVER-$(1)} "export TMPDIR=${PUB_TMPDIR-$(1)} && \
   ${MKTMPDIR-$(1)}"); \
-[ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l
+[ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
 xargs ${PAX} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
-  -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p"
+  -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
 ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
   -s "\"|^|$${TMPPUB}/|p\""; \
 ${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
@@ -106,8 +106,8 @@ ${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
 endef
 define publish-git
 git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
-  | ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),";
-$(call chown,$(1))
+  | ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),"; \
+$(call chown,$(1)) \
 $(call chmod,$(1))
 endef
 autocommit-git = git diff --quiet --cached || git commit ${PUB_COMMIT_OPTS}
@@ -138,7 +138,7 @@ autocommit:
 	$(call autocommit-${PUB_VCS})
 
 .PHONY: autotag
-autotag: autocommit
+autotag:
 	$(call autotag-${PUB_VCS})
 
 endif
