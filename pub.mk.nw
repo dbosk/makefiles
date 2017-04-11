@@ -415,7 +415,7 @@ The tagging is similarly straight-forward for two, but not the third.
 
 The commit functions are as expected for all three \acp{VCS}.
 <<autocommit for git, svn and cvs>>=
-autocommit-git = git diff --quiet --cached || git commit ${PUB_COMMIT_OPTS}
+autocommit-git = git diff --quiet || git commit ${PUB_COMMIT_OPTS}
 autocommit-svn = svn commit ${PUB_COMMIT_OPTS}
 autocommit-cvs = cvs commit ${PUB_COMMIT_OPTS}
 @ The tagging is similarly straight-forward for Git and \ac{CVS}.
