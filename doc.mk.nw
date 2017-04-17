@@ -99,7 +99,7 @@ wc:
 \subsection{Format conversion}
 \label{FormatConversion}
 
-The format conversion is done using suffix rules.
+The format conversion is done using pattern rules.
 This means that whenever we need a file in a certain format, we simply keep the
 name but change the suffix (\enquote{file extension}).
 The conversions that are implemented are the following:
@@ -126,13 +126,11 @@ PS2PDF?=      ps2pdf
 PS2PDFFLAGS?=
 @ This allows us to specify the rule as follows.
 <<PDF to PS>>=
-.SUFFIXES: .ps .pdf
-.pdf.ps:
+%.ps: %.pdf
 	${PDF2PS} ${PDF2PSFLAGS} $<
 @ We also have the other way around.
 <<PS to PDF>>=
-.SUFFIXES: .ps .pdf
-.ps.pdf:
+%.pdf: %.ps
 	${PS2PDF} ${PS2PDFFLAGS} $<
 @
 
@@ -142,8 +140,7 @@ DVIPS?=       dvips
 DVIPSFLAGS?=
 @ With those variables we let
 <<DVI to PS>>=
-.SUFFIXES: .dvi .ps
-.dvi.ps:
+%.ps: %.dvi
 	${DVIPS} ${DVIPSFLAGS} $<
 @
 
@@ -154,8 +151,7 @@ ODT2PDF?=     soffice --convert-to pdf
 ODT2PDFFLAGS?=--headless
 @ This yields the following suffix rule.
 <<ODT to PDF>>=
-.SUFFIXES: .odt .pdf
-.odt.pdf:
+%.pdf: %.odt
 	${ODT2PDF} ${ODT2PDFFLAGS} $<
 @
 
@@ -176,16 +172,14 @@ INKSCAPE?=      inkscape
 INKSCAPEFLAGS?= -D -z --export-latex
 @
 <<SVG to PDF>>=
-.SUFFIXES: .svg .pdf
-.svg.pdf:
+%.pdf: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
 @ We can thus create similar rules for the formats PS and EPS, instead of PDF.
 <<SVG to PS>>=
-.SUFFIXES: .svg .eps .ps
-.svg.ps:
+%.ps: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
 
-.svg.eps:
+%.eps: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
 @
 
@@ -197,8 +191,7 @@ DIA?=           dia
 DIAFLAGS?=
 @ That gives the suffix rule as follows.
 <<DIA to TeX>>=
-.SUFFIXES: .dia .tex
-.dia.tex:
+%.tex: %.dia
 	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
 @
 
@@ -214,8 +207,7 @@ MD2TEX?=        pandoc -f markdown -t latex
 MD2TEXFLAGS?=
 @ This gives the following suffix rule.
 <<MD to TeX>>=
-.SUFFIXES: .md .tex
-.md.tex:
+%.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
 @
 
@@ -227,8 +219,7 @@ TEX2TEXT?=      detex
 TEX2TEXTFLAGS?=
 @ This gives us the following suffix rule.
 <<TeX to text>>=
-.SUFFIXES: .tex .txt
-.tex.txt:
+%.txt: %.tex
 	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
 @
 
