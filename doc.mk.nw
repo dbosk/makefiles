@@ -110,6 +110,7 @@ The conversions that are implemented are the following:
 <<ODT to PDF>>
 
 <<SVG to PDF>>
+<<SVG to PS>>
 <<DIA to TeX>>
 
 <<MD to TeX>>
