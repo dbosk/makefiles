@@ -33,31 +33,28 @@ wc:
 	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
 	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS}) \
 	  ${doc})
-.SUFFIXES: .ps .pdf
-.pdf.ps:
+%.ps: %.pdf
 	${PDF2PS} ${PDF2PSFLAGS} $<
-.SUFFIXES: .ps .pdf
-.ps.pdf:
+%.pdf: %.ps
 	${PS2PDF} ${PS2PDFFLAGS} $<
-.SUFFIXES: .dvi .ps
-.dvi.ps:
+%.ps: %.dvi
 	${DVIPS} ${DVIPSFLAGS} $<
-.SUFFIXES: .odt .pdf
-.odt.pdf:
+%.pdf: %.odt
 	${ODT2PDF} ${ODT2PDFFLAGS} $<
 
-.SUFFIXES: .svg .pdf
-.svg.pdf:
+%.pdf: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
-.SUFFIXES: .dia .tex
-.dia.tex:
+%.ps: %.svg
+	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
+
+%.eps: %.svg
+	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
+%.tex: %.dia
 	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
 
-.SUFFIXES: .md .tex
-.md.tex:
+%.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
-.SUFFIXES: .tex .txt
-.tex.txt:
+%.txt: %.tex
 	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
 
 endif
