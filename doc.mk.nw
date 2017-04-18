@@ -63,7 +63,7 @@ print:
 	$(foreach doc,$^,\
 	  $(if ${LPR-${doc}},${LPR-${doc}},${LPR}) \
 	  $(if ${LPRFLAGS-${doc}},${LPRFLAGS-${doc}},${LPRFLAGS}) \
-	  ${doc})
+	  ${doc};)
 @
 
 \subsection{Counting words}
@@ -93,7 +93,7 @@ wc:
 	$(foreach doc,$^,echo -n "${doc}: "; \
 	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
 	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS}) \
-	  ${doc})
+	  ${doc};)
 @
 
 \subsection{Format conversion}

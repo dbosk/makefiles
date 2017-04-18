@@ -26,13 +26,13 @@ print:
 	$(foreach doc,$^,\
 	  $(if ${LPR-${doc}},${LPR-${doc}},${LPR}) \
 	  $(if ${LPRFLAGS-${doc}},${LPRFLAGS-${doc}},${LPRFLAGS}) \
-	  ${doc})
+	  ${doc};)
 .PHONY: wc
 wc:
 	$(foreach doc,$^,echo -n "${doc}: "; \
 	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
 	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS}) \
-	  ${doc})
+	  ${doc};)
 %.ps: %.pdf
 	${PDF2PS} ${PDF2PSFLAGS} $<
 %.pdf: %.ps
