@@ -29,10 +29,10 @@ print:
 	  ${doc};)
 .PHONY: wc
 wc:
-	$(foreach doc,$^,echo -n "${doc}: "; \
+	$(foreach doc,$^,echo -n "${doc}: "; ${CAT} ${doc} | \
+	  $(if ${PREWC-${doc}},${PREWC-${doc}} |,$(if ${PREWC},${PREWC} |,)) \
 	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
-	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS}) \
-	  ${doc};)
+	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS});)
 %.ps: %.pdf
 	${PDF2PS} ${PDF2PSFLAGS} $<
 %.pdf: %.ps

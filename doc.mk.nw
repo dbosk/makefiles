@@ -87,13 +87,15 @@ by one using [[wc]].
 We first print the name followed by a colon, then we print the word count.
 Similarly as above, we check for each document whether there is an overriding 
 setting for the word counting command.
+We also check if there is a preprocessing command, e.g.\ it might be useful to 
+run detex(1) on TeX files before counting the words.
 <<target for word counting>>=
 .PHONY: wc
 wc:
-	$(foreach doc,$^,echo -n "${doc}: "; \
+	$(foreach doc,$^,echo -n "${doc}: "; ${CAT} ${doc} | \
+	  $(if ${PREWC-${doc}},${PREWC-${doc}} |,$(if ${PREWC},${PREWC} |,)) \
 	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
-	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS}) \
-	  ${doc};)
+	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS});)
 @
 
 \subsection{Format conversion}
