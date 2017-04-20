@@ -85,7 +85,7 @@ endif
 This is an include file, so we will use a C-style header construction to 
 prevent it from being included more than once.
 Then the overview of the structure is as follows.
-<<package.mk>>=
+<<pkg.mk>>=
 ifndef PACKAGE_MK
 PACKAGE_MK=true
 

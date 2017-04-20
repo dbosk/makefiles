@@ -1,5 +1,5 @@
 MKFILES+=		portability.mk subdir.mk
-MKFILES+=		package.mk pub.mk transform.mk
+MKFILES+=		pkg.mk pub.mk transform.mk
 MKFILES+=		tex.mk doc.mk
 MKFILES+=		noweb.mk haskell.mk
 MKFILES+=		exam.mk results.mk
@@ -44,7 +44,7 @@ clean:
 	${RM} makefiles.tar.gz
 	${RM} portability.tex
 	${RM} subdir.tex
-	${RM} package.tex
+	${RM} pkg.tex
 	${RM} transform.tex
 	${RM} gitattributes
 	${RM} pub.tex
@@ -89,6 +89,6 @@ INCLUDE_MAKEFILES=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 include ${INCLUDE_MAKEFILES}/noweb.mk
 include ${INCLUDE_MAKEFILES}/tex.mk
-include ${INCLUDE_MAKEFILES}/package.mk
+include ${INCLUDE_MAKEFILES}/pkg.mk
 include ${INCLUDE_MAKEFILES}/pub.mk
 #include ${INCLUDE_MAKEFILES}/miun.port.mk
