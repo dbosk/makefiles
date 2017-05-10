@@ -58,6 +58,14 @@ individual set of \acp{ILO} to be assessed on.
 For this reason we allow [[EXAM_TAGS-ID]] to override the contents of 
 [[EXAM_TAGS]] when dealing with ID.
 
+We can also pass specific flags to the examgen program using the [[EXAM_FLAGS]] 
+variable.
+We set the default value as follows.
+<<variables>>=
+EXAM_FLAGS?=        -NCE
+@ Note that the flags can be target-specific too, i.e.\ by setting 
+[[EXAM_FLAGS-ID]].
+
 We conclude with a usage example.
 \begin{example}
   This will generate two exams: [[exam-161014.pdf]] and [[exam-dbosk.pdf]].
@@ -143,10 +151,6 @@ EXAM_DBS-$(1)?=     ${EXAM_DBS}
 EXAM_FLAGS-$(1)?=   ${EXAM_FLAGS}
 endef
 $(foreach id,${EXAM_IDS},$(eval $(call questions_variables,${id})))
-@ This introduces a new variable [[EXAM_FLAGS]] which we set to the following 
-default value.
-<<variables>>=
-EXAM_FLAGS?=        -NCE
 @
 
 Finally, we can define target as follows.
