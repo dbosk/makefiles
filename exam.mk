@@ -21,7 +21,6 @@ EXAM_FLAGS-$(1)?=   ${EXAM_FLAGS}
 endef
 $(foreach id,${EXAM_IDS},$(eval $(call questions_variables,${id})))
 define questions_target
-.INTERMEDIATE: ${EXAM_QNAME-$(1)}-$(1).tex
 ${EXAM_QNAME-$(1)}-$(1).tex: ${EXAM_DBS-$(1)}
 	examgen ${EXAM_FLAGS-$(1)} -d ${EXAM_DBS-$(1)} -t ${EXAM_TAGS-$(1)} > $$@
 endef
