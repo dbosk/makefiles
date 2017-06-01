@@ -24,6 +24,7 @@ DOC_MK=true
 <<variables>>
 <<target for printing>>
 <<target for word counting>>
+<<target for to-do lists>>
 <<suffix rules for format conversion>>
 
 endif
@@ -96,6 +97,26 @@ wc:
 	  $(if ${PREWC-${doc}},${PREWC-${doc}} |,$(if ${PREWC},${PREWC} |,)) \
 	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
 	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS});)
+@
+
+\subsection{To-do lists}
+
+Similarly to the [[wc]] target, we would also like to add a [[todo]] target 
+which generates a to-do list from the to-do comments in the source files (i.e.\ 
+\enquote{TODO}, \enquote{XXX} or \enquote{FIXME}).
+<<target for to-do lists>>=
+.PHONY: todo
+todo:
+	$(foreach doc,$^,echo "${doc}: "; ${CAT} ${doc} | \
+	  $(if ${PRETODO-${doc}},${PRETODO-${doc}} |,$(if ${PRETODO},${PRETODO} |,)) \
+	  $(if ${TODO-${doc}},${TODO-${doc}},${TODO}) \
+	  $(if ${TODOFLAGS-${doc}},${TODOFLAGS-${doc}},${TODOFLAGS});echo;)
+@
+
+We will use the grep(1) utility to grep for these flags in the files.
+<<variables>>=
+TODO?=        ${GREP} "\(XXX\|TODO\|FIXME\)"
+TODOFLAGS?=
 @
 
 \subsection{Format conversion}

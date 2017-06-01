@@ -5,6 +5,8 @@ LPR?=       lpr
 LPRFLAGS?=
 WC?=        wc
 WCFLAGS?=   -w
+TODO?=        ${GREP} "\(XXX\|TODO\|FIXME\)"
+TODOFLAGS?=
 PDF2PS?=      pdf2ps
 PDF2PSFLAGS?=
 PS2PDF?=      ps2pdf
@@ -33,6 +35,12 @@ wc:
 	  $(if ${PREWC-${doc}},${PREWC-${doc}} |,$(if ${PREWC},${PREWC} |,)) \
 	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
 	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS});)
+.PHONY: todo
+todo:
+	$(foreach doc,$^,echo "${doc}: "; ${CAT} ${doc} | \
+	  $(if ${PRETODO-${doc}},${PRETODO-${doc}} |,$(if ${PRETODO},${PRETODO} |,)) \
+	  $(if ${TODO-${doc}},${TODO-${doc}},${TODO}) \
+	  $(if ${TODOFLAGS-${doc}},${TODOFLAGS-${doc}},${TODOFLAGS});echo;)
 %.ps: %.pdf
 	${PDF2PS} ${PDF2PSFLAGS} $<
 %.pdf: %.ps
