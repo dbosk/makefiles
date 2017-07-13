@@ -25,9 +25,9 @@ PKG_IGNORE-$(1)?=         ${PKG_IGNORE}
 endef
 $(foreach pkg,${PKG_PACKAGES},$(eval $(call variables,${pkg})))
 ifneq (${MAKE},gmake)
-INSTALL?=     install -Dp
+INSTALL?=     ${SUDO} install -Dp
 else
-INSTALL?=     install -CSp
+INSTALL?=     ${SUDO} install -CSp
 endif
 .PHONY: package
 package: $(foreach pkg,${PKG_PACKAGES},${PKG_TARBALL-${pkg}})

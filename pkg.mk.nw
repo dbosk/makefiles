@@ -73,9 +73,9 @@ For portability, this include file requires the following programs to be
 available.
 <<variables>>=
 ifneq (${MAKE},gmake)
-INSTALL?=     install -Dp
+INSTALL?=     ${SUDO} install -Dp
 else
-INSTALL?=     install -CSp
+INSTALL?=     ${SUDO} install -CSp
 endif
 @
 
