@@ -6,7 +6,7 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 
 LATEX?=       latexmk -dvi
 PDFLATEX?=    latexmk -pdf
-LATEXFLAGS?=
+LATEXFLAGS?=  -use-make
 TEX_OUTDIR?=  ltxobj
 TEX_BBL?=
 BIBTEX?=      bibtexu

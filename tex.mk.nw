@@ -22,7 +22,7 @@ LATEX?=       latexmk -dvi
 PDFLATEX?=    latexmk -pdf
 @ Possible flags are controlled by
 <<variables>>=
-LATEXFLAGS?=
+LATEXFLAGS?=  -use-make
 @ The output directory is by default
 <<variables>>=
 TEX_OUTDIR?=  ltxobj
