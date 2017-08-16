@@ -48,3 +48,7 @@ ${.DEFAULT_GOAL}: ${SUBDIR}
 endif
 @ We note that this will cause the default goal of each subdirectory to be 
 built, not the same goal which is the default goal in the root.
+
+
+%%%%
+\printbibliography

@@ -215,3 +215,7 @@ for f in ${PKG_INSTALL_FILES-$(1)}; do \
   [ -d "$$$$f" ] || ${INSTALL} -t ${PKG_PREFIX-$(1)}${PKG_INSTALL_DIR-$(1)}/ "$$$$f"; \
 done
 @
+
+
+%%%%
+\printbibliography

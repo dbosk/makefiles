@@ -247,3 +247,6 @@ TEX2TEXTFLAGS?=
 	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
 @
 
+
+%%%%%
+\printbibliography

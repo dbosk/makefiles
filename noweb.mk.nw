@@ -208,3 +208,7 @@ NOWEB_SUFFIXES+=    .sh
 NOTANGLEFLAGS.sh?=  ${NOTANGLEFLAGS}
 NOTANGLE.sh?=       ${NOTANGLE} ${NOTANGLEFLAGS.sh} -R$@ $< > $@
 @
+
+
+%%%%
+\printbibliography

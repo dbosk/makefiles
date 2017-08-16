@@ -299,3 +299,7 @@ UNZIP?=       unzip -DD
 endif
 EXTRACT.zip?= ${UNZIP} $$< $$@
 @
+
+
+%%%%
+\printbibliography

@@ -339,3 +339,7 @@ else \
   ${MV} ${out}.new ${out}; \
 fi
 @
+
+
+%%%%
+\printbibliography

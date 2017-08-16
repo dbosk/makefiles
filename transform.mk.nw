@@ -254,3 +254,7 @@ The set up we must do for this to work is to set a Git attribute.
 *.asc     filter=git-crypt
 @ This will yield similar behaviour as with the makefile approach, except that 
 many things are automated further.
+
+
+%%%%
+\printbibliography

@@ -7,6 +7,7 @@
 \usepackage{csquotes}
 \usepackage{authblk}
 \usepackage[defblank]{paralist}
+\usepackage{xparse}
 
 \usepackage{amsmath}
 \usepackage{mathtools}
@@ -32,6 +33,17 @@
 \addbibresource{exam.bib}
 \addbibresource{transform.bib}
 \addbibresource{tex.bib}
+
+\let\biblatexbibliography\printbibliography
+\DeclareDocumentCommand{\printbibliography}{o}{%
+  \IfValueTF{#1}{%
+    \biblatexbibliography[title={References},heading=subbibintoc,#1]
+  }{%
+    \biblatexbibliography[title={References},heading=subbibintoc]
+  }
+  \newrefsection
+}
+\AtBeginDocument{\newrefsection}
 
 \usepackage[single]{acro}
 \DeclareAcronym{ILO}{%

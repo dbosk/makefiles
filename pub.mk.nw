@@ -467,3 +467,7 @@ cd ${ROOT} \
   && svn copy trunk tags/${PUB_TAG_NAME} \
   && svn commit ${PUB_COMMIT_OPTS};
 @
+
+
+%%%%
+\printbibliography

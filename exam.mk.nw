@@ -166,3 +166,6 @@ endef
 $(foreach id,${EXAM_IDS},$(eval $(call questions_target,${id})))
 @
 
+
+%%%%
+\printbibliography
