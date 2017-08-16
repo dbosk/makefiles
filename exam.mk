@@ -22,7 +22,7 @@ endef
 $(foreach id,${EXAM_IDS},$(eval $(call questions_variables,${id})))
 define questions_target
 .PRECIOUS: ${EXAM_QNAME-$(1)}-$(1).tex
-${EXAM_QNAME-$(1)}-$(1).tex: ${EXAM_DBS-$(1)}
+${EXAM_QNAME-$(1)}-$(1).tex:
 	examgen ${EXAM_FLAGS-$(1)} -d ${EXAM_DBS-$(1)} -t ${EXAM_TAGS-$(1)} > $$@
 endef
 $(foreach id,${EXAM_IDS},$(eval $(call questions_target,${id})))
