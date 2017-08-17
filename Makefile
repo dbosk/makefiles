@@ -19,7 +19,7 @@ all: ${MKFILES}
 #all: ${MIUNFILES}
 all: ${OTHERS}
 
-makefiles.pdf: makefiles.tex intro.tex makefiles.bib
+makefiles.pdf: makefiles.tex preamble.tex intro.tex makefiles.bib
 makefiles.pdf: exam.bib
 makefiles.pdf: transform.bib
 makefiles.pdf: tex.bib
