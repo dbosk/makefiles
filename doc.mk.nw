@@ -1,0 +1,249 @@
+\section{Introduction and usage}
+
+When working with large sets of documents we sometimes want to do some 
+operations on them, e.g.\ print them or convert them between formats.
+This include file provides exactly that.
+
+We provide a target [[print]] which prints its prerequisites, see 
+\cref{Printing} for details.
+We also provide a target [[wc]] which counts the words of its prerequisites 
+(\cref{WordCounting}).
+Finally, we also provide a set of suffix rules for automatic conversion between 
+different formats, see \cref{FormatConversion} for details about the formats.
+
+
+\section{Implementation}
+
+Since the makefile is designed for inclusion, we want to ensure that it is not 
+included more than once --- like we do in C and C++.
+Then first comes our variables described above followed by the targets.
+<<doc.mk>>=
+ifndef DOC_MK
+DOC_MK=true
+
+<<variables>>
+<<target for printing>>
+<<target for word counting>>
+<<target for to-do lists>>
+<<suffix rules for format conversion>>
+
+endif
+@
+
+\subsection{Printing}
+\label{Printing}
+
+We provide a target [[print]] to print all documents in a set.
+The usage is simply that documents are added as prerequisites, then the target 
+prints all documents in its dependency list.
+The printing is done using the [[lpr]] command by default.
+However, this can be changed with the [[LPR]] variable.
+<<variables>>=
+LPR?=       lpr
+LPRFLAGS?=
+@
+
+If [[lpr]] is used, we note that the files added as prerequisites for the 
+[[print]] target must be printable by [[lpr]], e.g.\ we must supply 
+PostScript-files instead of PDF-files.
+Fortunately, the automatic file format conversion (\cref{FormatConversion}) 
+solves most of those problems.
+For example, if you want to print a PDF-file [[something.pdf]], then just add 
+[[something.ps]] as a prerequisite to print and the suffix rules below will do 
+the rest.
+
+The implementation is quite simple.
+We will iterate through the list of prerequisites and process them one by
+one.
+For each document we will check if there is an overriding setting for the 
+printing command and its arguments, if there is not we use the default set 
+above.
+<<target for printing>>=
+.PHONY: print
+print:
+	$(foreach doc,$^,\
+	  $(if ${LPR-${doc}},${LPR-${doc}},${LPR}) \
+	  $(if ${LPRFLAGS-${doc}},${LPRFLAGS-${doc}},${LPRFLAGS}) \
+	  ${doc};)
+@
+
+\subsection{Counting words}
+\label{WordCounting}
+
+We provide a [[wc]] target which counts the words in its prerequisites.
+The files added as prerequisites must thus be text files.
+Similarly as for print, there are suffix rules to convert e.g.\ TeX-files to 
+plain text files using [[detex]].
+
+The implementation is similar to that for [[print]].
+The counting is done using the [[wc]] command by default, but we allow 
+overrides using the following variable.
+<<variables>>=
+WC?=        wc
+WCFLAGS?=   -w
+@
+
+We will simply iterate through the list of prerequisites and process them one 
+by one using [[wc]].
+We first print the name followed by a colon, then we print the word count.
+Similarly as above, we check for each document whether there is an overriding 
+setting for the word counting command.
+We also check if there is a preprocessing command, e.g.\ it might be useful to 
+run detex(1) on TeX files before counting the words.
+<<target for word counting>>=
+.PHONY: wc
+wc:
+	$(foreach doc,$^,echo -n "${doc}: "; ${CAT} ${doc} | \
+	  $(if ${PREWC-${doc}},${PREWC-${doc}} |,$(if ${PREWC},${PREWC} |,)) \
+	  $(if ${WC-${doc}},${WC-${doc}},${WC}) \
+	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS});)
+@
+
+\subsection{To-do lists}
+
+Similarly to the [[wc]] target, we would also like to add a [[todo]] target 
+which generates a to-do list from the to-do comments in the source files (i.e.\ 
+\enquote{TODO}, \enquote{XXX} or \enquote{FIXME}).
+<<target for to-do lists>>=
+.PHONY: todo
+todo:
+	$(foreach doc,$^,echo "${doc}: "; ${CAT} ${doc} | \
+	  $(if ${PRETODO-${doc}},${PRETODO-${doc}} |,$(if ${PRETODO},${PRETODO} |,)) \
+	  $(if ${TODO-${doc}},${TODO-${doc}},${TODO}) \
+	  $(if ${TODOFLAGS-${doc}},${TODOFLAGS-${doc}},${TODOFLAGS});echo;)
+@
+
+We will use the grep(1) utility to grep for these flags in the files.
+<<variables>>=
+TODO?=        ${GREP} "\(XXX\|TODO\|FIXME\)"
+TODOFLAGS?=
+@
+
+\subsection{Format conversion}
+\label{FormatConversion}
+
+The format conversion is done using pattern rules.
+This means that whenever we need a file in a certain format, we simply keep the
+name but change the suffix (\enquote{file extension}).
+The conversions that are implemented are the following:
+<<suffix rules for format conversion>>=
+<<PDF to PS>>
+<<PS to PDF>>
+<<DVI to PS>>
+<<ODT to PDF>>
+
+<<SVG to PDF>>
+<<SVG to PS>>
+<<DIA to TeX>>
+
+<<MD to TeX>>
+<<TeX to text>>
+@
+
+\subsubsection{Document formats}
+
+To convert PDFs to PostScript format, we use the [[pdf2ps]] command by default.
+<<variables>>=
+PDF2PS?=      pdf2ps
+PDF2PSFLAGS?=
+PS2PDF?=      ps2pdf
+PS2PDFFLAGS?=
+@ This allows us to specify the rule as follows.
+<<PDF to PS>>=
+%.ps: %.pdf
+	${PDF2PS} ${PDF2PSFLAGS} $<
+@ We also have the other way around.
+<<PS to PDF>>=
+%.pdf: %.ps
+	${PS2PDF} ${PS2PDFFLAGS} $<
+@
+
+We do similarly for DVI-files that we want to convert to PostScript.
+<<variables>>=
+DVIPS?=       dvips
+DVIPSFLAGS?=
+@ With those variables we let
+<<DVI to PS>>=
+%.ps: %.dvi
+	${DVIPS} ${DVIPSFLAGS} $<
+@
+
+There is no good conversion program for the Open Document Format (ODF) files.
+We will use LibreOffice.
+<<variables>>=
+ODT2PDF?=     soffice --convert-to pdf
+ODT2PDFFLAGS?=--headless
+@ This yields the following suffix rule.
+<<ODT to PDF>>=
+%.pdf: %.odt
+	${ODT2PDF} ${ODT2PDFFLAGS} $<
+@
+
+\subsubsection{Figure formats}
+
+Usually we want to keep figures in their source form, so that we can still edit
+them later.
+However, just as usually, we cannot use the source form directly in TeX 
+documents, so we want to convert them to TeX or PDF.
+
+When working with SVG-files, there are two things: the graphics and the text in 
+the graphics.
+We will use Inkscape for working with SVGs, because Inkscape allows us to 
+export the graphics part as PDF and all text in it as TeX.
+Unlike previously, we will only allow flags for [[inkscape]] to be set.
+<<variables>>=
+INKSCAPE?=      inkscape
+INKSCAPEFLAGS?= -D -z --export-latex
+@
+<<SVG to PDF>>=
+%.pdf: %.svg
+	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
+@ We can thus create similar rules for the formats PS and EPS, instead of PDF.
+<<SVG to PS>>=
+%.ps: %.svg
+	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
+
+%.eps: %.svg
+	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
+@
+
+Dia is a useful tool for making figures over network topologies etc.
+Fortunately, Dia can output native TeX.
+Similarly to Inkscape, we will only provide flags for Dia.
+<<variables>>=
+DIA?=           dia
+DIAFLAGS?=
+@ That gives the suffix rule as follows.
+<<DIA to TeX>>=
+%.tex: %.dia
+	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
+@
+
+\subsubsection{Text-based formats}
+
+The conversion of the text-based formats differ from the formats above.
+Most of these tools automatically write their output to stdout, which is 
+customary when working with text in the terminal.
+
+We use the [[pandoc]] program to convert between Markdown and TeX.
+<<variables>>=
+MD2TEX?=        pandoc -f markdown -t latex
+MD2TEXFLAGS?=
+@ This gives the following suffix rule.
+<<MD to TeX>>=
+%.tex: %.md
+	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+@
+
+There are times when we want to convert out TeX-files to plain text, e.g.\ to 
+count the words.
+To do this we simply use the [[detex]] program.
+<<variables>>=
+TEX2TEXT?=      detex
+TEX2TEXTFLAGS?=
+@ This gives us the following suffix rule.
+<<TeX to text>>=
+%.txt: %.tex
+	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
+@
+

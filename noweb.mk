@@ -1,34 +1,61 @@
-.SUFFIXES: .nw
+ifndef NOWEB_MK
+NOWEB_MK = true
 
-# implicit rules for C and C++ code
-.SUFFIXES: .c.nw .cpp.nw .cxx.nw
-.SUFFIXES: .c .cpp .cxx
-.nw.c .c.nw.c .nw.cpp .cpp.nw.cpp .nw.cxx .cxx.nw.cxx: noweb
-	notangle -R$@ -L $< | cpif $@
+NOWEAVE?=       noweave
+NOWEAVEFLAGS?=  -x -n -delay -t2
+NOTANGLE?=      notangle
+NOTANGLEFLAGS?= -t2
+CPIF?=          cpif
+NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
+NOTANGLEFLAGS.c?=   ${NOTANGLEFLAGS} -L
+NOTANGLE.c?=        ${NOTANGLE} ${NOTANGLEFLAGS.c} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
+NOTANGLE.cc?=       ${NOTANGLE} ${NOTANGLEFLAGS.cc} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.cpp?= ${NOTANGLEFLAGS.c}
+NOTANGLE.cpp?=      ${NOTANGLE} ${NOTANGLEFLAGS.cpp} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
+NOTANGLE.cxx?=      ${NOTANGLE} ${NOTANGLEFLAGS.cxx} -R$@ $< | ${CPIF} $@
+NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
+NOTANGLEFLAGS.h?=   ${NOTANGLEFLAGS} -L
+NOTANGLE.h?=        ${NOTANGLE} ${NOTANGLEFLAGS.h} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
+NOTANGLE.hh?=       ${NOTANGLE} ${NOTANGLEFLAGS.hh} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.hpp?= ${NOTANGLEFLAGS.h}
+NOTANGLE.hpp?=      ${NOTANGLE} ${NOTANGLEFLAGS.hpp} -R$@ $< | ${CPIF} $@
+NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
+NOTANGLE.hxx?=      ${NOTANGLE} ${NOTANGLEFLAGS.hxx} -R$@ $< | ${CPIF} $@
+NOWEB_SUFFIXES+=    .hs
+NOTANGLEFLAGS.hs?=  ${NOTANGLEFLAGS} -L
+NOTANGLE.hs?=       ${NOTANGLE} ${NOTANGLEFLAGS.hs} -R$@ $< | ${CPIF} $@
+NOWEB_SUFFIXES+=    .py
+NOTANGLEFLAGS.py?=  ${NOTANGLEFLAGS}
+NOTANGLE.py?=       ${NOTANGLE} ${NOTANGLEFLAGS.py} -R$@ $< > $@
+NOWEB_SUFFIXES+=    .mk
+NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS}
+NOTANGLE.mk?=       ${NOTANGLE} ${NOTANGLEFLAGS.mk} -R$@ $< > $@
+NOWEB_SUFFIXES+=    .sh
+NOTANGLEFLAGS.sh?=  ${NOTANGLEFLAGS}
+NOTANGLE.sh?=       ${NOTANGLE} ${NOTANGLEFLAGS.sh} -R$@ $< > $@
+.SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
+.nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
+	${NOWEAVE} ${NOWEAVEFLAGS} $< > $@
+define with_suffix_target
+%$(1): %$(1).nw
+	$${NOTANGLE$$(suffix $$@)}
+endef
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call with_suffix_target,${suf})))
+$(addprefix %,${NOWEB_SUFFIXES}): %.nw
+	${NOTANGLE$(suffix $@)}
+%.h: %.c.nw
+	${NOTANGLE.h}
 
-# implicit rules for C and C++ headers
-.SUFFIXES: .h .hpp .hxx
-.nw.h .c.nw.h .nw.hpp .cpp.nw.hpp .nw.hxx .cxx.nw.hxx: noweb
-	notangle -R$@ $< | cpif $@
+%.hh: %.cc.nw
+	${NOTANGLE.hh}
 
-# implicit rules for Python
-.SUFFIXES: .py.nw
-.SUFFIXES: .py
-.nw.py .py.nw.py: noweb
-	notangle -R$@ $< | cpif $@
+%.hpp: %.cpp.nw
+	${NOTANGLE.hpp}
 
-# implicit rules for make(1) includes
-.SUFFIXES: .mk.nw
-.SUFFIXES: .mk
-.nw.mk .mk.nw.mk: noweb
-	notangle -t2 -R$@ $< | cpif $@
+%.hxx: %.cxx.nw
+	${NOTANGLE.hxx}
 
-# implicit rules for haskell
-.SUFFIXES: .hs.nw
-.SUFFIXES: .hs
-.nw.hs .hs.nw.hs:
-	notangle -t2 -L -R$@ $< | cpif $@
-
-
-INCLUDE_MAKEFILES?=.
-include ${INCLUDE_MAKEFILES}/depend.mk
+endif

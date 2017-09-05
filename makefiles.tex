@@ -1,0 +1,82 @@
+\documentclass{report}
+\input{preamble.tex}
+
+\title{%
+  Make-ing Life Easy:\\
+  A General Makefile Framework
+}
+\author{Daniel Bosk}
+\affil{%
+  School of Computer Science and Communication\\
+  KTH Royal Institute of Technology, Stockholm
+}
+\affil{%
+  Department of Information and Communication Systems\\
+  Mid Sweden University, Sundsvall
+}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+%\chapter{A short introduction}
+%\input{intro.tex}
+
+
+\part{General building blocks}
+
+\chapter{portability.mk}
+\input{portability.tex}
+
+\chapter{subdir.mk}
+\input{subdir.tex}
+
+
+\part{Packaging and publishing}
+
+\chapter{pkg.mk}
+\input{pkg.tex}
+
+\chapter{pub.mk}
+\input{pub.tex}
+
+\chapter{transform.mk}
+\input{transform.tex}
+
+
+\part{Papers and documents}
+
+\chapter{tex.mk}
+\input{tex.tex}
+
+\chapter{doc.mk}
+\input{doc.tex}
+
+
+\part{Literate programming}
+
+\chapter{noweb.mk}
+\input{noweb.tex}
+
+\chapter{haskell.mk}
+\input{haskell.tex}
+
+
+\part{Assessment}
+
+\chapter{exam.mk}
+\input{exam.tex}
+
+\chapter{results.mk}
+\input{results.tex}
+
+
+%\appendix
+%\part{Appendices}
+%
+%\chapter{MIUN-specific includes}
+%\input{miun.port.tex}
+
+
+\printbibliography[heading=bibintoc]{}
+\end{document}

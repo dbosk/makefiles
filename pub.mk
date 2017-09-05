@@ -1,199 +1,144 @@
-# $Id$
-# Author: Daniel Bosk <daniel@bosk.se>
-
 ifndef PUB_MK
 PUB_MK=true
 
-at?=
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
 
-# possible values: git, svn, cvs
-VCS?= 			git
-AUTOCOMMIT?= 	false
-COMMIT_OPTS?= 	
-AUTOTAG?= 		false
-TAG_OPTS?= 		
-
-PUB_BRANCH?= 			master
-
-# the sites used to publish
-PUB_SITES?= 	main
-
-# add these to the document specific Makefile
+PUB_FILES?=
+IGNORE_FILES?=      \(\.svn\|\.git\|CVS\)
+PUB_IGNORE?=        ${IGNORE_FILES}
+PUB_SERVER?=        localhost
+PUB_DIR?=           ${PUBDIR}/${CATEGORY}
+PUB_USER?=          ${USER}
+PUB_GROUP?=         ${GROUP}
+PUB_CHMOD?=         o+r
+PUB_METHOD?=        ssh
+at?=                tomorrow
+PKG_AT?=            ${at}
+PUB_TMPDIR?=        /var/tmp
+PUB_BRANCH?=        master
+PUB_SITES?=         main
 define variables
-# possible values: ssh, at, git
-PUB_METHOD-$(1)?= 		ssh
+PUB_METHOD-$(1)?=   ${PUB_METHOD}
 
-PUB_FILES-$(1)?=		${PUB_FILES}
-# must be a regex
-PUB_IGNORE_FILES-$(1)?=	\(\.svn\|\.git\|CVS\)
-# if git is used the above variables are ignored
-# instead we use the branch
-PUB_BRANCH-$(1)?= 		${PUB_BRANCH}
+PUB_SERVER-$(1)?=   ${PUB_SERVER}
+PUB_DIR-$(1)?=      ${PUB_DIR}
+PUB_FILES-$(1)?=    ${PUB_FILES}
+PUB_IGNORE-$(1)?=   ${PUB_IGNORE}
 
-PUB_SERVER-$(1)?=		localhost
-PUB_DIR-$(1)?=			/pub
-PUB_CATEGORY-$(1)?= 	${PUB_CATEGORY}
-PUB_TMPDIR-$(1)?=		/var/tmp
+PUB_USER-$(1)?=     ${PUB_USER}
+PUB_GROUP-$(1)?=    ${PUB_GROUP}
+PUB_CHMOD-$(1)?=    ${PUB_CHMOD}
 
-PUB_USER-$(1)?=			${USER}
-PUB_GROUP-$(1)?= 		${USER}
-PUB_CHMOD-$(1)?= 		o+r
+PUB_AT-$(1)?=       ${PUB_AT}
+PUB_TMPDIR-$(1)?=   ${PUB_TMPDIR}
+
+PUB_BRANCH-$(1)?=   ${PUB_BRANCH}
 endef
 
-# set up default values for all sites, for which values are not already set
 $(foreach site,${PUB_SITES},$(eval $(call variables,${site})))
-
-SSH?=		ssh
-SCP?=		scp -r
-SFTP?=		sftp
-PAX=		pax -wL
-UNPAX=		pax -r
-CP?=		cp -R
-
+PUB_AUTOTAG?=       false
+PUB_VCS?=           git
+PUB_TAG_OPTS?=
+PUB_TAG_NAME?=      $(shell date +%Y%m%d-%H%M)
+PUB_AUTOCOMMIT?=    false
+PUB_COMMIT_OPTS?=   -av
+PUB_REGEX?=     "|^(.*)$$$$|\1|p"
+$(foreach site,${PKG_SITES},$(eval PUB_REGEX-${site}?=${PUB_REGEX}))
+$(foreach site,${PUB_SITES},$(eval MKTMPDIR-${site}?=${MKTMPDIR}))
+define chown_and_chmod
+CHOWN-$(1)?=  ${CHOWN}
+CHMOD-$(1)?=  ${CHMOD}
+endef
+$(foreach site,${PUB_SITES},$(eval $(call chown_and_chmod,${site})))
 .PHONY: publish
-publish: pax
-publish: $(foreach site,${PUB_SITES},${PUB_FILES-${site}})
-ifneq (${AUTOCOMMIT},false)
-	$(call autocommit-${VCS}))
+publish: $(foreach site,${PUB_SITES},publish-${site})
+ifeq (${PUB_AUTOTAG},true)
+publish: autotag
+else ifeq (${PUB_AUTOCOMMIT},true)
+publish: autocommit
 endif
-ifneq (${AUTOTAG},false)
-	$(call autotag-${VCS}))
-endif
-	$(foreach site,${PUB_SITES},\
-		$(call publish-${PUB_METHOD-${site}},\
-		${PUB_SERVER-${site}},\
-		${PUB_DIR-${site}}/${PUB_CATEGORY-${site}},\
-		${PUB_USER-${site}},\
-		${PUB_GROUP-${site}},\
-		${PUB_CHMOD-${site}},\
-		${PUB_FILES-${site}},\
-		${PUB_IGNORE_FILES-${site}},\
-		${PUB_TMPDIR-${site}},\
-		${PUB_BRANCH-${site}}\
-		))
-
-define autocommit-svn
-	! ( svn status | grep W155007 > /dev/null ) || svn commit ${COMMIT_OPTS}
+define publish_target
+.PHONY: publish-$(1)
+publish-$(1): $(foreach file,${PUB_FILES-$(1)},${file})
+	$$(call publish-${PUB_METHOD-$(1)},$(1))
 endef
 
-define autocommit-git
-	! git status > /dev/null || ( \
-		git commit -a ${COMMIT_OPTS} && git pull && git push || \
-		git svn rebase && git svn dcommit || true \
-	)
+$(foreach site,${PUB_SITES},$(eval $(call publish_target,${site})))
+define chown
+$(if ${PUB_GROUP-$(1)},\
+  ${SSH} ${PUB_SERVER-$(1)}\
+  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)}) ${PUB_DIR-$(1)};,)
 endef
-
-define autocommit-cvs
-	[ ! -d CVS ] || cvs commit ${COMMIT_OPTS}
+define chmod
+$(if ${PUB_CHMOD-$(1)},\
+  ${SSH} ${PUB_SERVER-$(1)}\
+  ${CHMOD} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)};,)
+endef
+define publish-ssh
+${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}; \
+[ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
+xargs ${PAX} \
+  $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
+  -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
+${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
+  -s "\"|^|$(strip ${PUB_DIR-$(1)})/|p\""; \
+$(call chown,$(1)) \
+$(call chmod,$(1))
+endef
+define publish-at
+${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}; \
+TMPPUB=$$(${SSH} ${PUB_SERVER-$(1)} "export TMPDIR=${PUB_TMPDIR-$(1)} && \
+  ${MKTMPDIR-$(1)}"); \
+[ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
+xargs ${PAX} \
+  $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
+  -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
+${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
+  -s "\"|^|$${TMPPUB}/|p\""; \
+${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
+  echo 'mv ${PUB_FILES-$(1)} ${PUB_DIR-$(2)};' \
+  $(if ${PUB_CHMOD-$(1)},\
+    echo '${CHMOD-$(1)} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)};',) \
+  $(if ${PUB_GROUP-$(1)},\
+    echo '${CHOWN-$(1)} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)}) ${PUB_DIR-$(1)};',) \
+  ) | at ${PKG_AT}"
+endef
+define publish-git
+git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
+  | ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),"; \
+$(call chown,$(1)) \
+$(call chmod,$(1))
+endef
+autocommit-git = git diff --quiet || git commit ${PUB_COMMIT_OPTS}
+autocommit-svn = svn commit ${PUB_COMMIT_OPTS}
+autocommit-cvs = cvs commit ${PUB_COMMIT_OPTS}
+autotag-git = git tag ${PUB_TAG_OPTS} ${PUB_TAG_NAME}
+autotag-cvs = cvs tag ${PUB_TAG_OPTS} ${PUB_TAG_NAME}
+define exit_if_fs_root
+if [ $(stat -c %i $(1)) = $(stat -c %i /) \
+     -a $(stat -c %d $(1)) = $(stat -c %d /) ]; then \
+    exit 1; \
+fi
 endef
 
 define autotag-svn
-	if [ -d .svn -a -d ../trunk -a -d ../tags ]; then \
-		cd .. && svn copy trunk tags/$$(date +%Y%m%d-%H%M); \
-		echo "Do not forget to commit tags/, unless you change your mind"; \
-		echo "about this release."; \
-	fi
+ROOT=.
+while ! [ -d $${ROOT}/trunk ]; do \
+  $(call exit_if_fs_root,$${ROOT})
+  ROOT=$${ROOT}/.. \
+done \
+cd ${ROOT} \
+  && svn copy trunk tags/${PUB_TAG_NAME} \
+  && svn commit ${PUB_COMMIT_OPTS};
 endef
 
-define autotag-git
-	git tag $$(date +%Y%m%d-%H%M)
-endef
+.PHONY: autocommit
+autocommit:
+	$(call autocommit-${PUB_VCS})
 
-define autotag-cvs
-	cvs tag $$(date +%Y%m%d-%H%M)
-endef
-
-# $(1) = ${SERVER}
-# $(2) = ${PUB_DIR}/${PUB_CATEGORY}
-# $(3) = ${PUB_USER}
-# $(4) = ${PUB_GROUP}
-define chown
-	$(if $(4),-${SSH} $(1) chown -R $(3):$(strip $(4)) $(2),)
-endef
-
-# $(1) = ${SERVER}
-# $(2) = ${PUB_DIR}/${PUB_CATEGORY}
-# $(3) = ${PUB_CHMOD}
-define chmod
-	$(if $(3),-${SSH} $(1) chmod -R $(3) $(2),)
-endef
-
-# $(1) = ${SERVER}
-# $(2) = ${PUB_DIR}/${PUB_CATEGORY}
-# $(3) = ${PUB_USER}
-# $(4) = ${PUB_GROUP}
-# $(5) = ${PUB_CHMOD}
-# $(6) = ${PUB_FILES}
-# $(7) = ${PUB_IGNORE_FILES}
-# $(8) = ${PUB_TMPDIR}
-define publish-ssh
-	${SSH} $(1) mkdir -p $(2)
-	[ -n "$(6)" ] && find $(6) -type f -or -type l | \
-		xargs ${PAX} \
-			-s "|^.*/$(strip $(7))/.*$$||p" \
-			-s "|^\(.*\).export$$|\1|p" \
-			-s "|^\(.*\)\.export\([^.]*\)$$|\1\.\2|p" | \
-		${SSH} $(1) ${UNPAX} \
-			-s "\"|^|$(strip $(2))/|p\""
-	$(call chown,$(1),$(2),$(3),$(4))
-	$(call chmod,$(1),$(2),$(5))
-endef
-
-# $(1) = ${SERVER}
-# $(2) = ${PUB_DIR}/${PUB_CATEGORY}
-# $(3) = ${PUB_USER}
-# $(4) = ${PUB_GROUP}
-# $(5) = ${PUB_CHMOD}
-# $(6) = ${PUB_FILES}
-# $(7) = ${PUB_IGNORE_FILES}
-# $(8) = ${PUB_TMPDIR}
-define publish-at
-	${SSH} $(1} mkdir -p $(2)
-	TMPPUB=$$(${SSH} $(1) "export TMPDIR=$(8) && \
-		mktemp -d"); \
-	[ -n "$(6)" ] && find $(6) -type f -or -type l | \
-		xargs ${PAX} \
-			-s "|^.*/$(strip $(7))/.*$$||p" \
-			-s "|^\(.*\).export$$|\1|p" \
-			-s "|^\(.*\)\.export\([^.]*\)$$|\1\.\2|p" | \
-		${SSH} $(1) ${UNPAX} \
-			-s "\"|^|$${TMPPUB}/|p\""; \
-	${SSH} $(1) "cd $${TMPPUB} && (\
-		echo 'mv $(6) $(2);' \
-		$(if $(5),\
-			echo 'chmod -R $(5) $(2);',) \
-		$(if $(4),\
-			echo 'chown -R $(3):$(strip $(4)) $(2);',) \
-		) | at ${at}"
-endef
-
-# $(1) = ${SERVER}
-# $(2) = ${PUB_DIR}/${PUB_CATEGORY}
-# $(3) = ${PUB_USER}
-# $(4) = ${PUB_GROUP}
-# $(5) = ${PUB_CHMOD}
-# $(6) = ${PUB_FILES}
-# $(7) = ${PUB_IGNORE_FILES}
-# $(8) = ${PUB_TMPDIR}
-# $(9) = ${PUB_BRANCH}
-define publish-git
-	git archive $(9) $(6) | ssh $(1) pax -r -s ",^,$(strip $(2)),";
-endef
-
-### INCLUDES ###
-
-INCLUDE_MAKEFILES?= .
-INCLUDES= 	depend.mk
-
-define inc
-ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
-$(1):
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
-include ${INCLUDE_MAKEFILES}/$(1)
-endif
-endef
-$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
-
-### END INCLUDES ###
+.PHONY: autotag
+autotag:
+	$(call autotag-${PUB_VCS})
 
 endif

@@ -1,0 +1,689 @@
+\section{Introduction and usage}
+\label{tex:Intro}
+
+The aim of this include file is to make building LaTeX documents easier.
+First we want to add suffix rules for LaTeX similar to those already in 
+make(1)~\cite[see][Sect.\ 10.2]{GNUMake} for languages like C.
+
+We provide several suffix rules.
+First, for ordinary documents, i.e.\ to compile a [[.tex]] file to [[.pdf]], 
+[[.ps]] or [[.dvi]].
+Second, for classes and packages, i.e.\ to compile
+\begin{inparablank}
+\item a DocTeX [[.dtx]] file to [[.pdf]], [[.ps]] or [[.dvi]] and
+\item an [[.ins]] file to [[.cls]] or [[.sty]].
+\end{inparablank}
+The suffix rules we provide here follows the conventions set out 
+in~\cite[Sect.\ 10.2]{GNUMake}.
+
+The latex(1) and pdflatex(1) commands are controlled by
+<<variables>>=
+LATEX?=       latexmk -dvi
+PDFLATEX?=    latexmk -pdf
+@ Possible flags are controlled by
+<<variables>>=
+LATEXFLAGS?=  -use-make
+@ The output directory is by default
+<<variables>>=
+TEX_OUTDIR?=  ltxobj
+@ We note that we add this output directory to the search path for 
+prerequisites~\cite[see][Sect.\ 4.5.1]{GNUMake}.
+The reason for this is that we might need some out the objects as prerequisites 
+for other files.
+
+Normally, the above is all that is needed.
+However, if you need to manually build the bibliography, you can either add the
+[[.bbl]] file as a prerequisite or set the following variable to a non-empty 
+string.
+<<variables>>=
+TEX_BBL?=
+@ Similarly as for the main LaTeX commands, the bibtex(1) command is controlled 
+by
+<<variables>>=
+BIBTEX?=      bibtexu
+BIBTEXFLAGS?=
+@ And, in case we use biblatex, the biber(1) command is controlled by
+<<variables>>=
+BIBER?=       biber
+BIBERFLAGS?=
+@
+
+Similarly as for the bibliography, to enable indexing you can either manually 
+add the [[.ind]] file as a prerequisite, or you can set the following variable 
+to a non-empty string.
+<<variables>>=
+TEX_IND?=
+@ The indexing-related programs are the following.
+<<variables>>=
+MAKEINDEX?=   makeindex
+MAKEIDXFLAGS?=
+XINDY?=       texindy
+XINDYFLAGS?=
+@
+
+We also provide support for PythonTeX.
+This is enabled by the following variable.
+<<variables>>=
+TEX_PYTHONTEX?=
+@ Then the required command and flags are controlled with the following 
+variables.
+<<variables>>=
+PYTHONTEX?=   pythontex3
+PYTHONTEXFLAGS?=
+@
+
+Finally, we provide targets to easily add external classes as dependencies.
+We add the phony targets
+\begin{itemize}
+\item[[lncs]] for Springer \ac{LNCS},
+\item[[biblatex-lncs]] for the \ac{LNCS} bibliography style for the 
+[[biblatex]] package,
+\item[[acmproc]] for the \ac{ACM} \ac{SIG} proceedings,
+\item[[acmsmall]] and [[acmlarge]] for the \ac{ACM} journal formats,
+\item[[rfc]] or [[rfc.bib]] for an up-to-date bibliography containing all 
+\ac{IETF} \acp{RFC}.
+\end{itemize}
+
+
+\section{Implementation overview}
+
+The structure of the include file is similar to a header file in C or C++.
+The include file uses the old C-style technique to prevent multiple inclusions.
+<<tex.mk>>=
+ifndef TEX_MK
+TEX_MK=true
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
+<<variables>>
+<<targets for documents>>
+<<targets for class and package files>>
+<<targets for external classes>>
+<<targets for cleaning>>
+
+endif
+@ We include [[portability.mk]] (\cref{portability.mk}) to get portable 
+settings for several common utilities.
+
+We will start with the targets for cleaning.
+We provide two phony targets, [[clean-tex]] and [[distclean-tex]], and we 
+add them as prerequisites to [[clean]] and [[distclean]], respectively.
+<<targets for cleaning>>=
+.PHONY: clean clean-tex
+clean: clean-tex
+
+clean-tex:
+	<<clean recipe>>
+
+.PHONY: distclean distclean-tex
+distclean: distclean-tex
+
+distclean-tex:
+	<<distclean recipe>>
+@ We will add to the recipes in the remainder of the chapter.
+However, as latexmk(1) is set as the default in \cref{tex:Intro}, we can 
+already add the following line to the cleaning recipe.
+<<clean recipe>>=
+-latexmk -C -output-directory=${TEX_OUTDIR}
+${RM} -R ${TEX_OUTDIR}
+${RM} *.pytxcode
+${RM} pythontex-files-*
+@
+
+
+\section{Targets for documents}
+
+Now we will treat how to compile documents.
+<<targets for documents>>=
+<<auxillary files>>
+<<bibliography files>>
+<<indices files>>
+<<PythonTeX files>>
+<<document files>>
+<<target for latexmkrc>>
+@ These will be discussed in the following sections.
+However, since we use latexmk(1) by default (\cref{tex:Intro}), we will discuss 
+the relevant [[<<latexmkrc>>]] entries in parallel.
+We supply a target to easily use our [[<<latexmkrc>>]] with latexmk(1).
+<<target for latexmkrc>>=
+latexmkrc:
+	[ -e $@ ] || ${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+@ We also add the corresponding line for cleaning.
+<<distclean recipe>>=
+[ ! -L latexmkrc ] || ${RM} latexmkrc
+@
+
+We will now discuss the different files we need latex(1) to generate.
+Note that in many cases we want latex(1) to generate more files, e.g.\ [[.toc]]
+files, but we do not have to care about these here.
+The reason we can ignore those files is that they do not require any external 
+tool, e.g.\ bibtex(1), to be run, these files just requires another run of 
+latex(1).
+
+\subsection{Auxillary files}
+
+Many steps in compiling a LaTeX document needs the [[.aux]] file.
+Thus we will first introduce a rule for creating the [[.aux]] file.
+We will create it in the specified output directory.
+<<auxillary files>>=
+${TEX_OUTDIR}/%.aux: %.tex
+	<<try to create output directory>>
+	<<run pdflatex>>
+@ To create the output directory we simply try mkdir(1).
+<<try to create output directory>>=
+${MKDIR} ${TEX_OUTDIR}
+@ We can the simply run latex(1) with the specified output directory.
+Note that it does not matter whether we run latex(1) or pdflatex(1) to generate
+the [[.aux]] file.
+<<run pdflatex>>=
+${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+@
+
+\subsection{Bibliographies}
+
+One file that is commonly needed is the one used to create the bibliography, 
+the [[.bbl]] file.
+There are two ways to create this file, either using classical bibtex(1) or 
+using the [[biblatex]] package and biber(1).
+<<bibliography files>>=
+<<bbl target for bibtex>>
+<<bbl target for biber>>
+@
+
+The first approach, using bibtex(1), depends on the [[.aux]] file.
+This means that we can have a target creating the desired [[.bbl]] file from 
+the [[.aux]] file.
+<<bbl target for bibtex>>=
+${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
+	<<compile bbl with bibtex>>
+@ To compile the [[.bbl]] file using bibtex(1) and to put the output files in 
+the desired output directory, we can do this.
+<<compile bbl with bibtex>>=
+${BIBTEX} ${BIBTEXFLAGS} $<
+${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
+@
+
+The second approach uses the [[biblatex]] package~\cite{biblatex} and 
+biber(1)~\cite{biber}.
+They do not rely on the [[.aux]] file, instead [[biblatex]] creates a [[.bcf]] 
+file.
+Thus its target is exactly the same as that of the [[.aux]] file.
+<<bbl target for biber>>=
+${TEX_OUTDIR}/%.bcf: %.tex
+	<<try to create output directory>>
+	<<run pdflatex>>
+@ This [[.bcf]] file is in turn used by biber(1) to create the [[.bbl]] file.
+To compile the [[.bbl]] with biber(1) and put the output files in the desired
+directory, we do the following.
+<<bbl target for biber>>=
+${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
+	${BIBER} -O $@ ${BIBERFLAGS} $<
+@
+
+As mentioned in \cref{tex:Intro}, we can automatically add the [[.bbl]] file as
+a prerequisite if the variable [[TEX_BBL]] is set.
+<<bibliography files>>=
+ifneq (${TEX_BBL},)
+%.pdf: ${TEX_OUTDIR}/%.bbl
+endif
+@
+
+\subsection{Indices}
+
+There are several time we need to work with indices, e.g.\ when working with 
+standard indices but also glossaries.
+Here we provide some suffix rules to make it easier to build such indices.
+
+Before we start, however, we will note that many of these rules are not needed 
+if the [[imakeidx]] package~\cite{imakeidx} is used.
+We do recommend to use this package.
+Furthermore, we provide rules for the [[nomencl]] package, however, we 
+recommend to use the [[glossaries]] package~\cite{glossaries} instead.
+The [[glossaries]] package also has native support for xindy(1).
+Although the [[glossaries]] package supports abbreviations and acronyms, we 
+recommend the [[acro]] package~\cite{acro} for this instead.
+
+The standard LaTeX index uses an [[.idx]] file, which is generated similarly as
+the [[.aux]] file.
+Thus we can use the same type of target.
+<<indices files>>=
+${TEX_OUTDIR}/%.idx: %.tex
+	<<try to create output directory>>
+	<<run pdflatex>>
+@ The actual index, which resides in a [[.ind]] file, can then be generated as 
+follows.
+<<indices files>>=
+${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
+	${XINDY} -o $@ ${XINDYFLAGS} $<
+@ As mentioned in \cref{tex:Intro}, we can automatically add the [[.ind]] file as
+a prerequisite if the variable [[TEX_IND]] is set.
+<<indices files>>=
+ifneq (${TEX_IND},)
+%.pdf: ${TEX_OUTDIR}/%.ind
+endif
+@
+
+For backwards compatibility, we provide the following code for the 
+[[nomenclature]] package.
+<<indices files>>=
+${TEX_OUTDIR}/%.nlo: %.tex
+	<<try to create output directory>>
+	<<run pdflatex>>
+
+${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
+	<<try to create output directory>>
+	${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} -s nomencl.ist $<
+@ And now we add the corresponding code for latexmk(1).
+The code is fetched from the latexmk example-files on \ac{CTAN}\footnote{%
+  URL: \url{http://mirrors.ctan.org/support/latexmk/example_rcfiles/nomenclature_latexmkrc}
+}.
+<<latexmkrc>>=
+add_cus_dep( 'nlo', 'nls', 0, 'makenlo2nls' );
+sub makenlo2nls {
+	system( "makeindex -s nomencl.ist -o \"$_[0].nls\" \"$_[0].nlo\"" );
+}
+@
+
+\subsection{PythonTeX}
+
+Occasionally we use PythonTeX.
+We also provide a target for the required files.
+<<PythonTeX files>>=
+pythontex-files-%/%.pytxcode: %.tex
+	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
+@ As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
+file as a prerequisite if the variable [[TEX_PYTHONTEX]] is set.
+<<bibliography files>>=
+ifneq (${TEX_PYTHONTEX},)
+%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
+endif
+@
+
+If we use latexmk(1), then we must also add instructions for this in 
+[[<<latexmkrc>>]].
+The following code is fetched from the latexmk example-files on 
+\ac{CTAN}\footnote{%
+  URL: \url{http://mirrors.ctan.org/support/latexmk/example_rcfiles/pythontex-latexmkrc}
+}.
+<<latexmkrc>>=
+#  This version has a fudge on the latex and pdflatex commands that
+#  allows the pythontex custom dependency to work even when $out_dir
+#  is used to set the output directory.  Without the fudge (done by
+#  trickery symbolic links) the custom dependency for using pythontex
+#  will not be detected.
+
+add_cus_dep('pytxcode', 'pytxmcr', 0, 'pythontex');
+sub pythontex {
+    # This subroutine is a fudge, because it from latexmk's point of
+    # view, it makes the main .tex file depend on the .pytxcode file.
+    # But it doesn't actually make the .tex file, but is used for its
+    # side effects in creating other files.  The dependence is a way
+    # of triggering the rule to be run whenever the .pytxcode file
+    # changes, and to do this before running latex/pdflatex again.
+    return system("pythontex3 --verbose \"$_[0]\"");
+}
+
+$pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
+$latex = 'internal mylatex %R %Z latex %O %S';
+sub mylatex {
+   my $root = shift;
+   my $dir_string = shift;
+   my $code = "$root.pytxcode";
+   my $result = "pythontex-files-$root";
+   if ($dir_string) {
+      warn "mylatex: Making symlinks to fool cus_dep creation\n";
+      unlink $code;
+      if (-l $result) {
+          unlink $result;
+      }
+      elsif (-d $result) {
+         unlink glob "$result/*";
+         rmdir $result;
+      }
+      symlink $dir_string.$code, $code;
+      if ( ! -e $dir_string.$result ) { mkdir $dir_string.$result; }
+      symlink $dir_string.$result, $result;
+   }
+   else {
+      foreach ($code, $result) { if (-l) { unlink; } }
+   }
+   return system @_;
+}
+@
+
+\subsection{Document files}
+
+Now that we have all prerequisite files, we can actually compile the document.
+For simplicity we add file in both the current working directory and the 
+[[TEX_OUTDIR]] as targets.
+The reason for this is that it makes the makefile easier to write, usually we 
+prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in 
+the [[TEX_OUTDIR]] directory.
+And for the same reason, we create a hard link between them after compilation 
+--- this allows make(1) to track modification times correctly.
+<<document files>>=
+%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
+	<<compile PDF>>
+	-${LN} ${TEX_OUTDIR}/$@ $@
+
+%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
+	<<compile DVI>>
+	-${LN} ${TEX_OUTDIR}/$@ $@
+@
+
+Then the compilation step is the usual.
+We compile once, then we recompile as long as the log file tells us.
+<<compile PDF>>=
+${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+  ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+done
+@ And the same for DVI files.
+<<compile DVI>>=
+${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+done
+@
+
+
+\section{Targets for class and package files}
+
+There are two parts concerning class and package files.
+<<targets for class and package files>>=
+<<compile sty and cls files>>
+<<compile class and package documentation>>
+@ These are very similar to what we have done above, especially the 
+documentation.
+
+Compiling a class or package from DocTeX source is easier than compiling 
+a document.
+We can normally create the [[.sty]] and [[.cls]] files by running latex(1) on 
+the [[.ins]] file.
+<<compile sty and cls files>>=
+%.cls %.sty: %.ins
+	${LATEX} $<
+@
+
+We can then compile the documentation similarly to how we compile normal 
+documents.
+<<compile class and package documentation>>=
+%.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
+	<<compile PDF>>
+	-${LN} ${TEX_OUTDIR}/$@ $@
+
+%.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
+	<<compile DVI>>
+	-${LN} ${TEX_OUTDIR}/$@ $@
+@ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
+<<compile class and package documentation>>=
+${TEX_OUTDIR}/%.aux: %.dtx
+	<<run pdflatex>>
+
+${TEX_OUTDIR}/%.bcf: %.dtx
+	<<run pdflatex>>
+
+${TEX_OUTDIR}/%.idx: %.dtx
+	<<run pdflatex>>
+@
+
+
+\section{External classes and packages}
+
+Occasionally, we are required to use document classes that are not in 
+\ac{CTAN}.
+Here we provide targets for some such classes and packages.
+<<targets for external classes>>=
+<<a general downloader>>
+<<Springer LNCS>>
+<<biblatex LNCS style>>
+<<ACM classes>>
+<<the RFC bibliography>>
+@
+
+We will now construct a general downloader, then we will use this downloader to
+write targets for the external classes we are interested in.
+In general, what we want this function to do is to download an archive or 
+repository ([[TEX_EXT_SRC]]), extract the files we are interested in 
+([[TEX_EXT_FILES]]) to the destination directory ([[TEX_EXT_DIR]]), and 
+finally, create symbolic links to those files from the current working 
+directory.
+<<a general downloader>>=
+define download_archive
+<<targets for symlinks>>
+<<targets for desired files>>
+<<targets for archive>>
+<<target for cleaning>>
+endef
+define download_repo
+<<targets for symlinks>>
+<<targets for desired files>>
+<<targets for repo>>
+<<target for cleaning>>
+endef
+@
+
+The first thing we want to do is to generate targets and recipes for how to 
+create the symbolic links, assuming that the target files already exists.
+First we set up a dependency between the files we are interested in and where 
+that file is actually located.
+Then we create a recipe which will create a symbolic link between them.
+We use the [[notdir]] function~\cite[Sect.\ 8.3]{GNUMake} to remove any 
+directory-part since we want to create the symbolic link in the current working
+directory.
+<<targets for symlinks>>=
+$(foreach file,${TEX_EXT_FILES-$(1)},\
+  $(eval $(notdir ${file}): ${TEX_EXT_DIR-$(1)}/${file}))
+$(notdir ${TEX_EXT_FILES-$(1)}):
+	${LN} $$^ $$@
+@ Note that we need the [[eval]] command above to evaluate the rule for each 
+file, otherwise we would get \emph{one line} with many colons --- which is not 
+valid syntax for make(1).
+To make it easier to add these files as prerequisites to a target, we also 
+provide the following phony target.
+<<targets for symlinks>>=
+.PHONY: $(1)
+$(1): $(notdir ${TEX_EXT_FILES-$(1)})
+@
+
+Now we need something to trigger the download of the archive or the repository.
+One way to do this is to add a prerequisite for the files from the archive or 
+repository.
+<<targets for desired files>>=
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}): \
+  ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}
+@ Now we turn to the recipe.
+In the case of an archive, we must extract the desired files.
+We let the variable [[TEX_EXT_EXTRACT]] contain the extraction command.
+<<targets for archive>>=
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
+	${TEX_EXT_EXTRACT-$(1)}
+@ For a repository we can simply copy the file or create a link.
+We prefer the latter.
+<<targets for repo>>=
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
+	${LN} ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}/$${@:${TEX_EXT_DIR-$(1)}/%=%} $$@
+@
+
+The file [[TEX_EXT_SRC]] can be either an archive or a repository.
+We let [[TEX_EXT_URL]] be the \ac{URL} to fetch it from in both cases.
+In the case of an archive we do the following.
+<<targets for archive>>=
+${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
+	${MKDIR} ${TEX_EXT_DIR-$(1)}
+	${CURL} -o $$@ ${TEX_EXT_URL-$(1)}
+@ In the case of a repository, we simply clone it.
+<<targets for repo>>=
+${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
+	git clone ${TEX_EXT_URL-$(1)} $$@
+@ We note that the directory of the repo should be an order-only 
+prerequisite~\cite[see][Sect.\ 4.3]{GNUMake} for the files inside.
+Unfortunately this is not the case at the moment.
+
+Finally, we must also do some cleaning.
+<<target for cleaning>>=
+.PHONY: distclean clean-$(1)
+distclean: clean-$(1)
+clean-$(1):
+	${RM} ${TEX_EXT_FILES-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+@
+
+\subsection{Springer LNCS}
+
+Springer's \ac{LNCS} series is used for the proceedings of many 
+conferences.
+The style files are available on Springer's web site, but unfortunately not 
+under any permissive license\footnote{%
+  It would be most desirable that they were made available in \ac{CTAN} under 
+  an open license.
+}.
+So, we must, each and every one of us, connect to Springer's server and 
+download our own copy.
+This is what we automate here.
+
+We use the downloader described above.
+<<Springer LNCS>>=
+TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.sty
+TEX_EXT_DIR-lncs?=    lncs
+TEX_EXT_SRC-lncs?=    llncs2e.zip
+TEX_EXT_URL-lncs?=    ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+TEX_EXT_EXTRACT-lncs?=${UNZIP} $$< -d ${TEX_EXT_DIR-lncs}
+
+$(eval $(call download_archive,lncs))
+@
+
+\subsection{LNCS style for [[biblatex]]}
+
+There is also \iac{LNCS} style for the [[biblatex]] package available on 
+GitHub.
+Since it is available on GitHub, we recommend adding it as a Git submodule.
+I.e.\ run the following command.
+\begin{lstlisting}
+git submodule add https://github.com/neapel/biblatex-lncs.git
+\end{lstlisting}
+This will add a directory [[biblatex-lncs]] to the current directory.
+
+If we do not add it as a submodule we can use the downloader above.
+<<biblatex LNCS style>>=
+TEX_EXT_FILES-biblatex-lncs?= lncs.bbx lncs.cbx lncs.dbx
+TEX_EXT_DIR-biblatex-lncs?=   lncs
+TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
+TEX_EXT_URL-biblatex-lncs?=   https://github.com/neapel/biblatex-lncs.git
+
+$(eval $(call download_repo,biblatex-lncs))
+@
+
+\subsection{ACM classes}
+
+We provide targets for the following \ac{ACM} classes.
+<<ACM classes>>=
+<<ACM SIG proceedings>>
+<<ACM small standard>>
+<<ACM large standard>>
+@
+
+\subsubsection{Special Interest Group proceedings}
+
+The structure is similar as above.
+We use a variable to control the destination, current directory by default.
+<<variables>>=
+TEX_EXT_DIR-acmproc?=     acm
+@ Then we download the class file to that directory.
+<<ACM SIG proceedings>>=
+${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls:
+	${CURL} -o $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
+acm_proc_article-sp.cls: ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
+	${LN} $^ $@
+@ We also add the phony target [[acmproc]] to easily add this class as 
+a prerequisite for a document.
+<<ACM SIG proceedings>>=
+.PHONY: acmproc
+acmproc: acm_proc_article-sp.cls
+@
+
+The cleaning will only need to remove the single document class that we 
+downloaded.
+<<ACM SIG proceedings>>=
+.PHONY: distclean clean-acmproc
+distclean: clean-acmproc
+clean-acmproc:
+	${RM} acm_proc_article-sp.cls
+	${RM} ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
+@
+
+\subsubsection{ACM small standard}
+
+We can use the downloader for the small standard.
+<<ACM small standard>>=
+TEX_EXT_FILES-acmsmall?=  acmsmall.cls
+TEX_EXT_DIR-acmsmall?=    acm
+TEX_EXT_SRC-acmsmall?=    v2-acmsmall.zip
+TEX_EXT_URL-acmsmall?=    http://www.acm.org/publications/latex_style/v2-acmsmall.zip
+TEX_EXT_EXTRACT-acmsmall?=${UNZIP} $< -d ${TEX_EXT_DIR-acmsmall}
+
+$(eval $(call download_archive,acmsmall))
+@
+
+\subsubsection{ACM large standard}
+
+As for the small standard, we can use the downloader.
+<<ACM large standard>>=
+TEX_EXT_FILES-acmlarge?=  acmlarge.cls
+TEX_EXT_DIR-acmlarge?=    acm
+TEX_EXT_SRC-acmlarge?=    v2-acmlarge.zip
+TEX_EXT_URL-acmlarge?=    http://www.acm.org/publications/latex_style/v2-acmlarge.zip
+TEX_EXT_EXTRACT-acmlarge?=${UNZIP} $< -d ${TEX_EXT_DIR-acmlarge}
+
+$(eval $(call download_archive,acmlarge))
+@
+
+\subsection{The RFC bibliography}
+
+Occasionally we want to cite \ac{IETF} \acp{RFC}.
+Fortunately, Roland Bless of Karlsruher Institute of Technology provides an 
+up-to-date bibliography file for all \acp{RFC}, so we will use that one.
+This is a single file, so we do not need to use the downloader.
+<<the RFC bibliography>>=
+rfc.bib:
+	<<download rfc.bib>>
+	<<change misc to techreport>>
+
+${TEXMF}/tex/latex/rfc.bib:
+	mkdir -p ${TEXMF}/tex/latex/
+	<<download rfc.bib>>
+	<<change misc to techreport>>
+@
+
+We will use curl(1) to download a compressed version from Bless' site.
+We let curl(1) output the contents to standard out and pipe it to the 
+uncompress(1) utility and, finally, redirect the result to the target file.
+<<download rfc.bib>>=
+${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
+  | ${UNCOMPRESS} - > $@ ; \
+@
+
+According to \ac{IETF}~\cite[Sect.\ 5.2]{IETFCitingRFCs} the \acp{RFC} should 
+be cited as the [[techreport]] BibTeX type.
+<<change misc to techreport>>=
+${SED} -i "s/@misc/@techreport/" $@
+@
+
+We also provide a phony target for these two files.
+<<the RFC bibliography>>=
+.PHONY: rfc
+rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
+@
+
+Finally, we provide a phony cleaning for cleaning.
+The target is named [[clean-rfc]] and is added as a prerequisite for 
+[[distclean]] --- this way its recipe will not interfere with any cleaning 
+recipe written by the user.
+<<the RFC bibliography>>=
+.PHONY: distclean clean-rfc
+distclean: clean-rfc
+clean-rfc:
+	${RM} rfc.bib
+@
+

@@ -1,0 +1,256 @@
+\section{Introduction and usage}
+
+It is difficult to work openly with assessment material.
+We do not want to publish the solutions to the assignment so that the students 
+can find them and pass the assessment without actually learning the material.
+On the other hand, we want to be able to publicly collaborate with other 
+teachers, to improve the assignments and their solutions.
+This include file provides some tools to achieve this.
+
+
+\section{Implementation overview}
+
+The structure is similar to other include files.
+We want to prevent repeated inclusion, so we use a C-style technique to avoid 
+that.
+<<transform.mk>>=
+ifndef TRANSFORM_MK
+TRANSFORM_MK=true
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
+<<variables>>
+<<suffix rule for transformations>>
+<<target generation for transformations>>
+<<suffix rules for camera-ready source>>
+<<suffix rules for encrypted files>>
+
+endif
+@ We will now explore now these are implemented.
+
+
+\section{A transformation mechanism}
+
+We want to provide suffix rules for transforming files in different ways.
+We will transform any file with a suffix in [[TRANSFORM_SRC]] for which there is 
+a corresponding target in [[TRANSFORM_DST]].
+<<variables>>=
+TRANSFORM_SRC?=    .tex
+TRANSFORM_DST?=    .transformed.tex
+@ Then we can form the following suffix rule, which covers all combinations of 
+sources and destinations.
+<<suffix rule for transformations>>=
+<<transformations>>
+.SUFFIXES: ${TRANSFORM_SRC} ${TRANSFORM_DST}
+$(foreach src,${TRANSFORM_SRC},$(foreach dst,${TRANSFORM_DST},${src}${dst})):
+	<<transformation recipe>>
+@ The [[<<transformations>>]] will be covered below, we start with how they are 
+applied.
+
+We will now describe a function which makes it easier to apply a list of 
+transformations.
+The first argument is the input file, the second is a space separated list of 
+transformations and the third is the output file.
+<<transformations>>=
+define transform
+cat $(1) $(foreach t,$(2),| $(call ${t})) > $(3)
+endef
+@ What we do here is to expand each transformation in the list to a pipe 
+expression, so the result is a pipeline through which the file contents is 
+piped.
+Thus every transformation must read from standard input and write to standard 
+output.
+
+Now back to our [[<<transformation recipe>>]].
+This is a suffix rule, but we want the transformation to be target-dependent.
+To solve this, we will have a variable [[TRANSFORM_LIST-target]] containing 
+the space separated list of transforms to apply to the target.
+We will also use [[TRANSFORM_LIST.suf]], where [[.suf]] is the suffix of the 
+target file.
+Thus we can just apply this list using the function above.
+<<transformation recipe>>=
+$(call transform,\
+  $$^,\
+  $${TRANSFORM_LIST$$(suffix $$@)} $${TRANSFORM_LIST-$$@},\
+  $$@)
+@ We will let [[TRANSFORM_LIST]] be the default list of transformations 
+applied.
+<<variables>>=
+$(foreach suf,${TRANSFORM_DST},$(eval TRANSFORM_LIST${suf}?=${TRANSFORM_LIST}))
+@
+
+This will work well for a lot of cases, however, there are cases where suffix 
+rules simply will not work.
+For these we must generate specific targets.
+Let [[TRANSFORM_TARGETS]] contain a space separated list of target files.
+<<target generation for transformations>>=
+define target_recipe
+$(1):
+	<<transformation recipe>>
+endef
+$(foreach target,${TRANSFORM_TARGETS},$(eval $(call target_recipe,${target})))
+@ Note that we use the same recipe as above.
+
+\subsection{Removing solutions}
+
+To remove solutions we will supply a filtering transformation.
+The filter uses [[sed]] to remove every solution environment from the content.
+<<transformations>>=
+NoSolutions?= ${SED} "/\\\\begin{solution}/,/\\\\end{solution}/d"
+@
+
+\subsection{Removing excessive build instructions}
+
+Sometimes we have extra build instructions in the internal repo, which are not 
+necessary for the exported source code.
+<<transformations>>=
+ExportFilter?=    ${SED} "/#export \\(false\\|no\\)/,/#export \\(true\\|yes\\)/d"
+OldExportFilter?= ${SED} "/#export no/,/#endexport/d"
+@
+
+\subsection{Handouts and solutions}
+
+It is common that we want to produce handouts from slides and solutions for 
+assignments or exams.
+We do not want to do this by hand, so we add two transformations that can be 
+used to do this for us.
+<<transformations>>=
+PrintAnswers?=    ${SED} "${MATCH_PRINTANSWERS}"
+Handout?=         ${SED} "${MATCH_HANDOUT}"
+@ We will need quite a few layers of escaping for these two regular 
+expressions.
+
+First we will handle the printing of solutions.
+We want to add the [[\printanswers]] command~\cite{ExamClass} to the preamble.
+What we do is to match on the exam document class, then we insert the 
+[[\printanswers]] command directly after it.
+<<variables>>=
+exam_class=       "(\\\\\\\\\\documentclass\\[?.*\\]?{.*exam.*})"
+with_print=       "\\1\\\\\\\\\\printanswers"
+SED_PRINTANSWERS= "s/${exam_class}/${with_print}/"
+@
+
+Now we will solve the handouts.
+What we want to do is to add the [[handout]] option to the Beamer document 
+class~\cite{Beamer}.
+<<variables>>=
+without_handout=  "\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}"
+with_handout=     "\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}"
+SED_HANDOUT=      "s/${without_handout}/${with_handout}/"
+@
+
+
+\section{Preparing camera-ready source}
+
+Sometimes we must prepare \enquote{camera-ready source}, which essentially 
+means that everything must be contained in a single TeX file.
+Unfortunately, this is difficult to accomplish with the transformations 
+outlined above\footnote{%
+  It is possible and this solution will eventually be converted to such 
+  a solution.
+}.
+For now, we will use some functions which requires parameters --- the 
+transformations above must not require any parameter --- so the outline looks 
+like this:
+<<suffix rules for camera-ready source>>=
+<<function to substitute bibliography for bbl>>
+<<function to fill filecontents environments>>
+<<function to insert biblatex bbl code>>
+
+.SUFFIXES: .tex .cameraready.tex
+.tex.cameraready.tex:
+  <<camera-ready recipe>>
+@
+
+The first thing we want to do is to replace the [[\bibliography]] command with 
+the [[bbl]]-code generated by [[bibtex]].
+This function also takes one argument, the file name of the [[bbl]]-file (which 
+is the main document name with the [[.tex]] suffix replaced by [[.bbl]]).
+<<function to substitute bibliography for bbl>>=
+define bibliography
+${SED} \
+  -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1)" \
+  -e "}"
+endef
+@
+
+The [[bibtex]] alternative [[biblatex]] is becoming more popular.
+So we want to provide similar functionality for [[biblatex]].
+To do this for [[biblatex]] we can use the [[filecontents]] package to include 
+the bibliographies inline.
+
+First we want to use is to fill [[filecontents]] environments with the actual 
+content from the file.
+We provide a function which takes the filename as an argument and then 
+uncomments the environment and reads the file contents into the environment.
+<<function to fill filecontents environments>>=
+define filecontent
+${SED} "/^%\\\\begin{filecontents\\*\\?}{$(1)}/,/^%\\\\end{filecontents\\*\\?}/s/^%//" \
+  | ${SED} "/^\\\\begin{filecontents\\*\\?}{$(1)}/r $(1)"
+endef
+@
+
+Next, for this to work with [[biblatex]] we need to insert some extra code.
+<<function to insert biblatex bbl code>>=
+define _the_bblcode
+\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begingroup\\\\blx@bblstart\\\\input{\\\\jobname.bbl}\\\\blx@bblend\\\\endgroup\\\\csnumgdef{blx@labelnumber@\\\\the\\\\c@refsection}{0}}\\\\makeatother
+endef
+
+define bblcode
+${SED} "s/^%biblatex-bbl-code/${_the_bblcode}/"
+endef
+@
+
+Finally, with these functions we can write the following suffix rule, which 
+calls the above functions one by one.
+<<camera-ready recipe>>=
+cat $< \
+  | $(call filecontent,\
+    $(shell ${SED} -n "s/^%\\\\begin{filecontents\\*\\?}{\\([^}]*\\)}/\\1/p" \
+    $<)) \
+  | $(call bibliography,${<:.tex=.bbl}) \
+  | $(call bblcode) \
+  > $@
+@
+
+
+\section{Using encrypted files}
+
+The idea of this approach is to encrypt the confidential data in the 
+repository.
+Thus the repository can be available to everyone, but only those with the 
+decryption keys can read and make sensible changes in the confidential 
+contents.
+
+We will achieve this using the GNU Privacy Guard (GPG) version of Pretty Good 
+Privacy (PGP).
+We need a command to encrypt, the recipients and a command to decrypt.
+We will use the following by default.
+<<variables>>=
+GPG?=                 gpg
+TRANSFORM_ENC?=          ${GPG} -aes
+TRANSFORM_RECIPIENTS?=   me
+TRANSFORM_DEC?=          ${GPG} -d
+@ This will yield the following suffix rules.
+<<suffix rules for encrypted files>>=
+.SUFFIXES: .tex .tex.asc
+.tex.tex.asc:
+	${TRANSFORM_ENC} $(foreach r,${TRANSFORM_RECIPIENTS}, -r $r) < $< > $@
+
+.tex.asc.tex:
+	${TRANSFORM_DEC} < $< > $@
+@
+
+An alternative approach, probably less prone to errors, is to use Git.
+We can use Git's attributes and filter functionality.
+This means that we apply a filter to all files with the [[.asc]] suffix.
+We have two alternatives: do this ourselves or use the [[git-crypt]] 
+package\footnote{%
+  Install on Ubuntu by running [[sudo apt install git-crypt]].
+}~\cite{git-crypt}.
+The set up we must do for this to work is to set a Git attribute.
+<<gitattributes>>=
+*.asc     filter=git-crypt
+@ This will yield similar behaviour as with the makefile approach, except that 
+many things are automated further.

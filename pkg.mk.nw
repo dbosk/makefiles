@@ -1,0 +1,217 @@
+\section{Introduction and usage}
+
+The idea of this include file is to provide an easy way to package files 
+together for publication.
+It can be for packaging the source code of a document or package a script with 
+automatic installation instructions.
+
+The first thing we need for a package is a name.
+This is controlled by the [[PKG_NAME]] variable.
+<<variables>>=
+PKG_NAME?=          ${PACKAGE}
+@ Its default value is set for backwards compatibility, so that makefiles using 
+the old variable names will still work.
+The package name will, by default, determine the name of the tarball that is 
+generated.
+<<variables>>=
+PKG_TARBALL?=       ${PKG_NAME}.tar.gz
+@
+
+The next thing we need is to control which files are included.
+There are two types of files: files that should be installed and files that 
+should not.
+<<variables>>=
+PKG_INSTALL_FILES?= ${INSTALL_FILES}
+PKG_TARBALL_FILES?= ${PACKAGE_FILES} ${PKG_INSTALL_FILES}
+@ The tarball files will only be included in the tarball, but the install files
+will be installed if the [[install]] target is made.
+For example, a [[Makefile]] should be included (since it contains the 
+installation target), but it should not be installed.
+When the file lists include directories it might be interesting to ignore 
+certain files, e.g.\ version management.
+This can be done with the following.
+<<variables>>=
+IGNORE_FILES?=      \(\.svn\|\.git\|CVS\)
+PKG_IGNORE?=        ${IGNORE_FILES}
+@
+
+The installation path is controlled by the following variables.
+<<variables>>=
+PKG_PREFIX?=        ${PREFIX}
+PKG_INSTALL_DIR?=   ${INSTALLDIR}
+@
+
+Sometimes different parts of a package must be installed to different places, 
+e.g.\ a script to [[/usr/local/bin]] and a manual page to 
+[[/usr/local/share/man]].
+For this purpose, a package can be divided into several sub-packages.
+By default we have one package called [[main]].
+<<variables>>=
+PKG_PACKAGES?=            main
+@ For each such package we can set a specialized version of the variables we 
+discussed above.
+By default, they will inherit the global values set above.
+<<variables>>=
+define variables
+PKG_NAME-$(1)?= 		      ${PKG_NAME}
+PKG_INSTALL_FILES-$(1)?= 	${PKG_INSTALL_FILES}
+PKG_PREFIX-$(1)?=         ${PKG_PREFIX}
+PKG_INSTALL_DIR-$(1)?=    ${PKG_INSTALL_DIR}
+
+PKG_TARBALL-$(1)?=        ${PKG_TARBALL}
+PKG_TARBALL_FILES-$(1)?=  ${PKG_TARBALL_FILES}
+PKG_IGNORE-$(1)?=         ${PKG_IGNORE}
+endef
+@ Then we use this as a function to set the variables for each sub-package.
+<<variables>>=
+$(foreach pkg,${PKG_PACKAGES},$(eval $(call variables,${pkg})))
+@
+
+\subsection{Portability}
+
+For portability, this include file requires the following programs to be 
+available.
+<<variables>>=
+ifneq (${MAKE},gmake)
+INSTALL?=     ${SUDO} install -Dp
+else
+INSTALL?=     ${SUDO} install -CSp
+endif
+@
+
+
+\section{Implementation}
+
+This is an include file, so we will use a C-style header construction to 
+prevent it from being included more than once.
+Then the overview of the structure is as follows.
+<<pkg.mk>>=
+ifndef PACKAGE_MK
+PACKAGE_MK=true
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
+<<variables>>
+<<an all-like target>>
+<<targets for packaging>>
+<<targets for cleaning>>
+<<targets for installation>>
+
+endif
+@
+
+We want to have an all-like target, we call it [[package]].
+The [[package]] target should, of course, have all tarballs as prerequisites.
+The reason for not using [[all]] is that we leave the [[all]] target for the 
+user, with its prerequisites defined in the main makefile.
+<<an all-like target>>=
+.PHONY: package
+package: $(foreach pkg,${PKG_PACKAGES},${PKG_TARBALL-${pkg}})
+@
+
+\subsection{Packaging}
+
+The packaging step shall take the files specified and create a tarball 
+containing them.
+What we will do is to create a target for the tarball.
+We will do this by using the archive functionality of make(1) and the 
+compression functionality we added in \cref{portability:Archives}.
+<<targets for packaging>>=
+define tarball
+$(foreach f,${PKG_TARBALL_FILES-$(1)},\
+  $(eval ${PKG_TARBALL-$(1)}(${f}): ${f}))
+${PKG_TARBALL-$(1)}: ${PKG_TARBALL-$(1)}(${PKG_TARBALL_FILES-$(1)})
+endef
+$(foreach pkg,${PKG_PACKAGES},$(eval $(call tarball,${pkg})))
+@
+
+\subsection{Cleaning}
+
+The kind of cleaning we are interested in is to remove the tarballs that we 
+generate.
+The other files, install and tarball files, should be cleaned using other 
+cleaning targets --- if they need cleaning at all.
+
+The technique we use is to provide a [[clean-package]] target which we add as 
+a prerequisite to the general target [[clean]].
+This way the user can have a recipe for [[clean]] in the main makefile without 
+us interfering.
+<<targets for cleaning>>=
+.PHONY: clean clean-package
+clean: clean-package
+@
+
+We now create a cleaning target for each sub-package and add those as 
+prerequisites for the [[clean-package]] target.
+The recipe is to remove the tarball of that particular sub-package.
+<<targets for cleaning>>=
+define clean-package
+.PHONY: clean-package-$(1)
+clean-package: clean-package-$(1)
+clean-package-$(1):
+	${RM} ${PKG_TARBALL-$(1)}
+endef
+$(foreach pkg,${PKG_PACKAGES},$(eval $(call clean-package,${pkg})))
+@
+
+\subsection{Installation}
+
+The [[install]] target will install the files that are configured to be 
+installed where they are configured to be installed.
+The installation process proceeds in the following steps.
+<<installation process>>=
+.PHONY: pre-install do-install post-install
+post-install: do-install
+do-install:   pre-install
+pre-install:  ${PKG_INSTALL_FILES}
+@ This will ensure that the targets' recipes are run in the desired order 
+(since the prerequisites' recipes are run first, if needed).
+This means that the files to be installed are made before [[pre-install]] is 
+run.
+To start the process with the [[install]] target, we add the following.
+<<targets for installation>>=
+.PHONY: install
+install: post-install
+<<installation process>>
+@
+
+Now we need to provide package dependent versions of these targets.
+We achieve this by simply adding the package dependent versions as 
+prerequisites for the general targets, and in the same order as we did for the 
+general targets.
+<<targets for installation>>=
+define post-install
+.PHONY: post-install-$(1)
+post-install: post-install-$(1)
+post-install-$(1): do-install-$(1)
+endef
+$(foreach pkg,${PKG_PACKAGES},$(eval $(call post-install,${pkg})))
+
+define do-install
+.PHONY: do-install-$(1)
+do-install: do-install-$(1)
+do-install-$(1): pre-install-$(1)
+	<<default do-install recipe>>
+endef
+$(foreach pkg,${PKG_PACKAGES},$(eval $(call do-install,${pkg})))
+
+define pre-install
+.PHONY: pre-install-$(1)
+pre-install: pre-install-$(1)
+pre-install-$(1): ${PKG_INSTALL_FILES-$(1)}
+endef
+$(foreach pkg,${PKG_PACKAGES},$(eval $(call pre-install,${pkg})))
+@
+
+Finally, we need a default recipe for the [[do-install]] target, otherwise the 
+user would have to write one every time --- and that would counter the purpose 
+of this include file.
+The procedure is straight-forward.
+We first create the target directory, with a possible prefix.
+Then, for every non-directory, we install using the [[install]] command.
+<<default do-install recipe>>=
+for f in ${PKG_INSTALL_FILES-$(1)}; do \
+  [ -d "$$$$f" ] || ${INSTALL} -t ${PKG_PREFIX-$(1)}${PKG_INSTALL_DIR-$(1)}/ "$$$$f"; \
+done
+@

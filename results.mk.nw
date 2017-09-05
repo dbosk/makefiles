@@ -1,0 +1,341 @@
+\section{Introduction and usage}
+\label{Intro}
+
+The problem case is the following.
+We have a Moodle system where we do grading and everything related to a course, 
+i.e.\ we have individual assignments.
+Then we must report the grades to a national database.
+The entries in this database is according to parts set in the course syllabus, 
+each part can contain one or more assignments.
+This makefile uses the data that can be extracted from Moodle and some 
+settings, then it converts the data to a form which is reportable to the 
+student office, where the report is \emph{manually} entered into the national 
+database.
+
+Since the data must be manually entered into the database, we require that the 
+reports we send are not overlapping.
+E.g.\ if we report all grades by the end of a course, but some students 
+complete their assignments late and are graded after the first report, then we 
+must generate a second report which only contains the new results.
+
+The input is a file which is exported from Moodle (a tab-separated CSV-file).
+The output is also a tab-separated CSV-file, reflecting the current state of 
+what has been reported to the national database.
+The output could thus simply be a copy of the input, it will be used for 
+comparison the next time we generate a report.
+Finally, we will output a temporary file, the report to be sent to the student 
+office for registration.
+For this we will use three variables that can be set on the command-line:
+<<variables>>=
+in?=      new.csv
+out?=     reported.csv
+report?=  report.pdf
+@
+
+The structure will be that of a makefile used for inclusion in a main 
+Makefile.
+The structure is thus similar to most makefiles, we first need 
+[[<<variables>>]], then [[<<targets>>]].
+Since this will be a file to include, we do not want to include the same 
+contents twice, in any form of accidental recursive inclusion, so we use 
+a C-like construction.
+<<results.mk>>=
+ifndef MIUN_RESULTS_MK
+MIUN_RESULTS_MK=true
+
+<<variables>>
+<<targets>>
+
+INCLUDE_MAKEFILES?= .
+include ${INCLUDE_MAKEFILES}/miun.depend.mk
+
+endif
+@ So to use this file, simply input it in your Makefile by adding the line 
+[[include results.mk]] at the end of the file, in the same fashion as the 
+inclusion of [[miun.depend.mk]] above.
+
+For the purpose of reporting the results, we need to provide some identifiers.
+Usually this comes in the form of a course identifier.
+We also need to know where to send the results, so we can automate as much as 
+possible.
+We will dedicate two variables for this, which can be set in a Makefile.
+<<variables>>=
+RESULTS_COURSE?=    course identifier
+RESULTS_EMAIL?=	    iksexp@miun.se
+@ These variables are later used to form the command for sending the results to
+the student office.
+By default we use Mutt\footnote{%
+  We could also use Thunderbird by setting [[RESULTS_MAILER?=	thunderbird -compose "to=${RESULTS_EMAIL},subject='resultat ${RESULTS_COURSE}',attachment='file://${report}'"]].
+}.
+<<variables>>=
+RESULTS_MAILER?=  mutt -s "resultat ${RESULTS_COURSE}" -a ${report} -- ${RESULTS_EMAIL}
+@
+
+We provide a target [[report]] which processes the input, generates the new 
+report and emails it to the designated address above.
+<<targets>>=
+.PHONY: report
+report:
+	<<report recipe>>
+@
+
+Finally, we also provide a way to clean up all temporary files.
+We provide a target [[clean-results]] which we add as a dependency to the 
+[[clean]] target, which is left to the user to use for whatever other cleaning 
+is specified in the [[Makefile]].
+<<targets>>=
+.PHONY: clean clean-results
+clean: clean-results
+clean-results:
+	<<clean recipe>>
+@ We will populate the [[<<clean recipe>>]] as we go.
+
+\subsection{Portability}
+
+To improve the portability of the code, we use the following variables instead 
+of the respective commands directly:
+<<variables>>=
+LOCALC?=  localc --norestore
+RM?=      /bin/rm -Rf
+MV?=      /bin/mv
+DIFF?=    diff
+JOIN?=    join
+CUT?=     cut
+SORT?=    sort
+HEAD?=    head
+TAIL?=    tail
+SED?=     sed
+GREP?=    grep
+CAT?=     cat
+CP?=      cp -R
+PAGER?=   less
+PASTE?=   paste
+LN?=      ln
+@ There is currently an unknown bug causing the join command to not work with 
+tabs, although that exact code has worked previously, so the resulting report 
+file will be \emph{space separated}.
+
+
+\section{Processing Moodle's output}
+
+This section covers the technical details of how to process the data exported 
+from Moodle.
+We have the input file, given as [[${in}]], then we want the a report of 
+changes to send to the student office (\cref{FindingChanges}).
+There are different identifiers used in the national database and in Moodle.
+So we need to extract the identifiers in Moodle and convert to those in the 
+national database (\cref{ChangingIdentifiers}).
+Then we can send the report and update our local representation of what is 
+reported to the national database, i.e.\ [[${out}]].
+
+\subsection{Transforming Moodle's output}
+
+The first thing we need to do is to transform Moodle's output.
+The output format varies a lot, it changes with the mood of the system 
+administrator.
+So the code in this section changes the most.
+
+We will now create a temporary file [[${out}.diff]] based on [[${in}]].
+<<targets>>=
+${out}.new: ${in}
+	<<new recipe>>
+@ This means we should also add [[${out}.diff]] to the recipe of clean.
+<<clean recipe>>=
+${RM} ${out}.new
+@
+
+We are now going to process the data, we will do this by piping the data 
+through a series of commands.
+The columns we are interested in are 1--3 and 6 to the end.
+<<new recipe>>=
+${CUT} -f 1-3,6- ${in} | \
+@ For some reason the students' usernames are appended to their lastnames --- 
+in addition to having a separate column for usernames.
+Obviously we want to filter this away.
+<<new recipe>>=
+${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" \
+@
+
+Some of the data in Moodle are quite long, so we would like to do some 
+rewrites.
+For this purpose we will add a list of regular expressions that will be 
+applied.
+We store this list as a space separated list of regular expressions in 
+[[${RESULTS_REWRITES}]].
+This means that we also must avoid spaces in the regular expressions, thus the 
+first thing we do is to remove all spaces in the data.
+<<new recipe>>=
+$(if ${RESULTS_REWRITES},| ${SED} "s/ //g", ) \
+$(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) \
+> $@
+@ We let the default rewrites be
+<<variables>>=
+RESULTS_REWRITES+=  "s/Godkänd(G)/G/g" "s/Underkänd(U)/U/g"
+RESULTS_REWRITES+=  "s/Komplettering(Fx)/Fx/g"
+RESULTS_REWRITES+=  "s/\"//g"
+@
+
+\subsection{Extracting the changes}
+\label{FindingChanges}
+
+Now we want to find what has changed since the last time we exported the 
+grades.
+For this we will create a file [[${out}.diff]] which contains only the changed 
+rows.
+<<targets>>=
+${out}.diff: ${out}.new
+	<<diff recipe>>
+@
+
+We are not interested in the headers of the table, so we skip that
+line.
+<<diff recipe>>=
+${GREP} -v "^.\?First \?name" ${out}.new | \
+@ We are not interested in reporting students' failed results, so we filter out 
+those.
+In [[${RESULTS_FAILED}]] we keep a regular expression for the grades that shall
+be removed.
+We then use [[${RESULTS_FAILED_regex}]] to match against the data.
+<<variables>>=
+RESULTS_FAILED?=      -\|Fx\?\|U
+RESULTS_FAILED_regex= "\( \|	\|,\)\"\?\(${RESULTS_FAILED}\)\"\?\(	.*\)*$$"
+@ The code to filter the data will thus be:
+<<diff recipe>>=
+$(if ${RESULTS_FAILED},${GREP} -v ${RESULTS_FAILED_regex} |,) \
+@
+
+Finally, we want to compare this result with the old result and keep only the 
+modified lines.
+For the convenience of the secretaries we will also sort the data on the third 
+column (i.e.\ family name).
+<<diff recipe>>=
+${DIFF} ${@:.diff=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
+@ Due to the difference comparison we require that the new file depends on the 
+old file, and that the old file actually exists, so we add this as 
+a dependency.
+<<targets>>=
+${out}.diff: ${out}
+@ We will have to ensure that the old file exists, i.e.\ create it if it does 
+not exist.
+We need it for comparisons, an empty file perfectly represents previously
+non-existent results, so we create a symbolic link to [[/dev/null]].
+<<targets>>=
+${out}:
+	[ -r $@ ] || ${LN} -s /dev/null $@
+@
+
+\subsection{Extracting identifiers for reporting}
+\label{ChangingIdentifiers}
+
+In Moodle, every student is identified by a unique username.
+In the national database of grades, every student is uniquely identified by 
+their civic registration number.
+What we want to do here is to extract the username from the exported data, then
+supply the corresponding civic registration numbers.
+We are only interested in the usernames of those students for whom the results 
+changed, so we can use the [[${out}.diff]] file from above.
+
+In this case we can use one of make's suffix-based constructions.
+We will take a file with suffix \enquote{.csv.diff} and create a file 
+\enquote{.csv.diff.id}.
+<<targets>>=
+.SUFFIXES: .csv .csv.diff .csv.diff.id
+.csv.diff.csv.diff.id:
+	<<identifier recipe>>
+@ Now we want to extract the usernames and get the identifiers from the 
+national database.
+We simply extract the list of usernames (the third column in the data) and pipe
+it to a pager.
+<<identifier recipe>>=
+@echo "---- userids showed in ${PAGER} ----"
+${CAT} $< | ${CUT} -f 3 | ${PAGER}
+@ Now we let the user paste the list of both identifiers.
+<<identifier recipe>>=
+@echo "---- paste username <tab> personnummer, end with C-d on a blank line (EOF) ----"
+${CAT} > $@
+@
+
+\subsection{Generating the report}
+\label{GeneratingReport}
+
+Now we have the changes in [[${out}.diff]] and a mapping from usernames to 
+civic registration numbers in [[${out}.diff.id]].
+To create the report, we only have to join these files and convert the result 
+to PDF format.
+
+To convert a CSV-file to PDF we will use LibreOffice and one of make's suffix 
+rules.
+<<targets>>=
+.SUFFIXES: .csv .pdf
+.csv.pdf:
+	${LOCALC} $<
+@ Now we can add a target using this conversion.
+<<targets>>=
+${report:.csv=.pdf}: ${report:.pdf=.csv}
+@
+
+The above target lets us create a PDF-formatted report from a CSV-file, so now 
+we have to create that CSV-file using [[${out}.diff]] and [[${out}.diff.id]].
+We also need the table headers from [[${in}]].
+<<targets>>=
+${report:.pdf=.csv}: ${in} ${out}.diff ${out}.diff.id
+	<<report.csv recipe>>
+@ Since the target for [[report.csv]] will automatically generate 
+[[${out}.diff]] and [[${out}.diff.id]] we would better add them to the clean 
+recipe in addition to the [[${report:.pdf=.csv}]] file.
+<<clean recipe>>=
+${RM} ${out}.diff ${out}.diff.id
+${RM} ${report:.pdf=.csv}
+@
+
+Now we want the header back, so we can get it properly formatted from 
+[[${out}.new]].
+However, we do not want all the excess columns for the grades: we only need one
+column with a summary.
+<<report.csv recipe>>=
+${HEAD} -n 1 ${out}.new | \
+  ${CUT} -f -${RESULTS_COLUMNS} > $@
+@ Next, we simply join the two tables on the username column and sort the list 
+on the column of the family name.
+We want to cut the excess columns here as well, the number of columns is 
+controlled by [[${RESULTS_COLUMNS}]].
+<<report.csv recipe>>=
+${JOIN} -1 1 -2 3 ${out}.diff.id ${out}.diff | ${CUT} -d " " -f 2- | \
+  ${SORT} -k 2 | ${CUT} -d " " -f -${RESULTS_COLUMNS} >> $@
+@ By default we let the default number of columns be four, i.e.\ first and last 
+name, civic identification number and finally one grade.
+<<variables>>=
+RESULTS_COLUMNS?=   4
+@
+
+
+\section{Sending and storing the results}
+
+Now we will do the actual reporting.
+As stated in \cref{Intro} we have a target [[report]] for this purpose.
+<<targets>>=
+.PHONY: report
+report: ${report} ${in}
+@ Since this will trigger the creation of [[${report}]] we must add it to the 
+clean recipe.
+<<clean recipe>>=
+${RM} ${report}
+@
+
+If there are no new results, then we do not want to send any report.
+The first thing we do is thus to check for new results.
+If there are none, we will say so to the user.
+<<report recipe>>=
+if [ ! -s ${out}.diff ]; then \
+  echo "No new results to report" >&2; \
+@ Otherwise, if there are new results, we will output them using the pager and 
+then send them using the email program.
+If the emailing succeeds, then we want to store the results, but not if it 
+fails (hence the conditional).
+<<report recipe>>=
+else \
+  ${PAGER} ${report}; \
+  ${RESULTS_MAILER} && \
+  ${MV} ${out}.new ${out}; \
+fi
+@

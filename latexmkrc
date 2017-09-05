@@ -3,14 +3,13 @@ add_cus_dep( 'nlo', 'nls', 0, 'makenlo2nls' );
 sub makenlo2nls {
 	system( "makeindex -s nomencl.ist -o \"$_[0].nls\" \"$_[0].nlo\"" );
 }
-
 #  This version has a fudge on the latex and pdflatex commands that
 #  allows the pythontex custom dependency to work even when $out_dir
 #  is used to set the output directory.  Without the fudge (done by
 #  trickery symbolic links) the custom dependency for using pythontex
 #  will not be detected.
 
-add_cus_dep('pytxcode', 'tex', 0, 'pythontex');
+add_cus_dep('pytxcode', 'pytxmcr', 0, 'pythontex');
 sub pythontex {
     # This subroutine is a fudge, because it from latexmk's point of
     # view, it makes the main .tex file depend on the .pytxcode file.
@@ -18,9 +17,8 @@ sub pythontex {
     # side effects in creating other files.  The dependence is a way
     # of triggering the rule to be run whenever the .pytxcode file
     # changes, and to do this before running latex/pdflatex again.
-    return system("pythontex --verbose --interpreter python:python3 \"$_[0]\"");
+    return system("pythontex3 --verbose \"$_[0]\"");
 }
-
 
 $pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
 $latex = 'internal mylatex %R %Z latex %O %S';

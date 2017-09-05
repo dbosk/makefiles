@@ -1,241 +1,205 @@
-# $Id$
-# Author: Daniel Bosk <daniel.bosk@miun.se>
-
 ifndef TEX_MK
 TEX_MK=true
 
-DOCUMENTS?=	
-TEXMF?=		${HOME}/texmf
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
 
-solutions?=	no
-handout?=	no
-
-RM?=		/bin/rm -f
-MV?=		mv
-SED?=		sed
-SEDex?=		sed -E
-CAT?=		cat
-WC?= 		wc -w
-
-# variables used to compile LaTeX documents
-LATEX?=		latex
-PDFLATEX?=	pdflatex
-DETEX?= 	detex
-LATEXMK?= 	latexmk ${LATEXMKRC} -bibtex-cond
-LATEXMKRC?= 
-DVIPS?=		dvips
-PDFPS?=		pdf2ps
-LATEXFLAGS?=
-MAKEINDEX?=	makeindex
-BIBTEX?=	bibtex8
-PDFVIEW?=	evince
-PAPER?=		a4
-
-USE_LATEXMK?= 	yes
-USE_BIBLATEX?= 	yes
-
-MATCH_PRINTANSWERS="/\\\\\\\\\\printanswers/s/^%//"
-MATCH_HANDOUT="s/\\\\\\\\\\documentclass\\[?(.*)\\]?{beamer}/\\\\\\\\\\documentclass\\[\\1,handout\\]{beamer}/"
-
-.SUFFIXES: .ins .cls .sty
-.ins.sty .ins.cls: latex
-	${LATEX} $<
-
-.SUFFIXES: .dtx .pdf
-.dtx.pdf: latex
-	${PDFLATEX} ${LATEXFLAGS} $<
-ifneq (${USE_BIBLATEX},yes)
-	-${BIBTEX} ${<:.dtx=}
+LATEX?=       latexmk -dvi
+PDFLATEX?=    latexmk -pdf
+LATEXFLAGS?=  -use-make
+TEX_OUTDIR?=  ltxobj
+TEX_BBL?=
+BIBTEX?=      bibtexu
+BIBTEXFLAGS?=
+BIBER?=       biber
+BIBERFLAGS?=
+TEX_IND?=
+MAKEINDEX?=   makeindex
+MAKEIDXFLAGS?=
+XINDY?=       texindy
+XINDYFLAGS?=
+TEX_PYTHONTEX?=
+PYTHONTEX?=   pythontex3
+PYTHONTEXFLAGS?=
+TEX_EXT_DIR-acmproc?=     acm
+${TEX_OUTDIR}/%.aux: %.tex
+	${MKDIR} ${TEX_OUTDIR}
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
+	${BIBTEX} ${BIBTEXFLAGS} $<
+	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
+${TEX_OUTDIR}/%.bcf: %.tex
+	${MKDIR} ${TEX_OUTDIR}
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
+	${BIBER} -O $@ ${BIBERFLAGS} $<
+ifneq (${TEX_BBL},)
+%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
-	-${MAKEINDEX} -s gind.ist ${<:.dtx=}
-	-${MAKEINDEX} ${<:.dtx=.nlo} -s nomencl.ist -o ${<:.dtx=.nls}
-	while (${PDFLATEX} ${LATEXFLAGS} $<; \
-		grep "Rerun to get cross" ${<:.dtx=.log}) \
-		do true; done
-	${PDFLATEX} ${LATEXFLAGS} $<
-
-.SUFFIXES: .dvi
-.dtx.dvi: latex
-	${LATEX} ${LATEXFLAGS} $<
-ifneq (${USE_BIBLATEX},yes)
-	-${BIBTEX} ${<:.dtx=}
+ifneq (${TEX_PYTHONTEX},)
+%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
 endif
-	-${MAKEINDEX} -s gind.ist ${<:.dtx=}
-	-${MAKEINDEX} ${<:.dtx=.nlo} -s nomencl.ist -o ${<:.dtx=.nls}
-	while (${LATEX} ${LATEXFLAGS} $<; \
-		grep "Rerun to get cross" ${<:.dtx=.log}) \
-		do true; done
-	${LATEX} ${LATEXFLAGS} $<
-
-.SUFFIXES: .ps
-.pdf.ps: pdf2ps
-	${PDFPS} $< $@
-
-# $1 = input file
-# $2 = output file
-define sed_transformations
-${CAT} $1 \
-	$(shell [ "${solutions}" = "no" ] || echo \
-	" | ${SEDex} \"${MATCH_PRINTANSWERS}\" " ) \
-	$(shell [ "${handout}" = "no" ] || echo \
-	" | ${SEDex} \"${MATCH_HANDOUT}\" " ) \
-	> $2
-endef
-
-# $1 = latex version
-# $2 = input tex file
-define run_latex
-$1 ${LATEXFLAGS} $2
--${BIBTEX} ${1:.tex=}
--${MAKEINDEX} -s gind.ist ${2:.tex=}
--${MAKEINDEX} ${2:.tex=.nlo} -s nomencl.ist -o ${2:.tex=.nls}
-while ($1 ${LATEXFLAGS} $2; \
-	grep "Rerun to get cross" ${2:.tex=.log}) \
-	do true; done
-$1 ${LATEXFLAGS} $2
-endef
-
-# $1 = original file
-# $2 = new file
-# $3 = backup file
-define backup_file
-if diff -u $1 $2; then \
-	mv $1 $3 && mv $2 $1; \
-fi
-endef
-
-# $1 = backup file
-# $2 = original file
-define restore_file
-if [ -f $1 ]; then \
-	${MV} $1 $2; \
-fi
-endef
-
-.SUFFIXES: .tex
-.tex.pdf: latexmk
-ifeq (${USE_LATEXMK},yes)
-	${LATEXMK} -pdf ${LATEXFLAGS} $<
-else
-	$(call run_latex, ${PDFLATEX}, $<)
+${TEX_OUTDIR}/%.idx: %.tex
+	${MKDIR} ${TEX_OUTDIR}
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
+	${XINDY} -o $@ ${XINDYFLAGS} $<
+ifneq (${TEX_IND},)
+%.pdf: ${TEX_OUTDIR}/%.ind
 endif
+${TEX_OUTDIR}/%.nlo: %.tex
+	${MKDIR} ${TEX_OUTDIR}
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 
-.tex.dvi: latexmk
-ifeq (${USE_LATEXMK},yes)
-	${LATEXMK} -dvi ${LATEXFLAGS} $<
-else
-	$(call run_latex, ${PDFLATEX}, $<)
-endif
-
-.dvi.ps: dvips
-	${DVIPS} $<
-
-.SUFFIXES: .svg .pdf_tex
-.svg.pdf: inkscape
-	inkscape -D -z --file=$< --export-pdf=$@ --export-latex
-
-.svg.pdf_tex: ${<:.svg=.pdf}
-
-.SUFFIXES: .dia
-.dia.tex: dia
-	dia -E $@ -t pgf-tex $<
-
-.SUFFIXES: .odt
-.odt.pdf: soffice
-	soffice --convert-to pdf $< --headless
-
-.PHONY: all
-all: ${DOCUMENTS}
-
-.PHONY: clean-tex
-clean-tex: latexmk
-	${RM} *.log *.aux *.toc *.bbl *.blg *.ind *.ilg *.dvi
-	${RM} *.out *.idx *.nls *.nlo *.lof *.lot *.glo
-	${RM} *.core *.o *~ *.out
-	${RM} missfont.log *.nav *.snm *.vrb *-eps-converted-to.pdf
-	${RM} *.run.xml *-blx.bib
-	${RM} *.bcf *.fdb_latexmk *.fls
-	${RM} -R pythontex-files-* *.pytxcode *.py.err
-	@-for f in *.tex; do \
-		[ -f $$f.orig ] && mv $$f.orig $$f; \
+${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
+	${MKDIR} ${TEX_OUTDIR}
+	${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} -s nomencl.ist $<
+pythontex-files-%/%.pytxcode: %.tex
+	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
+%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+	  ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 	done
-	@-${LATEXMK} -C
-	@if [ -L rfc.bib ]; then \
-		${RM} rfc.bib; \
-	fi
+	-${LN} ${TEX_OUTDIR}/$@ $@
 
-.PHONY: clean
+%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
+	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	done
+	-${LN} ${TEX_OUTDIR}/$@ $@
+latexmkrc:
+	[ -e $@ ] || ${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+%.cls %.sty: %.ins
+	${LATEX} $<
+%.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+	  ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	done
+	-${LN} ${TEX_OUTDIR}/$@ $@
+
+%.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
+	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	done
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.aux: %.dtx
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+
+${TEX_OUTDIR}/%.bcf: %.dtx
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+
+${TEX_OUTDIR}/%.idx: %.dtx
+	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+define download_archive
+$(foreach file,${TEX_EXT_FILES-$(1)},\
+  $(eval $(notdir ${file}): ${TEX_EXT_DIR-$(1)}/${file}))
+$(notdir ${TEX_EXT_FILES-$(1)}):
+	${LN} $$^ $$@
+.PHONY: $(1)
+$(1): $(notdir ${TEX_EXT_FILES-$(1)})
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}): \
+  ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
+	${TEX_EXT_EXTRACT-$(1)}
+${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
+	${MKDIR} ${TEX_EXT_DIR-$(1)}
+	${CURL} -o $$@ ${TEX_EXT_URL-$(1)}
+.PHONY: distclean clean-$(1)
+distclean: clean-$(1)
+clean-$(1):
+	${RM} ${TEX_EXT_FILES-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+endef
+define download_repo
+$(foreach file,${TEX_EXT_FILES-$(1)},\
+  $(eval $(notdir ${file}): ${TEX_EXT_DIR-$(1)}/${file}))
+$(notdir ${TEX_EXT_FILES-$(1)}):
+	${LN} $$^ $$@
+.PHONY: $(1)
+$(1): $(notdir ${TEX_EXT_FILES-$(1)})
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}): \
+  ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}
+$(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
+	${LN} ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}/$${@:${TEX_EXT_DIR-$(1)}/%=%} $$@
+${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
+	git clone ${TEX_EXT_URL-$(1)} $$@
+.PHONY: distclean clean-$(1)
+distclean: clean-$(1)
+clean-$(1):
+	${RM} ${TEX_EXT_FILES-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+endef
+TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.sty
+TEX_EXT_DIR-lncs?=    lncs
+TEX_EXT_SRC-lncs?=    llncs2e.zip
+TEX_EXT_URL-lncs?=    ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+TEX_EXT_EXTRACT-lncs?=${UNZIP} $$< -d ${TEX_EXT_DIR-lncs}
+
+$(eval $(call download_archive,lncs))
+TEX_EXT_FILES-biblatex-lncs?= lncs.bbx lncs.cbx lncs.dbx
+TEX_EXT_DIR-biblatex-lncs?=   lncs
+TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
+TEX_EXT_URL-biblatex-lncs?=   https://github.com/neapel/biblatex-lncs.git
+
+$(eval $(call download_repo,biblatex-lncs))
+${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls:
+	${CURL} -o $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
+acm_proc_article-sp.cls: ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
+	${LN} $^ $@
+.PHONY: acmproc
+acmproc: acm_proc_article-sp.cls
+.PHONY: distclean clean-acmproc
+distclean: clean-acmproc
+clean-acmproc:
+	${RM} acm_proc_article-sp.cls
+	${RM} ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
+TEX_EXT_FILES-acmsmall?=  acmsmall.cls
+TEX_EXT_DIR-acmsmall?=    acm
+TEX_EXT_SRC-acmsmall?=    v2-acmsmall.zip
+TEX_EXT_URL-acmsmall?=    http://www.acm.org/publications/latex_style/v2-acmsmall.zip
+TEX_EXT_EXTRACT-acmsmall?=${UNZIP} $< -d ${TEX_EXT_DIR-acmsmall}
+
+$(eval $(call download_archive,acmsmall))
+TEX_EXT_FILES-acmlarge?=  acmlarge.cls
+TEX_EXT_DIR-acmlarge?=    acm
+TEX_EXT_SRC-acmlarge?=    v2-acmlarge.zip
+TEX_EXT_URL-acmlarge?=    http://www.acm.org/publications/latex_style/v2-acmlarge.zip
+TEX_EXT_EXTRACT-acmlarge?=${UNZIP} $< -d ${TEX_EXT_DIR-acmlarge}
+
+$(eval $(call download_archive,acmlarge))
+rfc.bib:
+	${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
+	  | ${UNCOMPRESS} - > $@ ; \
+	${SED} -i "s/@misc/@techreport/" $@
+
+${TEXMF}/tex/latex/rfc.bib:
+	mkdir -p ${TEXMF}/tex/latex/
+	${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
+	  | ${UNCOMPRESS} - > $@ ; \
+	${SED} -i "s/@misc/@techreport/" $@
+.PHONY: rfc
+rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
+.PHONY: distclean clean-rfc
+distclean: clean-rfc
+clean-rfc:
+	${RM} rfc.bib
+.PHONY: clean clean-tex
 clean: clean-tex
 
-define filecontent
-for f in $(1); do ${SED} -i \
-	"/^%\\\\begin{filecontents\\*\\?}{$$f}/,/^%\\\\end{filecontents\\*\\?}/s/^%//" $(2); \
-	${SED} -i "/^\\\\begin{filecontents\\*\\?}{$$f}/r $$f" $(2); done
-endef
+clean-tex:
+	-latexmk -C -output-directory=${TEX_OUTDIR}
+	${RM} -R ${TEX_OUTDIR}
+	${RM} *.pytxcode
+	${RM} pythontex-files-*
 
-define bibliography
-${SED} -i -e "/\\\\bibliography{[^}]*}/{s/\\\\bibliography.*//;r $(1:.tex=.bbl)" -e "}" $(1)
-endef
+.PHONY: distclean distclean-tex
+distclean: distclean-tex
 
-define bblcode
-\\\\makeatletter\\\\def\\\\blx@bblfile@biber{\\\\blx@secinit\\\\begingroup\\\\blx@bblstart\\\\input{\\\\jobname.bbl}\\\\blx@bblend\\\\endgroup\\\\csnumgdef{blx@labelnumber@\\\\the\\\\c@refsection}{0}}\\\\makeatother
-endef
-
-.SUFFIXES: .submission.tex
-.tex.submission.tex: sed
-	cp $< $@
-	$(call filecontent,\
-		$(shell ${SED} -n \
-		"s/^%\\\\begin{filecontents\\*\\?}{\\([^}]*\\)}/\\1/p" \
-		$<),$@)
-	$(call bibliography,$@)
-	${SED} -i "s/^%biblatex-bbl-code/${bblcode}/" $@
-	${SED} -i "s/${@:.tex=}/\\\\jobname/g" $@
-
-.SUFFIXES: .submission.bbl .bbl
-.bbl.submission.bbl:
-	cp $< $@
-
-.PHONY: submission
-submission: ${DOCUMENTS:.pdf=.submission.tex}
-
-.SUFFIXES: .nw
-.nw.tex: noweb
-	noweave -x -n -delay -t2 $< > $@
-
-NOWEB_SUFFIXES+= .py.nw .c.nw .h.nw .cpp.nw .hpp.nw .mk.nw .hs.nw
-.SUFFIXES: ${NOWEB_SUFFIXES}
-$(foreach suffix,${NOWEB_SUFFIXES},${suffix}.tex): noweb
-	noweave -x -n -t2 $< > $@
-
-.SUFFIXES: .md
-.md.tex: pandoc
-	pandoc $< -t latex -o $@
-
-.PHONY: wc
-wc:
-	for f in $^; do echo -n "$${f}: "; ${DETEX} $${f} | ${WC}; done
-
-.SUFFIXES: .asc .tex.asc
-.tex.tex.asc:
-	gpg -aes $(foreach recipient,${TEX_RECIPIENTS},-r ${recipient}) $<
-
-.tex.asc.tex:
-	gpg --output $@ -d $<.SUFFIXES: .gpg
-
-
-### INCLUDES ###
-
-INCLUDE_MAKEFILES?= .
-INCLUDES= 	depend.mk
-
-define inc
-ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
-$(1):
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
-include ${INCLUDE_MAKEFILES}/$(1)
-endif
-endef
-$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
+distclean-tex:
+	[ ! -L latexmkrc ] || ${RM} latexmkrc
 
 endif
