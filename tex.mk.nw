@@ -527,7 +527,8 @@ Finally, we must also do some cleaning.
 distclean: clean-$(1)
 clean-$(1):
 	${RM} ${TEX_EXT_FILES-$(1)}
-	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] && ${RM} ${TEX_EXT_SRC-$(1)} \
+	  || ${RM} -R ${TEX_EXT_DIR-$(1)}
 @
 
 \subsection{Springer LNCS}

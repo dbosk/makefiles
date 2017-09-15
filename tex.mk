@@ -112,7 +112,8 @@ ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
 distclean: clean-$(1)
 clean-$(1):
 	${RM} ${TEX_EXT_FILES-$(1)}
-	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] && ${RM} ${TEX_EXT_SRC-$(1)} \
+	  || ${RM} -R ${TEX_EXT_DIR-$(1)}
 endef
 define download_repo
 $(foreach file,${TEX_EXT_FILES-$(1)},\
@@ -131,7 +132,8 @@ ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
 distclean: clean-$(1)
 clean-$(1):
 	${RM} ${TEX_EXT_FILES-$(1)}
-	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] && ${RM} ${TEX_EXT_SRC-$(1)} \
+	  || ${RM} -R ${TEX_EXT_DIR-$(1)}
 endef
 TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.sty
 TEX_EXT_DIR-lncs?=    lncs
