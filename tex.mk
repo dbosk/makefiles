@@ -189,6 +189,13 @@ rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
 distclean: clean-rfc
 clean-rfc:
 	${RM} rfc.bib
+TEX_EXT_FILES-popets?=by-nc-nd.pdf dg-degruyter.pdf dgruyter_NEW.sty
+TEX_EXT_URL-popets?=https://petsymposium.org/files/popets.zip
+TEX_EXT_DIR-popets?=.
+TEX_EXT_SRC-popets?=popets.zip
+TEX_EXT_EXTRACT-popets?=${UNZIP} -p $$< popets/$$@ > $$@
+
+$(eval $(call download_archive,popets))
 .PHONY: clean clean-tex
 clean: clean-tex
 
