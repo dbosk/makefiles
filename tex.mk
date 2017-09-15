@@ -112,7 +112,8 @@ ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
 distclean: clean-$(1)
 clean-$(1):
 	${RM} ${TEX_EXT_FILES-$(1)}
-	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] && ${RM} ${TEX_EXT_SRC-$(1)} \
+	  || ${RM} -R ${TEX_EXT_DIR-$(1)}
 endef
 define download_repo
 $(foreach file,${TEX_EXT_FILES-$(1)},\
@@ -131,7 +132,8 @@ ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
 distclean: clean-$(1)
 clean-$(1):
 	${RM} ${TEX_EXT_FILES-$(1)}
-	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] && ${RM} ${TEX_EXT_SRC-$(1)} \
+	  || ${RM} -R ${TEX_EXT_DIR-$(1)}
 endef
 TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.sty
 TEX_EXT_DIR-lncs?=    lncs
@@ -187,6 +189,13 @@ rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
 distclean: clean-rfc
 clean-rfc:
 	${RM} rfc.bib
+TEX_EXT_FILES-popets?=by-nc-nd.pdf dg-degruyter.pdf dgruyter_NEW.sty
+TEX_EXT_URL-popets?=https://petsymposium.org/files/popets.zip
+TEX_EXT_DIR-popets?=.
+TEX_EXT_SRC-popets?=popets.zip
+TEX_EXT_EXTRACT-popets?=${UNZIP} -p $$< popets/$$@ > $$@
+
+$(eval $(call download_archive,popets))
 .PHONY: clean clean-tex
 clean: clean-tex
 

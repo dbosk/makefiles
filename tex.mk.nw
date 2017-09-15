@@ -440,6 +440,7 @@ Here we provide targets for some such classes and packages.
 <<biblatex LNCS style>>
 <<ACM classes>>
 <<the RFC bibliography>>
+<<PoPETS>>
 @
 
 We will now construct a general downloader, then we will use this downloader to
@@ -527,7 +528,8 @@ Finally, we must also do some cleaning.
 distclean: clean-$(1)
 clean-$(1):
 	${RM} ${TEX_EXT_FILES-$(1)}
-	[ "${TEX_EXT_DIR-$(1)}" = "." ] || ${RM} -R ${TEX_EXT_DIR-$(1)}
+	[ "${TEX_EXT_DIR-$(1)}" = "." ] && ${RM} ${TEX_EXT_SRC-$(1)} \
+	  || ${RM} -R ${TEX_EXT_DIR-$(1)}
 @
 
 \subsection{Springer LNCS}
@@ -687,3 +689,15 @@ clean-rfc:
 	${RM} rfc.bib
 @
 
+\subsection{Proceedings of the Privacy Enhancing Technologies Symposium}
+
+We would also like to be able to use the PoPETS format.
+<<PoPETS>>=
+TEX_EXT_FILES-popets?=by-nc-nd.pdf dg-degruyter.pdf dgruyter_NEW.sty
+TEX_EXT_URL-popets?=https://petsymposium.org/files/popets.zip
+TEX_EXT_DIR-popets?=.
+TEX_EXT_SRC-popets?=popets.zip
+TEX_EXT_EXTRACT-popets?=${UNZIP} -p $$< popets/$$@ > $$@
+
+$(eval $(call download_archive,popets))
+@
