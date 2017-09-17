@@ -20,5 +20,5 @@ programs.
 <<suffix rules for Haskell programs>>=
 .SUFFIXES: .hs .lhs
 .hs.o .lhs.o:
-  ghc ${HSFLAGS} -c $<
+	ghc ${HSFLAGS} -c $<
 @
