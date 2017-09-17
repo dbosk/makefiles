@@ -191,9 +191,9 @@ clean-rfc:
 	${RM} rfc.bib
 TEX_EXT_FILES-popets?=by-nc-nd.pdf dg-degruyter.pdf dgruyter_NEW.sty
 TEX_EXT_URL-popets?=https://petsymposium.org/files/popets.zip
-TEX_EXT_DIR-popets?=.
+TEX_EXT_DIR-popets?=popets
 TEX_EXT_SRC-popets?=popets.zip
-TEX_EXT_EXTRACT-popets?=${UNZIP} -p $$< popets/$$@ > $$@
+TEX_EXT_EXTRACT-popets?=${UNZIP} -p $$< popets/$$(notdir $$@) > $$@
 
 $(eval $(call download_archive,popets))
 .PHONY: clean clean-tex
