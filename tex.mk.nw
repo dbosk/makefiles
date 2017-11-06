@@ -556,6 +556,13 @@ TEX_EXT_EXTRACT-lncs?=${UNZIP} $$< -d ${TEX_EXT_DIR-lncs}
 $(eval $(call download_archive,lncs))
 @
 
+We also want to add backwards compatibility for when we used [[llncs]] instead 
+of just [[lncs]].
+<<Springer LNCS>>=
+.PHONY: llncs
+llncs: lncs
+@
+
 \subsection{LNCS style for [[biblatex]]}
 
 There is also \iac{LNCS} style for the [[biblatex]] package available on 
