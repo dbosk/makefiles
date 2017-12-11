@@ -142,6 +142,8 @@ TEX_EXT_URL-lncs?=    ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.
 TEX_EXT_EXTRACT-lncs?=${UNZIP} $$< -d ${TEX_EXT_DIR-lncs}
 
 $(eval $(call download_archive,lncs))
+.PHONY: llncs
+llncs: lncs
 TEX_EXT_FILES-biblatex-lncs?= lncs.bbx lncs.cbx lncs.dbx
 TEX_EXT_DIR-biblatex-lncs?=   lncs
 TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
