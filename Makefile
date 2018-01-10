@@ -60,7 +60,6 @@ clean:
 	${RM} exam.tex
 	${RM} results.tex
 	${RM} miun.compat.tex
-	${RM} ${MIUNFILES}
 
 
 .PHONY: miun
