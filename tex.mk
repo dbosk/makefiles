@@ -70,7 +70,8 @@ pythontex-files-%/%.pytxcode: %.tex
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
 latexmkrc:
-	[ -e $@ ] || ${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+	[ -e $@ -o "${INCLUDE_MAKEFILES}" = "." ] || \
+	${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
 %.cls %.sty: %.ins
 	${LATEX} $<
 %.pdf ${TEX_OUTDIR}/%.pdf: %.dtx

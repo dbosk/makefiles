@@ -148,7 +148,8 @@ the relevant [[<<latexmkrc>>]] entries in parallel.
 We supply a target to easily use our [[<<latexmkrc>>]] with latexmk(1).
 <<target for latexmkrc>>=
 latexmkrc:
-	[ -e $@ ] || ${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
+	[ -e $@ -o "${INCLUDE_MAKEFILES}" = "." ] || \
+	${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
 @ We also add the corresponding line for cleaning.
 <<distclean recipe>>=
 [ ! -L latexmkrc ] || ${RM} latexmkrc
