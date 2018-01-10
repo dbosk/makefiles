@@ -1,44 +1,26 @@
-# $Id$
-# Author: Daniel Bosk <daniel.bosk@miun.se>
-
 ifndef MIUN_COURSE_MK
 MIUN_COURSE_MK=true
 
-# add these to the document specific Makefile
-SOURCES?=	${FILES}
-DOCUMENTS?=	
-PUB_FILES?=	${DOCUMENTS}
-SERVER?=	ver.miun.se
-PUBDIR?=	/srv/web/courses
+DOCUMENTS?=
+PUB_FILES?=   ${DOCUMENTS}
+SERVER?=      ver.miun.se
+PUBDIR?=      /srv/web/svn/courses
 CATEGORY?=	
-# the documents will be published to $SERVER/$PUBDIR/$CATEGORY
 
-.PHONY: all print clean clean-course todo
-
+.PHONY: all
 all: ${DOCUMENTS}
 
-clean-course: clean-tex
+.PHONY: clean-course
+clean-course:
 ifneq (${DOCUMENTS},)
 	${RM} ${DOCUMENTS}
 endif
 
+.PHONY: clean
 clean: clean-course
 
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/miun.docs.mk
+include ${INCLUDE_MAKEFILES}/miun.export.mk
 
-### INCLUDES ###
-
-INCLUDE_MAKEFILES?= .
-INCLUDES= 	miun.depend.mk miun.docs.mk export.mk
-
-define inc
-ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
-$(1):
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
-include ${INCLUDE_MAKEFILES}/$(1)
-endif
-endef
-$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
-
-### END INCLUDES ###
-
-endif
+endif # MIUN_COURSE_MK

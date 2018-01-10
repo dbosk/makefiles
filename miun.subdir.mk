@@ -1,0 +1,2 @@
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/subdir.mk

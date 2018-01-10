@@ -1,32 +1,36 @@
-# $Id$
-# Author: Daniel Bosk <daniel.bosk@miun.se>
-
 ifndef MIUN_DOCS_MK
 MIUN_DOCS_MK=true
 
-# add these to the document specific Makefile
-SOURCES?=	${FILES}
-DOCUMENTS?=	
-PUB_FILES?=	${DOCUMENTS}
-SERVER?=	ver.miun.se
-PUBDIR?=	/srv/web/documents
+DOCUMENTS?=
+PUB_FILES?=   ${DOCUMENTS}
+SERVER?=      ver.miun.se
+PUBDIR?=      /srv/web/svn/dokument
 CATEGORY?=	
-# the documents will be published to $SERVER/$PUBDIR/$CATEGORY
 
-### INCLUDES ###
-
-INCLUDE_MAKEFILES?= .
-INCLUDES= 	doc.mk tex.mk miun.depend.mk miun.pub.mk
-
-define inc
-ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
-$(1):
-	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
-include ${INCLUDE_MAKEFILES}/$(1)
+ifdef PRINT
+LPR?=         ${PRINT}
 endif
-endef
-$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
 
-### END INCLUDES ###
+.PHONY: all
+all: ${DOCUMENTS}
 
+.PHONY: print
+print: ${DOCUMENTS:.pdf=.ps}
+
+.PHONY: clean-docs
+clean-docs:
+ifneq (${DOCUMENTS},)
+	${RM} ${DOCUMENTS}
 endif
+
+.PHONY: clean
+clean: clean-docs
+
+.PHONY: todo
+todo: $(wildcard *)
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/miun.tex.mk
+include ${INCLUDE_MAKEFILES}/miun.pub.mk
+
+endif # MIUN_DOCS_MK
