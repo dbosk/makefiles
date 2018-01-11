@@ -1,15 +1,23 @@
 ifndef SUBDIR_MK
 SUBDIR_MK=true
 
+INCLUDE_MAKEFILES?=.
+
 ifdef SUBDIR
+.PHONY: ${SUBDIR}
+${SUBDIR}::
+	${MAKE} -C $@ -I ${INCLUDE_MAKEFILES} ${MAKECMDGOALS}
+endif
+
+SUBDIR_ALL?=yes
+
+ifeq (${SUBDIR_ALL},yes)
 ifneq (${MAKECMDGOALS},)
 .PHONY: ${MAKECMDGOALS}
 ${MAKECMDGOALS}: ${SUBDIR}
 else
 ${.DEFAULT_GOAL}: ${SUBDIR}
 endif
-${SUBDIR}::
-	${MAKE} -C $@ ${MAKECMDGOALS}
 endif
 
 endif
