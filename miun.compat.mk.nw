@@ -38,8 +38,13 @@ Then we do not have to modify old [[Makefile]]s to include [[miun.compat.mk]].
 The code to recurse through subdirectories is essentially the same, it has no 
 API, so we simply include it using the recommended way.
 <<miun.subdir.mk>>=
+ifndef MIUN_SUBDIR_MK
+MIUN_SUBDIR_MK=true
+
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/subdir.mk
+
+endif # MIUN_SUBDIR_MK
 @
 
 

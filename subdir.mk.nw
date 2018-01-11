@@ -48,7 +48,7 @@ For each directory, we specify a recipe which runs make in the subdirectory
 with the goals specified on the command-line.
 <<let the recipe for each subdirectory recurse into it>>=
 .PHONY: ${SUBDIR}
-${SUBDIR}::
+${SUBDIR}:
 	${MAKE} -C $@ -I ${INCLUDE_MAKEFILES} ${MAKECMDGOALS}
 @ We also want to give the sub-make access to our [[INCLUDE_MAKEFILES]], hence 
 the [[-I]] option.
