@@ -1,3 +1,202 @@
+ifndef MIUN_COMPAT_MK
+MIUN_COMPAT_MK=true
+
+ifndef MIUN_SUBDIR_MK
+MIUN_SUBDIR_MK=true
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/subdir.mk
+
+endif # MIUN_SUBDIR_MK
+ifndef MIUN_PACKAGE_MK
+MIUN_PACKAGE_MK=true
+
+ifdef TARBALL_NAME
+PKG_TARBALL?=${TARBALL_NAME}.tar.gz
+endif
+
+ifdef DOCS_FILES
+PKG_PACKAGES=	 main docs
+
+PKG_INSTALL_FILES-docs?=${DOCS_FILES}
+PKG_INSTALL_DIR-docs?=${DOCSDIR}
+endif
+
+.PHONY: all
+all: package
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/pkg.mk
+
+endif # MIUN_PACKAGE_MK
+ifndef MIUN_PUB_MK
+MIUN_PUB_MK=true
+
+SERVER?=		ver.miun.se
+PUBDIR?=		/srv/web/svn
+CATEGORY?=
+TMPDIR?=		/var/tmp
+PUB_GROUP?= svn
+
+ifdef NO_COMMIT
+PUB_AUTOCOMMIT?=${NO_COMMIT}
+endif
+
+ifdef COMMIT_OPTS
+PUB_COMMIT_OPTS?=${COMMIT_OPTS}
+endif
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/pub.mk
+
+endif # MIUN_PUB_MK
+ifndef MIUN_EXPORT_MK
+MIUN_EXPORT_MK=true
+
+TRANSFORM_SRC=    .tex
+TRANSFORM_DST=    .exporttex
+
+TRANSFORM_LIST.exporttex=         NoSolutions
+TRANSFORM_LIST-Makefile.export=   OldExportFilter ExportFilter
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/transform.mk
+
+endif # MIUN_EXPORT_MK
+ifndef MIUN_TEX_MK
+MIUN_TEX_MK=true
+
+TEX_OUTDIR?=  .
+
+TEXMF?=		    ${HOME}/texmf
+
+ifneq (${USE_LATEXMK},yes)
+LATEX?=       latex
+PDFLATEX?=    pdflatex
+endif
+
+ifneq (${USE_BIBLATEX},yes)
+TEX_BBL=      yes
+endif
+
+solutions?=   no
+handout?=     no
+
+TRANSFORM_SRC=  .tex
+
+ifeq (${solutions},yes)
+TRANSFORM_DST+= .solutions.tex
+TRANSFORM_LIST.solutions.tex=PrintAnswers
+
+%.pdf: %.solutions.pdf
+	${LN} $< $@
+endif
+
+ifeq (${handout},yes)
+TRANSFORM_DST+= .handout.tex
+TRANSFORM_LIST.handout.tex=Handout
+
+%.pdf: %.handout.pdf
+	${LN} $< $@
+endif
+
+.PHONY: all
+all: ${DOCUMENTS}
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/tex.mk
+include ${INCLUDE_MAKEFILES}/transform.mk
+
+endif # MIUN_TEX_MK
+ifndef MIUN_DOCS_MK
+MIUN_DOCS_MK=true
+
+DOCUMENTS?=
+PUB_FILES?=   ${DOCUMENTS}
+SERVER?=      ver.miun.se
+PUBDIR?=      /srv/web/svn/dokument
+CATEGORY?=	
+
+ifdef PRINT
+LPR?=         ${PRINT}
+endif
+
+.PHONY: all
+all: ${DOCUMENTS}
+
+.PHONY: print
+print: ${DOCUMENTS:.pdf=.ps}
+
+.PHONY: clean-docs
+clean-docs:
+ifneq (${DOCUMENTS},)
+	${RM} ${DOCUMENTS}
+endif
+
+.PHONY: clean
+clean: clean-docs
+
+.PHONY: todo
+todo: $(wildcard *)
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/miun.tex.mk
+include ${INCLUDE_MAKEFILES}/miun.pub.mk
+
+endif # MIUN_DOCS_MK
+ifndef MIUN_COURSE_MK
+MIUN_COURSE_MK=true
+
+DOCUMENTS?=
+PUB_FILES?=   ${DOCUMENTS}
+SERVER?=      ver.miun.se
+PUBDIR?=      /srv/web/svn/courses
+CATEGORY?=	
+
+.PHONY: all
+all: ${DOCUMENTS}
+
+.PHONY: clean-course
+clean-course:
+ifneq (${DOCUMENTS},)
+	${RM} ${DOCUMENTS}
+endif
+
+.PHONY: clean
+clean: clean-course
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/miun.docs.mk
+include ${INCLUDE_MAKEFILES}/miun.export.mk
+
+endif # MIUN_COURSE_MK
+ifndef MIUN_RESULTS_MK
+MIUN_RESULTS_MK=true
+
+in?=              ${COURSE}.txt
+out?=              reported.csv
+report?=          new_results.pdf
+
+RESULTS_COURSE?=  ${COURSE}
+RESULTS_EMAIL?=   ${EXPADDR}
+
+MAILER?=	thunderbird -compose \
+  "to=${EXPADDR},subject='resultat ${COURSE}',attachment='file://${report}'"
+RESULTS_MAILER?=  ${MAILER}
+
+REWRITES?=	"s/Godkänd(G)/G/g" "s/Underkänd(U)/U/g" "s/Komplettering(Fx)/Fx/g"
+RESULTS_REWRITES?=${REWRITES}
+
+FAILED?=	-\|Fx\?\|U
+RESULTS_FAILED?=  ${FAILED}
+
+FAILED_regex=	"	\(${FAILED}\)\(	.*\)*$$"
+RESULTS_FAILED_regex?=${FAILED_regex}
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/results.mk
+
+endif # MIUN_RESULTS_MK
 ifndef MIUN_DEPEND_MK
 MIUN_DEPEND_MK=true
 
@@ -248,3 +447,5 @@ ${miunthes-depend}:
 #miunthes: ${miunthes-depend} miunlogo
 
 endif # MIUN_DEPEND_MK
+
+endif

@@ -1,0 +1,7 @@
+ifndef MIUN_SUBDIR_MK
+MIUN_SUBDIR_MK=true
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/subdir.mk
+
+endif # MIUN_SUBDIR_MK

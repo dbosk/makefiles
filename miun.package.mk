@@ -1,0 +1,21 @@
+ifndef MIUN_PACKAGE_MK
+MIUN_PACKAGE_MK=true
+
+ifdef TARBALL_NAME
+PKG_TARBALL?=${TARBALL_NAME}.tar.gz
+endif
+
+ifdef DOCS_FILES
+PKG_PACKAGES=	 main docs
+
+PKG_INSTALL_FILES-docs?=${DOCS_FILES}
+PKG_INSTALL_DIR-docs?=${DOCSDIR}
+endif
+
+.PHONY: all
+all: package
+
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/pkg.mk
+
+endif # MIUN_PACKAGE_MK

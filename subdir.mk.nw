@@ -6,8 +6,15 @@ The subdirectories must be listed in the variable [[SUBDIR]], which holds
 a space-separated list of directory names.
 Then each subdirectory may in turn hold a new set of subdirectories to descend 
 into.
-We note that the subdirectories will be built in depth-first search order.
+We note that the subdirectories will be built in depth-first search order 
+(unless we allow parallel execution).
 
+By default, for any goals passed on the command line we will add the directories 
+in [[SUBDIR]] as prerequisites.
+This behaviour can be overridden by setting [[SUBDIR_ALL]] to anything different 
+from [[yes]].
+Like this we can add the subdirectories in [[SUBDIR]] as prerequisites manually 
+to only a subset of desired targets.
 
 \section{Implementation}
 
@@ -19,9 +26,16 @@ containing the space-separated list of subdirectories, exists.
 ifndef SUBDIR_MK
 SUBDIR_MK=true
 
+INCLUDE_MAKEFILES?=.
+
 ifdef SUBDIR
-<<add subdirectories as prerequisites for the goals>>
 <<let the recipe for each subdirectory recurse into it>>
+endif
+
+SUBDIR_ALL?=yes
+
+ifeq (${SUBDIR_ALL},yes)
+<<add subdirectories as prerequisites for the goals>>
 endif
 
 endif
@@ -33,9 +47,16 @@ the targets specified on the command-line, in all subdirectories listed in
 For each directory, we specify a recipe which runs make in the subdirectory 
 with the goals specified on the command-line.
 <<let the recipe for each subdirectory recurse into it>>=
-${SUBDIR}::
-	${MAKE} -C $@ ${MAKECMDGOALS}
-@ To ensure these recipes are run we need to ensure that they are prerequisites
+.PHONY: ${SUBDIR}
+${SUBDIR}:
+	${MAKE} -C $@ -I ${INCLUDE_MAKEFILES} ${MAKECMDGOALS}
+@ We also want to give the sub-make access to our [[INCLUDE_MAKEFILES]], hence 
+the [[-I]] option.
+This is mostly due to (backwards) compatibility with the MIUN versions (see 
+\cref{miun.compat.mk}) of the makefiles, which pre-dates the 
+[[INCLUDE_MAKEFILES]] construction.
+
+To ensure these recipes are run we need to ensure that they are prerequisites
 to the goals.
 This also means that if no goals are given on the command-line, then we should 
 use the default goal.
