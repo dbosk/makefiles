@@ -1,151 +1,17 @@
+# $Id$
+# Author: 	Daniel Bosk <daniel.bosk@miun.se>
+
 ifndef MIUN_DEPEND_MK
 MIUN_DEPEND_MK=true
 
 CONF?= 	/etc/mk.conf
 -include ${CONF}
 
-.PHONY: dvips
-ifeq (${MAKE},gmake)
-dvips:
-	which dvips || sudo pkg_add ghostscript
-else
-dvips:
-	which dvips || sudo apt-get install texlive-full
-endif
+CURRENT_URL=https://github.com/dbosk/miuntex/releases/download/v1.0
 
-.PHONY: pdf2ps
-ifeq (${MAKE},gmake)
-pdf2ps:
-	which pdf2ps || sudo pkg_add ghostscript
-else
-pdf2ps:
-	which pdf2ps || sudo apt-get install texlive-full
-endif
-
-.PHONY: latex
-ifeq (${MAKE},gmake)
-latex:
-	which latex || sudo pkg_add texlive_texmf-full
-else
-latex:
-	which latex || sudo apt-get install texlive-full
-endif
-
-.PHONY: latexmk
-ifeq (${MAKE},gmake)
-latexmk:
-	which latexmk || sudo pkg_add latexmk
-else
-latexmk:
-	which latexmk || sudo apt-get install latexmk
-endif
-
-.PHONY: pax
-ifeq (${MAKE},gmake)
-pax:
-	which pax
-else
-pax:
-	which pax || sudo apt-get install pax
-endif
-
-.PHONY: sed
-ifeq (${MAKE},gmake)
-SED= 	gsed
-SEDex= 	gsed -E
-sed gsed:
-	which gsed || sudo pkg_add gsed
-else
-sed gsed:
-	which sed
-endif
-
-.PHONY: grep
-ifeq (${MAKE},gmake)
-GREP= 		ggrep
-GREPex= 	ggrep -E
-grep ggrep:
-	which ggrep || sudo pkg_add ggrep
-else
-grep ggrep:
-	which grep
-endif
-
-.PHONY: git
-ifeq (${MAKE},gmake)
-git:
-	which git || sudo pkg_add git git-svn
-else
-git:
-	which git || sudo apt-get install git git-svn
-endif
-
-.PHONY: wget
-ifeq (${MAKE},gmake)
-wget:
-	which wget || sudo pkg_add wget
-else
-wget:
-	which wget || sudo apt-get install wget
-endif
-
-.PHONY: localc
-ifeq (${MAKE},gmake)
-localc:
-	which localc || sudo pkg_add libreoffice
-else
-localc:
-	which localc || sudo apt-get install libreoffice
-endif
-
-.PHONY: update
-
-update: update-rfc
-
-.PHONY: rfc remove-rfc update-rfc clean-rfc
-
-rfc: rfc.bib
-
-remove-rfc::
-	${RM} -f ${TEXMF}/tex/latex/rfc.bib
-
-update-rfc: remove-rfc ${TEXMF}/tex/latex/rfc.bib
 
 .PHONY: clean-depends
-#clean: clean-depends
-clean-depends: clean-rfc
-clean-rfc:
-	${RM} rfc.bib
 
-${TEXMF}/tex/latex/rfc.bib: ${wget-depend}
-	mkdir -p ${TEXMF}/tex/latex/
-	wget -O - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null | \
-		uncompress - > ${@}
-
-rfc.bib:
-	if [ -e ${TEXMF}/tex/latex/rfc.bib ]; then \
-		ln -s ${TEXMF}/tex/latex/rfc.bib rfc.bib ; \
-	else \
-		wget -O - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null | \
-		uncompress - > ${@} ; \
-	fi
-
-
-update: latexmkrc miun.tex.mk miun.course.mk miun.docs.mk
-update: miun.export.mk miun.pub.mk miun.package.mk
-update: miun.subdir.mk miun.results.mk
-
-latexmkrc miun.tex.mk \
-miun.course.mk miun.docs.mk miun.export.mk miun.pub.mk \
-miun.package.mk miun.subdir.mk miun.results.mk:
-	wget -O $@ http://ver.miun.se/build/$@
-
-clean-depends:
-	${RM} latexmkrc miun.tex.mk miun.course.mk miun.docs.mk miun.export.mk
-	${RM} miun.pub.mk miun.package.mk miun.subdir.mk miun.results.mk
-
-update: miunmisc miunart miunasgn miunbeam miunexam
-update: miunlett miunprot miunthes
 
 ### MIUN Miscellanous package and Logo ###
 
@@ -159,9 +25,44 @@ ${miunmisc-depend} ${logo-depend}:
 	cd /tmp && tar -zxf miunmisc.tar.gz
 	cd /tmp/miunmisc && ${MAKE} install
 
-#.PHONY: miunmisc miunlogo
-#miunmisc: ${miunmisc-depend}
-#miunlogo: miunmisc
+MIUNMISC_FILES= 	MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
+MIUNMISC_FILES+= 	MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
+MIUNMISC_FILES+= 	miunmisc.sty miunmisc-Swedish.dict miunmisc-English.dict
+
+${INCLUDE_MIUNTEX}/miunmisc/miunmisc.sty:
+	${MAKE} -C ${INCLUDE_MIUNTEX}/miunmisc miunmisc.sty
+
+${INCLUDE_MIUNTEX}/miunmisc/miunmisc-Swedish.dict:
+	${MAKE} -C ${INCLUDE_MIUNTEX}/miunmisc miunmisc-Swedish.dict
+
+${INCLUDE_MIUNTEX}/miunmisc/miunmisc-English.dict:
+	${MAKE} -C ${INCLUDE_MIUNTEX}/miunmisc miunmisc-English.dict
+
+ifdef INCLUDE_MIUNTEX
+$(foreach f,${MIUNMISC_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunmisc/$f))
+${MIUNMISC_FILES}:
+	ln -s $^ $@
+else
+${MIUNMISC_FILES}:
+	wget -O $@ ${CURRENT_URL}/$@
+endif
+
+.PHONY: miunmisc miunlogo
+miunlogo: MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
+miunlogo: MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
+
+miunmisc: miunmisc.sty miunmisc-English.dict miunmisc-Swedish.dict
+miunmisc: miunlogo
+
+.PHONY: clean-miunmisc clean-miunlogo
+clean-depends: clean-miunmisc clean-miunlogo
+clean-miunmisc: clean-tex
+	${RM} ${MIUNMISC_FILES}
+	${RM} miunmisc.sty miunmisc-English.dict miunmisc-Swedish.dict
+clean-miunlogo:
+	${RM} MU_logotyp_int_CMYK.eps MU_logotyp_int_CMYK.pdf
+	${RM} MU_logotyp_int_sv.eps MU_logotyp_int_sv.pdf
+
 
 ### MIUN Article class ###
 
@@ -172,8 +73,25 @@ ${miunart-depend}:
 	cd /tmp && tar -zxf miunart.tar.gz
 	cd /tmp/miunart && ${MAKE} install
 
-#.PHONY: miunart
-#miunart: ${miunart-depend} miunlogo
+MIUNART_FILES= miunart.cls miunart-English.dict miunart-Swedish.dict
+
+ifdef INCLUDE_MIUNTEX
+$(foreach f,${MIUNART_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunart/$f))
+${MIUNART_FILES}:
+	ln -s $^ $@
+else
+${MIUNART_FILES}:
+	wget -O $@ ${CURRENT_URL}/$@
+endif
+
+.PHONY: miunart
+miunart: ${MIUNART_FILES} miunlogo
+
+.PHONY: clean-miunart
+clean-depends: clean-miunart
+clean-miunart:
+	${RM} ${MIUNART_FILES}
+
 
 ### MIUN Assignment class ###
 
@@ -184,20 +102,25 @@ ${miunasgn-depend}:
 	cd /tmp && tar -zxf miunasgn.tar.gz
 	cd /tmp/miunasgn && ${MAKE} install
 
-#.PHONY: miunasgn
-#miunasgn: ${miunasgn-depend} miunlogo
+MIUNASGN_FILES= miunasgn.cls miunasgn-English.dict miunasgn-Swedish.dict
 
-### MIUN Beamer class ###
+ifdef INCLUDE_MIUNTEX
+$(foreach f,${MIUNASGN_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunasgn/$f))
+${MIUNASGN_FILES}:
+	ln -s $^ $@
+else
+${MIUNASGN_FILES}:
+	wget -O $@ ${CURRENT_URL}/$@
+endif
 
-miunbeam-depend?= 	${TEXMF}/tex/latex/miun/miunbeam/miunbeam.sty
-${miunbeam-depend}:
-	wget -O /tmp/miunbeam.tar.gz \
-		http://ver.miun.se/latex/packages/miunbeam.tar.gz
-	cd /tmp && tar -zxf miunbeam.tar.gz
-	cd /tmp/miunbeam && ${MAKE} install
+.PHONY: miunasgn
+miunasgn: ${MIUNASGN_FILES} miunlogo
 
-#.PHONY: miunbeam
-#miunbeam: ${miunbeam-depend} miunlogo
+.PHONY: clean-miunasgn
+clean-depends: clean-miunasgn
+clean-miunasgn:
+	${RM} ${MIUNASGN_FILES}
+
 
 ### MIUN Exam class ###
 
@@ -208,8 +131,25 @@ ${miunexam-depend}:
 	cd /tmp && tar -zxf miunexam.tar.gz
 	cd /tmp/miunexam && ${MAKE} install
 
-#.PHONY: miunexam
-#miunexam: ${miunexam-depend} miunlogo
+MIUNEXAM_FILES= miunexam.cls miunexam-English.dict miunexam-Swedish.dict
+
+ifdef INCLUDE_MIUNTEX
+$(foreach f,${MIUNEXAM_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunexam/$f))
+${MIUNEXAM_FILES}:
+	ln -s $^ $@
+else
+${MIUNEXAM_FILES}:
+	wget -O $@ ${CURRENT_URL}/$@
+endif
+
+.PHONY: miunexam
+miunexam: ${MIUNEXAM_FILES} miunlogo
+
+.PHONY: clean-miunexam
+clean-depends: clean-miunexam
+clean-miunexam:
+	${RM} ${MIUNEXAM_FILES}
+
 
 ### MIUN Letter class ###
 
@@ -220,8 +160,17 @@ ${miunlett-depend}:
 	cd /tmp && tar -zxf miunlett.tar.gz
 	cd /tmp/miunlett && ${MAKE} install
 
-#.PHONY: miunlett
-#miunlett: ${miunlett-depend} miunlogo
+miunlett.cls:
+	wget -O $@ ${CURRENT_URL}/$@
+
+.PHONY: miunlett
+miunlett: miunlett.cls miunlogo
+
+.PHONY: clean-miunlett
+clean-depends: clean-miunlett
+clean-miunlett:
+	${RM} miunlett.cls
+
 
 ### MIUN Protocol class ###
 
@@ -232,8 +181,25 @@ ${miunprot-depend}:
 	cd /tmp && tar -zxf miunprot.tar.gz
 	cd /tmp/miunprot && ${MAKE} install
 
-#.PHONY: miunprot
-#miunprot: ${miunprot-depend} miunlogo
+MIUNPROT_FILES= miunprot.cls miunprot-English.dict miunprot-Swedish.dict
+
+ifdef INCLUDE_MIUNTEX
+$(foreach f,${MIUNPROT_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunprot/$f))
+${MIUNPROT_FILES}:
+	ln -s $^ $@
+else
+${MIUNPROT_FILES}:
+	wget -O $@ ${CURRENT_URL}/$@
+endif
+
+.PHONY: miunprot
+miunprot: ${MIUNPROT_FILES} miunlogo
+
+.PHONY: clean-miunprot
+clean-depends: clean-miunprot
+clean-miunprot:
+	${RM} ${MIUNPROT_FILES}
+
 
 ### MIUN Thesis class ###
 
@@ -244,7 +210,40 @@ ${miunthes-depend}:
 	cd /tmp && tar -zxf miunthes.tar.gz
 	cd /tmp/miunthes && ${MAKE} install
 
-#.PHONY: miunthes
-#miunthes: ${miunthes-depend} miunlogo
+MIUNTHES_FILES= miunthes.cls miunthes-English.dict miunthes-Swedish.dict
 
-endif # MIUN_DEPEND_MK
+ifdef INCLUDE_MIUNTEX
+$(foreach f,${MIUNTHES_FILES},$(eval $f: ${INCLUDE_MIUNTEX}/miunthes/$f))
+${MIUNTHES_FILES}:
+	ln -s $^ $@
+else
+${MIUNTHES_FILES}:
+	wget -O $@ ${CURRENT_URL}/$@
+endif
+
+.PHONY: miunthes
+miunthes: ${MIUNTHES_FILES} miunlogo latexmkrc
+
+.PHONY: clean-miunthes
+clean-depends: clean-miunthes
+clean-miunthes:
+	${RM} ${MIUNTHES_FILES}
+
+
+### INCLUDES ###
+
+INCLUDE_MAKEFILES?= .
+INCLUDES= 	depend.mk tex.mk
+
+define inc
+ifeq ($(findstring $(1),${MAKEFILE_LIST}),)
+$(1):
+	wget https://raw.githubusercontent.com/dbosk/makefiles/master/$(1)
+include ${INCLUDE_MAKEFILES}/$(1)
+endif
+endef
+$(foreach i,${INCLUDES},$(eval $(call inc,$i)))
+
+### END INCLUDES ###
+
+endif
