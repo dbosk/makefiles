@@ -178,13 +178,13 @@ TEX_EXT_EXTRACT-acmlarge?=${UNZIP} $< -d ${TEX_EXT_DIR-acmlarge}
 $(eval $(call download_archive,acmlarge))
 rfc.bib:
 	${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
-	  | ${UNCOMPRESS} - > $@ ; \
+	  | ${UNCOMPRESS.gz} - > $@ ; \
 	${SED} -i "s/@misc/@techreport/" $@
 
 ${TEXMF}/tex/latex/rfc.bib:
 	mkdir -p ${TEXMF}/tex/latex/
 	${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
-	  | ${UNCOMPRESS} - > $@ ; \
+	  | ${UNCOMPRESS.gz} - > $@ ; \
 	${SED} -i "s/@misc/@techreport/" $@
 .PHONY: rfc
 rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib

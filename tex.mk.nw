@@ -671,7 +671,7 @@ We let curl(1) output the contents to standard out and pipe it to the
 uncompress(1) utility and, finally, redirect the result to the target file.
 <<download rfc.bib>>=
 ${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
-  | ${UNCOMPRESS} - > $@ ; \
+  | ${UNCOMPRESS.gz} - > $@ ; \
 @
 
 According to \ac{IETF}~\cite[Sect.\ 5.2]{IETFCitingRFCs} the \acp{RFC} should 
