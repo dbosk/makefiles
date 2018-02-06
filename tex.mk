@@ -21,7 +21,6 @@ XINDYFLAGS?=
 TEX_PYTHONTEX?=
 PYTHONTEX?=   pythontex3
 PYTHONTEXFLAGS?=
-TEX_EXT_DIR-acmproc?=     acm
 ${TEX_OUTDIR}/%.aux: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
@@ -151,31 +150,6 @@ TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
 TEX_EXT_URL-biblatex-lncs?=   https://github.com/neapel/biblatex-lncs.git
 
 $(eval $(call download_repo,biblatex-lncs))
-${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls:
-	${CURL} -o $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
-acm_proc_article-sp.cls: ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
-	${LN} $^ $@
-.PHONY: acmproc
-acmproc: acm_proc_article-sp.cls
-.PHONY: distclean clean-acmproc
-distclean: clean-acmproc
-clean-acmproc:
-	${RM} acm_proc_article-sp.cls
-	${RM} ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
-TEX_EXT_FILES-acmsmall?=  acmsmall.cls
-TEX_EXT_DIR-acmsmall?=    acm
-TEX_EXT_SRC-acmsmall?=    v2-acmsmall.zip
-TEX_EXT_URL-acmsmall?=    http://www.acm.org/publications/latex_style/v2-acmsmall.zip
-TEX_EXT_EXTRACT-acmsmall?=${UNZIP} $< -d ${TEX_EXT_DIR-acmsmall}
-
-$(eval $(call download_archive,acmsmall))
-TEX_EXT_FILES-acmlarge?=  acmlarge.cls
-TEX_EXT_DIR-acmlarge?=    acm
-TEX_EXT_SRC-acmlarge?=    v2-acmlarge.zip
-TEX_EXT_URL-acmlarge?=    http://www.acm.org/publications/latex_style/v2-acmlarge.zip
-TEX_EXT_EXTRACT-acmlarge?=${UNZIP} $< -d ${TEX_EXT_DIR-acmlarge}
-
-$(eval $(call download_archive,acmlarge))
 rfc.bib:
 	${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
 	  | ${UNCOMPRESS.gz} - > $@ ; \

@@ -439,7 +439,6 @@ Here we provide targets for some such classes and packages.
 <<a general downloader>>
 <<Springer LNCS>>
 <<biblatex LNCS style>>
-<<ACM classes>>
 <<the RFC bibliography>>
 <<PoPETS>>
 @
@@ -583,70 +582,6 @@ TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
 TEX_EXT_URL-biblatex-lncs?=   https://github.com/neapel/biblatex-lncs.git
 
 $(eval $(call download_repo,biblatex-lncs))
-@
-
-\subsection{ACM classes}
-
-We provide targets for the following \ac{ACM} classes.
-<<ACM classes>>=
-<<ACM SIG proceedings>>
-<<ACM small standard>>
-<<ACM large standard>>
-@
-
-\subsubsection{Special Interest Group proceedings}
-
-The structure is similar as above.
-We use a variable to control the destination, current directory by default.
-<<variables>>=
-TEX_EXT_DIR-acmproc?=     acm
-@ Then we download the class file to that directory.
-<<ACM SIG proceedings>>=
-${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls:
-	${CURL} -o $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
-acm_proc_article-sp.cls: ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
-	${LN} $^ $@
-@ We also add the phony target [[acmproc]] to easily add this class as 
-a prerequisite for a document.
-<<ACM SIG proceedings>>=
-.PHONY: acmproc
-acmproc: acm_proc_article-sp.cls
-@
-
-The cleaning will only need to remove the single document class that we 
-downloaded.
-<<ACM SIG proceedings>>=
-.PHONY: distclean clean-acmproc
-distclean: clean-acmproc
-clean-acmproc:
-	${RM} acm_proc_article-sp.cls
-	${RM} ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
-@
-
-\subsubsection{ACM small standard}
-
-We can use the downloader for the small standard.
-<<ACM small standard>>=
-TEX_EXT_FILES-acmsmall?=  acmsmall.cls
-TEX_EXT_DIR-acmsmall?=    acm
-TEX_EXT_SRC-acmsmall?=    v2-acmsmall.zip
-TEX_EXT_URL-acmsmall?=    http://www.acm.org/publications/latex_style/v2-acmsmall.zip
-TEX_EXT_EXTRACT-acmsmall?=${UNZIP} $< -d ${TEX_EXT_DIR-acmsmall}
-
-$(eval $(call download_archive,acmsmall))
-@
-
-\subsubsection{ACM large standard}
-
-As for the small standard, we can use the downloader.
-<<ACM large standard>>=
-TEX_EXT_FILES-acmlarge?=  acmlarge.cls
-TEX_EXT_DIR-acmlarge?=    acm
-TEX_EXT_SRC-acmlarge?=    v2-acmlarge.zip
-TEX_EXT_URL-acmlarge?=    http://www.acm.org/publications/latex_style/v2-acmlarge.zip
-TEX_EXT_EXTRACT-acmlarge?=${UNZIP} $< -d ${TEX_EXT_DIR-acmlarge}
-
-$(eval $(call download_archive,acmlarge))
 @
 
 \subsection{The RFC bibliography}
