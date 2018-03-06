@@ -78,10 +78,10 @@ We add the phony targets
 \item[[lncs]] for Springer \ac{LNCS},
 \item[[biblatex-lncs]] for the \ac{LNCS} bibliography style for the 
 [[biblatex]] package,
-\item[[acmproc]] for the \ac{ACM} \ac{SIG} proceedings,
-\item[[acmsmall]] and [[acmlarge]] for the \ac{ACM} journal formats,
 \item[[rfc]] or [[rfc.bib]] for an up-to-date bibliography containing all 
-\ac{IETF} \acp{RFC}.
+\ac{IETF} \acp{RFC},
+\item[[popets]] for the style files of the Proceedings of the Privacy Enhancing 
+Technologies (PoPETS, De Gruyter Open).
 \end{itemize}
 
 
