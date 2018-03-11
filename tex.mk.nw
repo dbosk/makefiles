@@ -361,8 +361,10 @@ For simplicity we add file in both the current working directory and the
 The reason for this is that it makes the makefile easier to write, usually we 
 prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in 
 the [[TEX_OUTDIR]] directory.
-And for the same reason, we create a hard link between them after compilation 
---- this allows make(1) to track modification times correctly.
+And for the same reason, we create a symbolic link between them after 
+compilation --- this allows make(1) to track modification times correctly.
+(We need a symbolic link, rather than a hard link, because upon recompilation, 
+the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
 <<document files>>=
 %.pdf ${TEX_OUTDIR}/%.pdf: %.tex
 	<<compile PDF>>
