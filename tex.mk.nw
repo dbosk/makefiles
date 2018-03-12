@@ -226,7 +226,7 @@ As mentioned in \cref{tex:Intro}, we can automatically add the [[.bbl]] file as
 a prerequisite if the variable [[TEX_BBL]] is set.
 <<bibliography files>>=
 ifneq (${TEX_BBL},)
-%.pdf: ${TEX_OUTDIR}/%.bbl
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
 @
 
@@ -261,7 +261,7 @@ ${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
 a prerequisite if the variable [[TEX_IND]] is set.
 <<indices files>>=
 ifneq (${TEX_IND},)
-%.pdf: ${TEX_OUTDIR}/%.ind
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.ind
 endif
 @
 
@@ -297,7 +297,7 @@ pythontex-files-%/%.pytxcode: %.tex
 file as a prerequisite if the variable [[TEX_PYTHONTEX]] is set.
 <<bibliography files>>=
 ifneq (${TEX_PYTHONTEX},)
-%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
 endif
 @
 

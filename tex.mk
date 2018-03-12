@@ -33,10 +33,10 @@ ${TEX_OUTDIR}/%.bcf: %.tex
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
 	${BIBER} -O $@ ${BIBERFLAGS} $<
 ifneq (${TEX_BBL},)
-%.pdf: ${TEX_OUTDIR}/%.bbl
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
 ifneq (${TEX_PYTHONTEX},)
-%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
 endif
 ${TEX_OUTDIR}/%.idx: %.tex
 	${MKDIR} ${TEX_OUTDIR}
@@ -44,7 +44,7 @@ ${TEX_OUTDIR}/%.idx: %.tex
 ${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
 	${XINDY} -o $@ ${XINDYFLAGS} $<
 ifneq (${TEX_IND},)
-%.pdf: ${TEX_OUTDIR}/%.ind
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.ind
 endif
 ${TEX_OUTDIR}/%.nlo: %.tex
 	${MKDIR} ${TEX_OUTDIR}
