@@ -1,9 +1,17 @@
-EXAM_NAME?=   exam
-EXAM_QNAME?=  questions
+EXAM_NAME?=     exam
+EXAM_TEMPLATE?= template
+EXAM_QNAME?=    questions
 EXAM_IDS?=    $(shell date +%y%m%d)
 EXAM_TAGS?=     ILO1 ILO2 ... ILOn
 EXAM_DBS?=      $(foreach id,${EXAM_IDS},${EXAM_QNAME}-${id}.tex)
 EXAM_FLAGS?=        -NCE
+define exam_tex_files
+${EXAM_NAME}-$(1).tex:
+	${CAT} ${EXAM_NAME}-${EXAM_TEMPLATE}.tex | \
+	  ${SED} -e "s/\\today/${EXAM_DATE-$(1)}/g" \
+	  > $@
+endef
+$(foreach id,${EXAM_IDS},$(eval $(call exam_tex_files,${id})))
 define target_variables
 EXAM_NAME-$(1)?=   ${EXAM_NAME}
 EXAM_QNAME-$(1)?=  ${EXAM_QNAME}
