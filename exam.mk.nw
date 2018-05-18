@@ -117,7 +117,7 @@ define exam_tex_files
 ${EXAM_NAME}-$(1).tex:
 	${CAT} ${EXAM_NAME}-${EXAM_TEMPLATE}.tex | \
 	  <<sed substitutions for exam with id in (1)>> \
-	  > $@
+	  > $$@
 endef
 $(foreach id,${EXAM_IDS},$(eval $(call exam_tex_files,${id})))
 @ Note that we don't have any dependency.
@@ -130,7 +130,7 @@ the template --- that should only affect future exams.
 To generate the exam file from the template, we perform the following 
 substitutions:
 <<sed substitutions for exam with id in (1)>>=
-${SED} -e "s/\\today/${EXAM_DATE-$(1)}/g"
+${SED} -e "s/\\\\today/${EXAM_DATE-$(1)}/g"
 @
 
 \subsection{Generating targets for exam PDFs}
