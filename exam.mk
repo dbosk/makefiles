@@ -8,7 +8,10 @@ EXAM_FLAGS?=        -NCE
 define exam_tex_files
 ${EXAM_NAME}-$(1).tex:
 	${CAT} ${EXAM_NAME}-${EXAM_TEMPLATE}.tex | \
-	  ${SED} -e "s/\\\\today/${EXAM_DATE-$(1)}/g" \
+	  ${SED} \
+		  -e "s/<EXAM_DATE>/${EXAM_DATE-$(1)}/g" \
+		  -e "s/<EXAM_ID>/$(1)/g" \
+		  -e "s/<EXAM_QNAME>/${EXAM_QNAME}/g" \
 	  > $$@
 endef
 $(foreach id,${EXAM_IDS},$(eval $(call exam_tex_files,${id})))
