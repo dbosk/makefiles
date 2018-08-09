@@ -130,7 +130,7 @@ The conversions that are implemented are the following:
 <<PDF to PS>>
 <<PS to PDF>>
 <<DVI to PS>>
-<<ODT to PDF>>
+<<ODF to PDF>>
 
 <<SVG to PDF>>
 <<SVG to PS>>
@@ -171,12 +171,26 @@ DVIPSFLAGS?=
 There is no good conversion program for the Open Document Format (ODF) files.
 We will use LibreOffice.
 <<variables>>=
-ODT2PDF?=     soffice --convert-to pdf
-ODT2PDFFLAGS?=--headless
+ODF2PDF?=     soffice --convert-to pdf
+ODF2PDFFLAGS?=--headless
 @ This yields the following suffix rule.
-<<ODT to PDF>>=
+<<ODF to PDF>>=
 %.pdf: %.odt
-	${ODT2PDF} ${ODT2PDFFLAGS} $<
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.ods
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.odg
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.odp
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+@ We will also try to do this for the corresponding Microsoft formats:
+<<ODF to PDF>>=
+%.pdf: %.docx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.xlsx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.pptx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
 @
 
 \subsubsection{Figure formats}

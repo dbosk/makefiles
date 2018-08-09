@@ -13,8 +13,8 @@ PS2PDF?=      ps2pdf
 PS2PDFFLAGS?=
 DVIPS?=       dvips
 DVIPSFLAGS?=
-ODT2PDF?=     soffice --convert-to pdf
-ODT2PDFFLAGS?=--headless
+ODF2PDF?=     soffice --convert-to pdf
+ODF2PDFFLAGS?=--headless
 INKSCAPE?=      inkscape
 INKSCAPEFLAGS?= -D -z --export-latex
 DIA?=           dia
@@ -48,7 +48,19 @@ todo:
 %.ps: %.dvi
 	${DVIPS} ${DVIPSFLAGS} $<
 %.pdf: %.odt
-	${ODT2PDF} ${ODT2PDFFLAGS} $<
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.ods
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.odg
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.odp
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.docx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.xlsx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.pptx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
 
 %.pdf: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
