@@ -35,11 +35,11 @@ PUB_CHMOD?=         o+r
 \subsection{Publication methods}
 
 There are currently three methods for publication:
-\begin{inparablank}
+\begin{enumerate*}
 \item [[ssh]],
 \item [[git]], and
 \item [[at]].
-\end{inparablank}
+\end{enumerate*}
 The default method is [[ssh]].
 <<variables>>=
 PUB_METHOD?=        ssh
