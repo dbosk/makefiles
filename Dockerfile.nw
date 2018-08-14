@@ -45,7 +45,8 @@ RUN apt update -y && apt install -y \
   python3-matplotlib \
   python3-numpy \
   python3-pygments \
-  python3-scipy
+  python3-scipy \
+  qrencode
 @
 
 We copy every makefile into the image's directory [[/usr/local/include]] to 
