@@ -54,6 +54,11 @@ Dockerfile: Dockerfile.nw
 	notangle -t2 -R$@ $^ | cpif $@
 
 
+.PHONY: distclean
+distclean:
+	docker image rm makefiles
+	docker image rm dbosk/makefiles
+
 .PHONY: clean
 clean:
 	${RM} makefiles.pdf

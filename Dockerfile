@@ -4,17 +4,19 @@ MAINTAINER Daniel Bosk <dbosk@kth.se>
 LABEL se.bosk.daniel.makefiles.version="$Id$"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 RUN apt update -y && apt install -y \
+  texlive-full
+RUN apt update -y && apt install -y \
   curl \
   git \
   gnuplot \
+  imagemagick \
   inkscape \
   make \
   pandoc \
   python3-matplotlib \
   python3-numpy \
   python3-pygments \
-  python3-scipy \
-  texlive-full
+  python3-scipy
 COPY doc.mk /usr/local/include
 COPY exam.mk /usr/local/include
 COPY haskell.mk /usr/local/include

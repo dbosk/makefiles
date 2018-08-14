@@ -135,6 +135,7 @@ The conversions that are implemented are the following:
 <<SVG to PDF>>
 <<SVG to PS>>
 <<DIA to TeX>>
+<<XCF to PNG>>
 
 <<MD to TeX>>
 <<TeX to text>>
@@ -231,6 +232,19 @@ DIAFLAGS?=
 <<DIA to TeX>>=
 %.tex: %.dia
 	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
+@
+
+Gimp is a useful tool for raster graphics.
+We can convert Gimps own format XCF to PNG using the ImageMagic library.
+<<variables>>=
+XCF2PNGFLAGS?=  -flatten
+XCF2PNG?=       convert ${XCF2PNGFLAGS} $< $@
+TRIM?=          convert -trim $@ $@
+@ Then we can have the following rule:
+<<XCF to PNG>>=
+%.png: %.xcf
+	${XCF2PNG}
+	${TRIM}
 @
 
 \subsubsection{Text-based formats}

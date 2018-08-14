@@ -28,19 +28,24 @@ LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 @
 
 We install the basic packages needed.
+We start with TeXLive.
+<<install packages>>=
+RUN apt update -y && apt install -y \
+  texlive-full
+@ Then we install some smaller needed packages.
 <<install packages>>=
 RUN apt update -y && apt install -y \
   curl \
   git \
   gnuplot \
+  imagemagick \
   inkscape \
   make \
   pandoc \
   python3-matplotlib \
   python3-numpy \
   python3-pygments \
-  python3-scipy \
-  texlive-full
+  python3-scipy
 @
 
 We copy every makefile into the image's directory [[/usr/local/include]] to 

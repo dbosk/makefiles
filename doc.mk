@@ -19,6 +19,9 @@ INKSCAPE?=      inkscape
 INKSCAPEFLAGS?= -D -z --export-latex
 DIA?=           dia
 DIAFLAGS?=
+XCF2PNGFLAGS?=  -flatten
+XCF2PNG?=       convert ${XCF2PNGFLAGS} $< $@
+TRIM?=          convert -trim $@ $@
 MD2TEX?=        pandoc -f markdown -t latex
 MD2TEXFLAGS?=
 TEX2TEXT?=      detex
@@ -71,6 +74,9 @@ todo:
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
 %.tex: %.dia
 	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
+%.png: %.xcf
+	${XCF2PNG}
+	${TRIM}
 
 %.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
