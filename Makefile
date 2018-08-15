@@ -41,7 +41,7 @@ gitattributes: transform.mk.nw
 
 
 .PHONY: all docker-makefiles
-all: docker-makefiles
+#all: docker-makefiles
 
 DOCKER_ID_USER?=dbosk
 
