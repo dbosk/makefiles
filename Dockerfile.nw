@@ -41,6 +41,7 @@ RUN apt update -y && apt install -y \
   imagemagick \
   inkscape \
   make \
+  noweb \
   pandoc \
   python3-matplotlib \
   python3-numpy \

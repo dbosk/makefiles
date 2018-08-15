@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 ENV DEBIAN_FRONTEND noninteractive
 MAINTAINER Daniel Bosk <dbosk@kth.se>
-LABEL se.bosk.daniel.makefiles.version="$Id$"
+LABEL se.bosk.daniel.makefiles.version="$Id: 17d9268af6777d40cdfaa987349df5ccedd061fc $"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 RUN apt update -y && apt install -y \
   texlive-full
@@ -12,6 +12,7 @@ RUN apt update -y && apt install -y \
   imagemagick \
   inkscape \
   make \
+  noweb \
   pandoc \
   python3-matplotlib \
   python3-numpy \
