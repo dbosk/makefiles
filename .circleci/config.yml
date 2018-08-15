@@ -7,4 +7,4 @@ jobs:
       - checkout
       - run: git submodule update --init
       - run: LATEXFLAGS="-halt-on-error -use-make" make all
-      - run: git submodule deinit
+      - run: git submodule deinit --all
