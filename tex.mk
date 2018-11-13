@@ -166,7 +166,7 @@ rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
 distclean: clean-rfc
 clean-rfc:
 	${RM} rfc.bib
-TEX_EXT_FILES-popets?=by-nc-nd.pdf dg-degruyter.pdf dgruyter_NEW.sty
+TEX_EXT_FILES-popets?=by-nc-nd.pdf sciendo-logo.pdf dgruyter_NEW.sty
 TEX_EXT_URL-popets?=https://petsymposium.org/files/popets.zip
 TEX_EXT_DIR-popets?=popets
 TEX_EXT_SRC-popets?=popets.zip
