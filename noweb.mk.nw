@@ -35,7 +35,7 @@ endif
 
 We will use the [[noweave]] command to weave the documentation.
 <<variables>>=
-NOWEAVE?=       noweave
+NOWEAVE?=       noweave ${NOWEAVEFLAGS} $< > $@
 @ The default options that we will use can be controlled with the following 
 variable.
 <<variables>>=
@@ -53,7 +53,7 @@ For now, we only use it.
 <<suffix rules for weaving documentation>>=
 .SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
 .nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
-	${NOWEAVE} ${NOWEAVEFLAGS} $< > $@
+	${NOWEAVE}
 @
 
 For Haskell code, if the code is written using Haskell's native literate 
@@ -72,7 +72,7 @@ this rule to the different languages.
 
 We will use notangle(1).
 <<variables>>=
-NOTANGLE?=      notangle
+NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS?=
 @ We will also use the command cpif(1).
 This command only updates the files if they have changed.
@@ -144,13 +144,13 @@ generated file.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
 NOTANGLEFLAGS.c?=   ${NOTANGLEFLAGS} -L
-NOTANGLE.c?=        ${NOTANGLE} ${NOTANGLEFLAGS.c} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
-NOTANGLE.cc?=       ${NOTANGLE} ${NOTANGLEFLAGS.cc} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS.cpp?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cpp?=      ${NOTANGLE} ${NOTANGLEFLAGS.cpp} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cxx?=      ${NOTANGLE} ${NOTANGLEFLAGS.cxx} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) $< | ${CPIF} $@
 @
 
 For C-family source code, we will assume that the header files (declarations) 
@@ -173,13 +173,13 @@ However, for this we must add extra pattern rules.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
 NOTANGLEFLAGS.h?=   ${NOTANGLEFLAGS} -L
-NOTANGLE.h?=        ${NOTANGLE} ${NOTANGLEFLAGS.h} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
-NOTANGLE.hh?=       ${NOTANGLE} ${NOTANGLEFLAGS.hh} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS.hpp?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hpp?=      ${NOTANGLE} ${NOTANGLEFLAGS.hpp} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hxx?=      ${NOTANGLE} ${NOTANGLEFLAGS.hxx} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) $< | ${CPIF} $@
 @
 
 The suffix rules for Haskell is similar to those for C and C++, due to the 
@@ -187,7 +187,7 @@ Glasgow Haskell Compiler (GHC) being very close to the C and C++ compilers.
 <<defaults for Haskell>>=
 NOWEB_SUFFIXES+=    .hs
 NOTANGLEFLAGS.hs?=  ${NOTANGLEFLAGS} -L
-NOTANGLE.hs?=       ${NOTANGLE} ${NOTANGLEFLAGS.hs} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) $< | ${CPIF} $@
 @ We also note that we do not need any suffix rule for [[.lhs]] files, for the 
 same reason as for the weaving, GHC automatically tangles Haskell's native 
 literate files ([[.lhs]]).
@@ -197,22 +197,22 @@ set above.
 <<defaults for Python>>=
 NOWEB_SUFFIXES+=    .py
 NOTANGLEFLAGS.py?=  ${NOTANGLEFLAGS}
-NOTANGLE.py?=       ${NOTANGLE} ${NOTANGLEFLAGS.py} -R$(notdir $@) $< > $@
+NOTANGLE.py?=       notangle ${NOTANGLEFLAGS.py} -R$(notdir $@) $< > $@
 @ It is the same case for makefiles.
 <<defaults for Make>>=
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
-NOTANGLE.mk?=       ${NOTANGLE} ${NOTANGLEFLAGS.mk} -R$(notdir $@) $< > $@
+NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) $< > $@
 @ And for LaTeX.
 <<defaults for LaTeX>>=
 NOWEB_SUFFIXES+=    .sty .cls
 NOTANGLEFLAGS.sty?= ${NOTANGLEFLAGS}
-NOTANGLE.sty?=      ${NOTANGLE} ${NOTANGLEFLAGS.sty} -R$(notdir $@) $< > $@
+NOTANGLE.sty?=      notangle ${NOTANGLEFLAGS.sty} -R$(notdir $@) $< > $@
 NOTANGLEFLAGS.cls?= ${NOTANGLEFLAGS}
-NOTANGLE.cls?=      ${NOTANGLE} ${NOTANGLEFLAGS.cls} -R$(notdir $@) $< > $@
+NOTANGLE.cls?=      notangle ${NOTANGLEFLAGS.cls} -R$(notdir $@) $< > $@
 @ And also for shell scripts.
 <<defaults for shell scripts>>=
 NOWEB_SUFFIXES+=    .sh
 NOTANGLEFLAGS.sh?=  ${NOTANGLEFLAGS}
-NOTANGLE.sh?=       ${NOTANGLE} ${NOTANGLEFLAGS.sh} -R$(notdir $@) $< > $@
+NOTANGLE.sh?=       notangle ${NOTANGLEFLAGS.sh} -R$(notdir $@) $< > $@
 @
