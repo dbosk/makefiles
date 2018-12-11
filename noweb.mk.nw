@@ -56,9 +56,6 @@ For now, we only use it.
 	${NOWEAVE}
 @
 
-For Haskell code, if the code is written using Haskell's native literate 
-language, then that code is directly compilable as LaTeX code.
-So we need not do any weaving for [[.lhs]] files.
 
 \subsection{Tangling code}
 
