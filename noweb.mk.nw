@@ -111,8 +111,8 @@ define with_suffix_target
 endef
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call with_suffix_target,${suf})))
 @ The reason for this is that the suffix is now captured by the pattern on both
-sides, i.e.\ for target \emph{and} prerequisite.
-However, this rule does not capture some thing we want, e.g.\ we cannot tangle 
+sides, \ie for target \emph{and} prerequisite.
+However, this rule does not capture some thing we want, \eg we cannot tangle 
 a header file [[.h]] from a [[.cpp.nw]] file.
 We must add these rules manually, which we do below.
 

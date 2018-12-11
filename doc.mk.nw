@@ -1,7 +1,7 @@
 \section{Introduction and usage}
 
 When working with large sets of documents we sometimes want to do some 
-operations on them, e.g.\ print them or convert them between formats.
+operations on them, \eg print them or convert them between formats.
 This include file provides exactly that.
 
 We provide a target [[print]] which prints its prerequisites, see 
@@ -44,7 +44,7 @@ LPRFLAGS?=
 @
 
 If [[lpr]] is used, we note that the files added as prerequisites for the 
-[[print]] target must be printable by [[lpr]], e.g.\ we must supply 
+[[print]] target must be printable by [[lpr]], \eg we must supply 
 PostScript-files instead of PDF-files.
 Fortunately, the automatic file format conversion (\cref{FormatConversion}) 
 solves most of those problems.
@@ -72,7 +72,7 @@ print:
 
 We provide a [[wc]] target which counts the words in its prerequisites.
 The files added as prerequisites must thus be text files.
-Similarly as for print, there are suffix rules to convert e.g.\ TeX-files to 
+Similarly as for print, there are suffix rules to convert \eg TeX-files to 
 plain text files using [[detex]].
 
 The implementation is similar to that for [[print]].
@@ -88,7 +88,7 @@ by one using [[wc]].
 We first print the name followed by a colon, then we print the word count.
 Similarly as above, we check for each document whether there is an overriding 
 setting for the word counting command.
-We also check if there is a preprocessing command, e.g.\ it might be useful to 
+We also check if there is a preprocessing command, \eg it might be useful to 
 run detex(1) on TeX files before counting the words.
 <<target for word counting>>=
 .PHONY: wc
@@ -102,7 +102,7 @@ wc:
 \subsection{To-do lists}
 
 Similarly to the [[wc]] target, we would also like to add a [[todo]] target 
-which generates a to-do list from the to-do comments in the source files (i.e.\ 
+which generates a to-do list from the to-do comments in the source files (\ie 
 \enquote{TODO}, \enquote{XXX} or \enquote{FIXME}).
 <<target for to-do lists>>=
 .PHONY: todo
@@ -263,7 +263,7 @@ MD2TEXFLAGS?=
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
 @
 
-There are times when we want to convert out TeX-files to plain text, e.g.\ to 
+There are times when we want to convert out TeX-files to plain text, \eg to 
 count the words.
 To do this we simply use the [[detex]] program.
 <<variables>>=

@@ -71,7 +71,7 @@ CHMOD?=   chmod -R
 
 \subsection{Viewing file contents}
 
-Quite commonly we want to open files with the user's desired application, e.g.\
+Quite commonly we want to open files with the user's desired application, \eg 
 to open PDFs in the user's PDF reader.
 For this we use the xdg-open(1) utility.
 <<opening files depending on file type>>=
@@ -164,11 +164,11 @@ update an archive of suffix [[.suf]] with a file (compress a file).
 
 A compressed file is a file whose data is compressed --- this is not 
 necessarily an archive.
-A compressed file can be uncompressed, i.e.\ the compression is removed.
+A compressed file can be uncompressed, \ie the compression is removed.
 Compressed files usually get the added suffix of the compression algorithm, 
-e.g.\ a [[.tar]] file usually get the suffix [[.tar.gz]] when it is also 
+\eg a [[.tar]] file usually get the suffix [[.tar.gz]] when it is also 
 compressed using gzip(1).
-Another common file to compress is PostScript, i.e.\ turning [[.ps]] to 
+Another common file to compress is PostScript, \ie turning [[.ps]] to 
 [[.ps.gz]].
 We want to form pattern rules for the compression and uncompression operations.
 
@@ -177,7 +177,7 @@ We will let the variable [[COMPRESS_SUFFIXES]] and [[UNCOMPRESS_SUFFIXES]]
 contain space-separated lists of suffixes supported for the two operations.
 
 To compress a file, we simply passes its contents through a compression 
-program, e.g.\ gzip(1) (gets the [[.gz]] suffix).
+program, \eg gzip(1) (gets the [[.gz]] suffix).
 We can use the following general pattern rule for compression and then use 
 [[COMPRESS_SUFFIXES]] to automatically generate all the pattern 
 rules\footnote{
@@ -247,7 +247,7 @@ ARCHIVE.a?=   ar r $@ $%
 Now to a more interesting format, let us create tarballs using this syntax.
 We provide settings for both tar(1) and pax(1) using the tar format.
 We are interested in the pax(1) command because it has an interface for regular 
-expressions, i.e.\ for filtering and transforming file names.
+expressions, \ie for filtering and transforming file names.
 The BSD tar(1) has this too, but the GNU tar(1) does not.
 We can use the [[-u]] option to both tar(1) and pax(1) to update an existing 
 archive with a file.
