@@ -6,9 +6,9 @@ First we want to add suffix rules for LaTeX similar to those already in
 make(1)~\cite[see][Sect.\ 10.2]{GNUMake} for languages like C.
 
 We provide several suffix rules.
-First, for ordinary documents, i.e.\ to compile a [[.tex]] file to [[.pdf]], 
+First, for ordinary documents, \ie to compile a [[.tex]] file to [[.pdf]], 
 [[.ps]] or [[.dvi]].
-Second, for classes and packages, i.e.\ to compile
+Second, for classes and packages, \ie to compile
 \begin{enumerate*}
 \item a DocTeX [[.dtx]] file to [[.pdf]], [[.ps]] or [[.dvi]] and
 \item an [[.ins]] file to [[.cls]] or [[.sty]].
@@ -156,10 +156,10 @@ latexmkrc:
 @
 
 We will now discuss the different files we need latex(1) to generate.
-Note that in many cases we want latex(1) to generate more files, e.g.\ [[.toc]]
+Note that in many cases we want latex(1) to generate more files, \eg [[.toc]]
 files, but we do not have to care about these here.
 The reason we can ignore those files is that they do not require any external 
-tool, e.g.\ bibtex(1), to be run, these files just requires another run of 
+tool, \eg bibtex(1), to be run, these files just requires another run of 
 latex(1).
 
 \subsection{Auxillary files}
@@ -232,7 +232,7 @@ endif
 
 \subsection{Indices}
 
-There are several time we need to work with indices, e.g.\ when working with 
+There are several time we need to work with indices, \eg when working with 
 standard indices but also glossaries.
 Here we provide some suffix rules to make it easier to build such indices.
 

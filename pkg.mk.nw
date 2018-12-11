@@ -28,7 +28,7 @@ will be installed if the [[install]] target is made.
 For example, a [[Makefile]] should be included (since it contains the 
 installation target), but it should not be installed.
 When the file lists include directories it might be interesting to ignore 
-certain files, e.g.\ version management.
+certain files, \eg version management.
 This can be done with the following.
 <<variables>>=
 IGNORE_FILES?=      \(\.svn\|\.git\|CVS\)
@@ -42,7 +42,7 @@ PKG_INSTALL_DIR?=   ${INSTALLDIR}
 @
 
 Sometimes different parts of a package must be installed to different places, 
-e.g.\ a script to [[/usr/local/bin]] and a manual page to 
+\eg a script to [[/usr/local/bin]] and a manual page to 
 [[/usr/local/share/man]].
 For this purpose, a package can be divided into several sub-packages.
 By default we have one package called [[main]].
