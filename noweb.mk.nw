@@ -34,12 +34,20 @@ endif
 \subsection{Weaving documentation}
 
 We will use the [[noweave]] command to weave the documentation.
+We are interested in two cases:
+\begin{enumerate}
+\item when a source program should be converted to TeX to be included in a 
+larger document, and
+\item when a source program is independent and should be converted to PDF.
+\end{enumerate}
+
+For the first case, we let
 <<variables>>=
-NOWEAVE?=       noweave ${NOWEAVEFLAGS} $< > $@
+NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
 @ The default options that we will use can be controlled with the following 
 variable.
 <<variables>>=
-NOWEAVEFLAGS?=  -x -n -delay -t2
+NOWEAVEFLAGS.tex?=  -x -n -delay -t2
 @
 
 Now we need to specify all the suffixes to use and then construct suffix rules 
@@ -53,9 +61,20 @@ For now, we only use it.
 <<suffix rules for weaving documentation>>=
 .SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
 .nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
-	${NOWEAVE}
+	${NOWEAVE.tex}
 @
 
+For the second case, what differs is the options to [[noweave]].
+<<variables>>=
+NOWEAVE.pdf?=       noweave ${NOWEAVEFLAGS.pdf} $< > $@
+NOWEAVEFLAGS.pdf?=  -x -delay -t2
+@ Then we can weave and compile in one step:
+<<suffix rules for weaving documentation>>=
+.SUFFIXES: .pdf
+.nw.pdf $(addsuffix .nw.pdf,${NOWEB_SUFFIXES}):
+	${NOWEAVE.pdf}
+	${COMPILE.tex}
+@
 
 \subsection{Tangling code}
 
