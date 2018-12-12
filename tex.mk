@@ -1,6 +1,8 @@
 ifndef TEX_MK
 TEX_MK=true
 
+.NOTPARALLEL:
+
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 

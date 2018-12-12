@@ -93,6 +93,8 @@ The include file uses the old C-style technique to prevent multiple inclusions.
 ifndef TEX_MK
 TEX_MK=true
 
+.NOTPARALLEL:
+
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
@@ -105,6 +107,11 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 endif
 @ We include [[portability.mk]] (\cref{portability.mk}) to get portable 
 settings for several common utilities.
+It is currently not possible to run the TeX-builds in parallel, hence the need 
+for the [[.NOTPARALLEL]] target --- this runs any jobs that includes [[tex.mk]] 
+  in serial.
+However, this is not inherited, any recursive make invocations will run in 
+parallel unless [[.NOTPARALLEL]] is specified there as well.
 
 We will start with the targets for cleaning.
 We provide two phony targets, [[clean-tex]] and [[distclean-tex]], and we 
