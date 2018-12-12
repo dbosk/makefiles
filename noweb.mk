@@ -3,8 +3,10 @@ NOWEB_MK = true
 
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
 NOWEAVEFLAGS.tex?=  -x -n -delay -t2
-NOWEAVE.pdf?=       noweave ${NOWEAVEFLAGS.pdf} $< > $@
-NOWEAVEFLAGS.pdf?=  -x -delay -t2
+NOWEAVE.pdf?=       \
+  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
+  latexmk -pdf ${@:.pdf=.tex}
+NOWEAVEFLAGS.pdf?=  -x -t2
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS?=
 CPIF?=          cpif
@@ -49,7 +51,6 @@ NOTANGLE.sh?=       notangle ${NOTANGLEFLAGS.sh} -R$(notdir $@) $< > $@
 .SUFFIXES: .pdf
 .nw.pdf $(addsuffix .nw.pdf,${NOWEB_SUFFIXES}):
 	${NOWEAVE.pdf}
-	${COMPILE.tex}
 define with_suffix_target
 %$(1): %$(1).nw
 	$${NOTANGLE$$(suffix $$@)}

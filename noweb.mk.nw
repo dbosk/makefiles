@@ -64,16 +64,19 @@ For now, we only use it.
 	${NOWEAVE.tex}
 @
 
-For the second case, what differs is the options to [[noweave]].
-<<variables>>=
-NOWEAVE.pdf?=       noweave ${NOWEAVEFLAGS.pdf} $< > $@
-NOWEAVEFLAGS.pdf?=  -x -delay -t2
-@ Then we can weave and compile in one step:
+To differentiate the second case from the first (in terms of suffix rules), we 
+go from [[.nw]] directly to [[.pdf]].
 <<suffix rules for weaving documentation>>=
 .SUFFIXES: .pdf
 .nw.pdf $(addsuffix .nw.pdf,${NOWEB_SUFFIXES}):
 	${NOWEAVE.pdf}
-	${COMPILE.tex}
+@ What differs [[NOWEAVE.pdf]] from [[NOWEAVE.tex]] is the options to 
+[[noweave]] and the compilation step (instead of having that separately).
+<<variables>>=
+NOWEAVE.pdf?=       \
+  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
+  latexmk -pdf ${@:.pdf=.tex}
+NOWEAVEFLAGS.pdf?=  -x -delay -t2
 @
 
 \subsection{Tangling code}
