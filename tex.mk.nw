@@ -95,7 +95,7 @@ We add the phony targets
 \item[[rfc]] or [[rfc.bib]] for an up-to-date bibliography containing all 
 \ac{IETF} \acp{RFC},
 \item[[popets]] for the style files of the Proceedings of the Privacy Enhancing 
-Technologies (PoPETS, De Gruyter Open).
+Technologies (PoPETS, De Gruyter Open/Sciendo).
 \end{itemize}
 
 
