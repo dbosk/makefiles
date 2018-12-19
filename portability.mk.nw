@@ -75,7 +75,7 @@ Quite commonly we want to open files with the user's desired application, \eg
 to open PDFs in the user's PDF reader.
 For this we use the xdg-open(1) utility.
 <<opening files depending on file type>>=
-XDGOPEN?= xdg-open
+OPEN?=    xdg-open
 @ However, for text files, we prefer to just print the contents to standard 
 output.
 <<printing file contents>>=
