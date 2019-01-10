@@ -1,6 +1,9 @@
 ifndef DOC_MK
 DOC_MK=true
 
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
 LPR?=       lpr
 LPRFLAGS?=
 WC?=        wc
