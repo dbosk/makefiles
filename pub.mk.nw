@@ -83,7 +83,7 @@ PUB_BRANCH?=        master
 
 \subsection{Publishing to multiple sites}
 
-We might also be interested in publishing files to several places, e.g.\ to 
+We might also be interested in publishing files to several places, \eg to 
 a set of mirrors.
 The variable [[PUB_SITES]] contains a list of sites.
 <<variables>>=
@@ -91,8 +91,8 @@ PUB_SITES?=         main
 @ We supply one by default, this allows us to simply use the general variables 
 above.
 This way, site-specific overrides can be specified by appending the variable 
-with the site name, e.g.\ [[-main]].
-All other values are copied from the defaults, i.e.\ the general variables.
+with the site name, \eg [[-main]].
+All other values are copied from the defaults, \ie the general variables.
 <<variables>>=
 define variables
 PUB_METHOD-$(1)?=   ${PUB_METHOD}
@@ -134,7 +134,7 @@ management system.
 One way is to create a tag every time a publication is made.
 
 To enable this feature we set the variable [[PUB_AUTOTAG]] to true.
-By default we let it be false, i.e.\ this feature is disabled.
+By default we let it be false, \ie this feature is disabled.
 <<variables>>=
 PUB_AUTOTAG?=       false
 @

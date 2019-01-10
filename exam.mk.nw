@@ -37,12 +37,12 @@ We will use [[EXAM_IDS]] as a space-separated list containing all IDs.
 EXAM_IDS?=    $(shell date +%y%m%d)
 @
 
-Now let us proceed to the contents, i.e.\ [[questions-ID.tex]].
+Now let us proceed to the contents, \ie [[questions-ID.tex]].
 The \acp{ILO} of a course rarely changes, so usually several exams share the 
 same set of \acp{ILO}.
 This means that we would like to generate exams with the same parameters for 
-several exams, e.g.\ the same databases and the same tags.
-These parameters are given to [[examgen]] as a set of tags, i.e.\ 
+several exams, \eg the same databases and the same tags.
+These parameters are given to [[examgen]] as a set of tags, \ie 
 a space-separated list.
 <<variables>>=
 EXAM_TAGS?=     ILO1 ILO2 ... ILOn
@@ -67,7 +67,7 @@ variable.
 We set the default value as follows.
 <<variables>>=
 EXAM_FLAGS?=        -NCE
-@ Note that the flags can be target-specific too, i.e.\ by setting 
+@ Note that the flags can be target-specific too, \ie by setting 
 [[EXAM_FLAGS-ID]].
 
 We conclude with a usage example.

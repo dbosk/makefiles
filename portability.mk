@@ -12,7 +12,7 @@ MKTMPDIR?=mktemp -d
 CHOWN?=   chown -R
 CHMOD?=   chmod -R
 CAT?=     cat
-XDGOPEN?= xdg-open
+OPEN?=    xdg-open
 ifeq (${MAKE},gmake)
 SED?=     gsed
 SEDex?=   gsed -E

@@ -22,3 +22,8 @@ programs.
 .hs.o .lhs.o:
 	ghc ${HSFLAGS} -c $<
 @
+
+For weaving Haskell code, if the code is written using Haskell's native 
+literate language, then that code is directly compilable as LaTeX code.
+So we need not do any weaving for [[.lhs]] files.
+

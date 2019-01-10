@@ -3,7 +3,7 @@
 
 The problem case is the following.
 We have a Moodle system where we do grading and everything related to a course, 
-i.e.\ we have individual assignments.
+\ie we have individual assignments.
 Then we must report the grades to a national database.
 The entries in this database is according to parts set in the course syllabus, 
 each part can contain one or more assignments.
@@ -126,7 +126,7 @@ There are different identifiers used in the national database and in Moodle.
 So we need to extract the identifiers in Moodle and convert to those in the 
 national database (\cref{ChangingIdentifiers}).
 Then we can send the report and update our local representation of what is 
-reported to the national database, i.e.\ [[${out}]].
+reported to the national database, \ie [[${out}]].
 
 \subsection{Transforming Moodle's output}
 
@@ -207,7 +207,7 @@ $(if ${RESULTS_FAILED},${GREP} -v ${RESULTS_FAILED_regex} |,) \
 Finally, we want to compare this result with the old result and keep only the 
 modified lines.
 For the convenience of the secretaries we will also sort the data on the third 
-column (i.e.\ family name).
+column (\ie family name).
 <<diff recipe>>=
 ${DIFF} ${@:.diff=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
 @ Due to the difference comparison we require that the new file depends on the 
@@ -215,7 +215,7 @@ old file, and that the old file actually exists, so we add this as
 a dependency.
 <<targets>>=
 ${out}.diff: ${out}
-@ We will have to ensure that the old file exists, i.e.\ create it if it does 
+@ We will have to ensure that the old file exists, \ie create it if it does 
 not exist.
 We need it for comparisons, an empty file perfectly represents previously
 non-existent results, so we create a symbolic link to [[/dev/null]].
@@ -302,7 +302,7 @@ controlled by [[${RESULTS_COLUMNS}]].
 <<report.csv recipe>>=
 ${JOIN} -1 1 -2 3 ${out}.diff.id ${out}.diff | ${CUT} -d " " -f 2- | \
   ${SORT} -k 2 | ${CUT} -d " " -f -${RESULTS_COLUMNS} >> $@
-@ By default we let the default number of columns be four, i.e.\ first and last 
+@ By default we let the default number of columns be four, \ie first and last 
 name, civic identification number and finally one grade.
 <<variables>>=
 RESULTS_COLUMNS?=   4

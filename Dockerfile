@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 ENV DEBIAN_FRONTEND noninteractive
 MAINTAINER Daniel Bosk <dbosk@kth.se>
-LABEL se.bosk.daniel.makefiles.version="$Id: 17d9268af6777d40cdfaa987349df5ccedd061fc $"
+LABEL se.bosk.daniel.makefiles.version="$Id: d88da65bf8a9ffd00984ea7e7f77c34f61a50c0b $"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 RUN apt update -y && apt install -y \
   texlive-full
