@@ -245,7 +245,9 @@ server.
 define chown
 $(if ${PUB_GROUP-$(1)},\
   ${SSH} ${PUB_SERVER-$(1)}\
-  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)}) ${PUB_DIR-$(1)};,)
+  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)})\
+  $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
+  ,)
 endef
 @ Conversely, the [[chmod]] function does the same but with the chmod(1) 
 command.
@@ -255,7 +257,9 @@ Note, however, that we do not run these commands if [[PUB_GROUP]] or
 define chmod
 $(if ${PUB_CHMOD-$(1)},\
   ${SSH} ${PUB_SERVER-$(1)}\
-  ${CHMOD} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)};,)
+  ${CHMOD} ${PUB_CHMOD-$(1)}\
+  $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
+  ,)
 endef
 @
 
