@@ -138,6 +138,7 @@ The conversions that are implemented are the following:
 <<XCF to PNG>>
 
 <<MD to TeX>>
+<<to HTML>>
 <<TeX to text>>
 @
 
@@ -261,6 +262,23 @@ MD2TEXFLAGS?=
 <<MD to TeX>>=
 %.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+@
+
+Sometimes we want to convert to HTML, we will use [[pandoc]] to convert both 
+Markdown and LaTeX to HTML.
+<<variables>>=
+MD2HTML?=       pandoc -f markdown -t html
+MD2HTMLFLAGS?=
+
+TEX2HTML?=      pandoc -f latex -t html
+TEX2HTMLFLAGS?=
+@ Then we can provide following two rules:
+<<to HTML>>=
+%.html: %.md
+	${MD2HTML} ${MD2HTMLFLAGS} $< > $@
+
+%.html: %.tex
+	${TEX2HTML} ${TEX2HTMLFLAGS} $< > $@
 @
 
 There are times when we want to convert out TeX-files to plain text, \eg to 

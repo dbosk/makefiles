@@ -24,6 +24,11 @@ XCF2PNG?=       convert ${XCF2PNGFLAGS} $< $@
 TRIM?=          convert -trim $@ $@
 MD2TEX?=        pandoc -f markdown -t latex
 MD2TEXFLAGS?=
+MD2HTML?=       pandoc -f markdown -t html
+MD2HTMLFLAGS?=
+
+TEX2HTML?=      pandoc -f latex -t html
+TEX2HTMLFLAGS?=
 TEX2TEXT?=      detex
 TEX2TEXTFLAGS?=
 .PHONY: print
@@ -80,6 +85,11 @@ todo:
 
 %.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+%.html: %.md
+	${MD2HTML} ${MD2HTMLFLAGS} $< > $@
+
+%.html: %.tex
+	${TEX2HTML} ${TEX2HTMLFLAGS} $< > $@
 %.txt: %.tex
 	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
 
