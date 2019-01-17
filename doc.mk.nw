@@ -21,6 +21,9 @@ Then first comes our variables described above followed by the targets.
 ifndef DOC_MK
 DOC_MK=true
 
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
 <<variables>>
 <<target for printing>>
 <<target for word counting>>
