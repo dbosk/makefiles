@@ -11,8 +11,8 @@ We note that the subdirectories will be built in depth-first search order
 
 By default, for any goals passed on the command line we will add the directories 
 in [[SUBDIR]] as prerequisites.
-This behaviour can be overridden by setting [[SUBDIR_ALL]] to anything different 
-from [[yes]].
+This behaviour can be overridden by setting [[SUBDIR_ALL_GOALS]] to anything 
+different from [[yes]].
 Like this we can add the subdirectories in [[SUBDIR]] as prerequisites manually 
 to only a subset of desired targets.
 
@@ -30,9 +30,9 @@ ifdef SUBDIR
 <<let the recipe for each subdirectory recurse into it>>
 endif
 
-SUBDIR_ALL?=yes
+SUBDIR_ALL_GOALS?=yes
 
-ifeq (${SUBDIR_ALL},yes)
+ifeq (${SUBDIR_ALL_GOALS},yes)
 <<add subdirectories as prerequisites for the goals>>
 endif
 

@@ -6,9 +6,9 @@ ${SUBDIR}::
 	${MAKE} -C $@ ${MAKECMDGOALS}
 endif
 
-SUBDIR_ALL?=yes
+SUBDIR_ALL_GOALS?=yes
 
-ifeq (${SUBDIR_ALL},yes)
+ifeq (${SUBDIR_ALL_GOALS},yes)
 ifneq (${MAKECMDGOALS},)
 .PHONY: ${MAKECMDGOALS}
 ${MAKECMDGOALS}: ${SUBDIR}
