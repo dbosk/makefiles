@@ -6,13 +6,13 @@ First we want to add suffix rules for LaTeX similar to those already in
 make(1)~\cite[see][Sect.\ 10.2]{GNUMake} for languages like C.
 
 We provide several suffix rules.
-First, for ordinary documents, i.e.\ to compile a [[.tex]] file to [[.pdf]], 
+First, for ordinary documents, \ie to compile a [[.tex]] file to [[.pdf]], 
 [[.ps]] or [[.dvi]].
-Second, for classes and packages, i.e.\ to compile
-\begin{inparablank}
+Second, for classes and packages, \ie to compile
+\begin{enumerate*}
 \item a DocTeX [[.dtx]] file to [[.pdf]], [[.ps]] or [[.dvi]] and
 \item an [[.ins]] file to [[.cls]] or [[.sty]].
-\end{inparablank}
+\end{enumerate*}
 The suffix rules we provide here follows the conventions set out 
 in~\cite[Sect.\ 10.2]{GNUMake}.
 
@@ -78,10 +78,10 @@ We add the phony targets
 \item[[lncs]] for Springer \ac{LNCS},
 \item[[biblatex-lncs]] for the \ac{LNCS} bibliography style for the 
 [[biblatex]] package,
-\item[[acmproc]] for the \ac{ACM} \ac{SIG} proceedings,
-\item[[acmsmall]] and [[acmlarge]] for the \ac{ACM} journal formats,
 \item[[rfc]] or [[rfc.bib]] for an up-to-date bibliography containing all 
-\ac{IETF} \acp{RFC}.
+\ac{IETF} \acp{RFC},
+\item[[popets]] for the style files of the Proceedings of the Privacy Enhancing 
+Technologies (PoPETS, De Gruyter Open).
 \end{itemize}
 
 
@@ -92,6 +92,8 @@ The include file uses the old C-style technique to prevent multiple inclusions.
 <<tex.mk>>=
 ifndef TEX_MK
 TEX_MK=true
+
+.NOTPARALLEL:
 
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
@@ -105,6 +107,11 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 endif
 @ We include [[portability.mk]] (\cref{portability.mk}) to get portable 
 settings for several common utilities.
+It is currently not possible to run the TeX-builds in parallel, hence the need 
+for the [[.NOTPARALLEL]] target --- this runs any jobs that includes [[tex.mk]] 
+  in serial.
+However, this is not inherited, any recursive make invocations will run in 
+parallel unless [[.NOTPARALLEL]] is specified there as well.
 
 We will start with the targets for cleaning.
 We provide two phony targets, [[clean-tex]] and [[distclean-tex]], and we 
@@ -156,10 +163,10 @@ latexmkrc:
 @
 
 We will now discuss the different files we need latex(1) to generate.
-Note that in many cases we want latex(1) to generate more files, e.g.\ [[.toc]]
+Note that in many cases we want latex(1) to generate more files, \eg [[.toc]]
 files, but we do not have to care about these here.
 The reason we can ignore those files is that they do not require any external 
-tool, e.g.\ bibtex(1), to be run, these files just requires another run of 
+tool, \eg bibtex(1), to be run, these files just requires another run of 
 latex(1).
 
 \subsection{Auxillary files}
@@ -226,13 +233,13 @@ As mentioned in \cref{tex:Intro}, we can automatically add the [[.bbl]] file as
 a prerequisite if the variable [[TEX_BBL]] is set.
 <<bibliography files>>=
 ifneq (${TEX_BBL},)
-%.pdf: ${TEX_OUTDIR}/%.bbl
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
 @
 
 \subsection{Indices}
 
-There are several time we need to work with indices, e.g.\ when working with 
+There are several time we need to work with indices, \eg when working with 
 standard indices but also glossaries.
 Here we provide some suffix rules to make it easier to build such indices.
 
@@ -261,7 +268,7 @@ ${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
 a prerequisite if the variable [[TEX_IND]] is set.
 <<indices files>>=
 ifneq (${TEX_IND},)
-%.pdf: ${TEX_OUTDIR}/%.ind
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.ind
 endif
 @
 
@@ -297,7 +304,7 @@ pythontex-files-%/%.pytxcode: %.tex
 file as a prerequisite if the variable [[TEX_PYTHONTEX]] is set.
 <<bibliography files>>=
 ifneq (${TEX_PYTHONTEX},)
-%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
 endif
 @
 
@@ -361,8 +368,10 @@ For simplicity we add file in both the current working directory and the
 The reason for this is that it makes the makefile easier to write, usually we 
 prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in 
 the [[TEX_OUTDIR]] directory.
-And for the same reason, we create a hard link between them after compilation 
---- this allows make(1) to track modification times correctly.
+And for the same reason, we create a symbolic link between them after 
+compilation --- this allows make(1) to track modification times correctly.
+(We need a symbolic link, rather than a hard link, because upon recompilation, 
+the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
 <<document files>>=
 %.pdf ${TEX_OUTDIR}/%.pdf: %.tex
 	<<compile PDF>>
@@ -439,7 +448,6 @@ Here we provide targets for some such classes and packages.
 <<a general downloader>>
 <<Springer LNCS>>
 <<biblatex LNCS style>>
-<<ACM classes>>
 <<the RFC bibliography>>
 <<PoPETS>>
 @
@@ -585,70 +593,6 @@ TEX_EXT_URL-biblatex-lncs?=   https://github.com/neapel/biblatex-lncs.git
 $(eval $(call download_repo,biblatex-lncs))
 @
 
-\subsection{ACM classes}
-
-We provide targets for the following \ac{ACM} classes.
-<<ACM classes>>=
-<<ACM SIG proceedings>>
-<<ACM small standard>>
-<<ACM large standard>>
-@
-
-\subsubsection{Special Interest Group proceedings}
-
-The structure is similar as above.
-We use a variable to control the destination, current directory by default.
-<<variables>>=
-TEX_EXT_DIR-acmproc?=     acm
-@ Then we download the class file to that directory.
-<<ACM SIG proceedings>>=
-${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls:
-	${CURL} -o $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
-acm_proc_article-sp.cls: ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
-	${LN} $^ $@
-@ We also add the phony target [[acmproc]] to easily add this class as 
-a prerequisite for a document.
-<<ACM SIG proceedings>>=
-.PHONY: acmproc
-acmproc: acm_proc_article-sp.cls
-@
-
-The cleaning will only need to remove the single document class that we 
-downloaded.
-<<ACM SIG proceedings>>=
-.PHONY: distclean clean-acmproc
-distclean: clean-acmproc
-clean-acmproc:
-	${RM} acm_proc_article-sp.cls
-	${RM} ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
-@
-
-\subsubsection{ACM small standard}
-
-We can use the downloader for the small standard.
-<<ACM small standard>>=
-TEX_EXT_FILES-acmsmall?=  acmsmall.cls
-TEX_EXT_DIR-acmsmall?=    acm
-TEX_EXT_SRC-acmsmall?=    v2-acmsmall.zip
-TEX_EXT_URL-acmsmall?=    http://www.acm.org/publications/latex_style/v2-acmsmall.zip
-TEX_EXT_EXTRACT-acmsmall?=${UNZIP} $< -d ${TEX_EXT_DIR-acmsmall}
-
-$(eval $(call download_archive,acmsmall))
-@
-
-\subsubsection{ACM large standard}
-
-As for the small standard, we can use the downloader.
-<<ACM large standard>>=
-TEX_EXT_FILES-acmlarge?=  acmlarge.cls
-TEX_EXT_DIR-acmlarge?=    acm
-TEX_EXT_SRC-acmlarge?=    v2-acmlarge.zip
-TEX_EXT_URL-acmlarge?=    http://www.acm.org/publications/latex_style/v2-acmlarge.zip
-TEX_EXT_EXTRACT-acmlarge?=${UNZIP} $< -d ${TEX_EXT_DIR-acmlarge}
-
-$(eval $(call download_archive,acmlarge))
-@
-
 \subsection{The RFC bibliography}
 
 Occasionally we want to cite \ac{IETF} \acp{RFC}.
@@ -671,7 +615,7 @@ We let curl(1) output the contents to standard out and pipe it to the
 uncompress(1) utility and, finally, redirect the result to the target file.
 <<download rfc.bib>>=
 ${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
-  | ${UNCOMPRESS} - > $@ ; \
+  | ${UNCOMPRESS.gz} - > $@ ; \
 @
 
 According to \ac{IETF}~\cite[Sect.\ 5.2]{IETFCitingRFCs} the \acp{RFC} should 
@@ -701,7 +645,7 @@ clean-rfc:
 
 We would also like to be able to use the PoPETS format.
 <<PoPETS>>=
-TEX_EXT_FILES-popets?=by-nc-nd.pdf dg-degruyter.pdf dgruyter_NEW.sty
+TEX_EXT_FILES-popets?=by-nc-nd.pdf sciendo-logo.pdf dgruyter_NEW.sty
 TEX_EXT_URL-popets?=https://petsymposium.org/files/popets.zip
 TEX_EXT_DIR-popets?=popets
 TEX_EXT_SRC-popets?=popets.zip

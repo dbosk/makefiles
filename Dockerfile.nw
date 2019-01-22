@@ -1,0 +1,73 @@
+We need an environment to run in.
+The makefiles should work on most systems without any problem.
+However, here we will create a Docker Image with an environment that is 
+guaranteed to work and can be used for, \eg, continuous integration.
+This image is built using a [[<<Dockerfile>>]].
+
+The [[<<Dockerfile>>]] will have the following structure:
+<<Dockerfile>>=
+<<base image to use>>
+<<image info>>
+<<install packages>>
+<<copy makefiles>>
+<<set workdir>>
+@
+
+We will base the environment on Ubuntu.
+<<base image to use>>=
+FROM ubuntu:latest
+ENV DEBIAN_FRONTEND noninteractive
+@
+
+We will provide some basic information about who maintains this image and where 
+more information can be found.
+<<image info>>=
+MAINTAINER Daniel Bosk <dbosk@kth.se>
+LABEL se.bosk.daniel.makefiles.version="$Id$"
+LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
+@
+
+We install the basic packages needed.
+We start with TeXLive.
+<<install packages>>=
+RUN apt update -y && apt install -y \
+  texlive-full
+@ Then we install some smaller needed packages.
+<<install packages>>=
+RUN apt update -y && apt install -y \
+  curl \
+  git \
+  gnuplot \
+  imagemagick \
+  inkscape \
+  make \
+  noweb \
+  pandoc \
+  python3-matplotlib \
+  python3-numpy \
+  python3-pygments \
+  python3-scipy \
+  qrencode
+@
+
+We copy every makefile into the image's directory [[/usr/local/include]] to 
+make them generally available inside the environment.
+<<copy makefiles>>=
+COPY doc.mk /usr/local/include
+COPY exam.mk /usr/local/include
+COPY haskell.mk /usr/local/include
+COPY latexmkrc /usr/local/include
+COPY noweb.mk /usr/local/include
+COPY pkg.mk /usr/local/include
+COPY portability.mk /usr/local/include
+COPY pub.mk /usr/local/include
+COPY results.mk /usr/local/include
+COPY subdir.mk /usr/local/include
+COPY tex.mk /usr/local/include
+COPY transform.mk /usr/local/include
+@
+
+Finally, we set the default working directory.
+<<set workdir>>=
+WORKDIR /workdir
+@

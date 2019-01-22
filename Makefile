@@ -12,6 +12,7 @@ MIUNFILES+=		miun.depend.mk
 
 OTHERS+=		latexmkrc
 OTHERS+=		gitattributes
+OTHERS+= 		Dockerfile
 
 .PHONY: all
 all: makefiles.pdf
@@ -23,6 +24,7 @@ makefiles.pdf: makefiles.tex preamble.tex intro.tex makefiles.bib
 makefiles.pdf: exam.bib
 makefiles.pdf: transform.bib
 makefiles.pdf: tex.bib
+makefiles.pdf: Dockerfile.tex
 
 define makefiles_depends
 makefiles.pdf: $(1:.mk=.tex)
@@ -37,6 +39,25 @@ latexmkrc: tex.mk.nw
 gitattributes: transform.mk.nw
 	notangle -t2 -R$@ $^ | cpif $@
 
+
+.PHONY: all docker-makefiles
+#all: docker-makefiles
+
+DOCKER_ID_USER?=dbosk
+
+docker-makefiles: Dockerfile
+	docker build -t makefiles .
+	docker tag makefiles ${DOCKER_ID_USER}/makefiles
+	docker push ${DOCKER_ID_USER}/makefiles
+
+Dockerfile: Dockerfile.nw
+	notangle -t2 -R$@ $^ | cpif $@
+
+
+.PHONY: distclean
+distclean:
+	docker image rm makefiles
+	docker image rm dbosk/makefiles
 
 .PHONY: clean
 clean:
@@ -54,7 +75,8 @@ clean:
 	${RM} haskell.tex
 	${RM} exam.tex
 	${RM} results.tex
-#	${RM} miun.port.tex
+	#${RM} miun.port.tex
+	${RM} Dockerfile.tex
 
 
 .PHONY: miun

@@ -1,6 +1,9 @@
 ifndef DOC_MK
 DOC_MK=true
 
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
 LPR?=       lpr
 LPRFLAGS?=
 WC?=        wc
@@ -13,14 +16,22 @@ PS2PDF?=      ps2pdf
 PS2PDFFLAGS?=
 DVIPS?=       dvips
 DVIPSFLAGS?=
-ODT2PDF?=     soffice --convert-to pdf
-ODT2PDFFLAGS?=--headless
+ODF2PDF?=     soffice --convert-to pdf
+ODF2PDFFLAGS?=--headless
 INKSCAPE?=      inkscape
 INKSCAPEFLAGS?= -D -z --export-latex
 DIA?=           dia
 DIAFLAGS?=
+XCF2PNGFLAGS?=  -flatten
+XCF2PNG?=       convert ${XCF2PNGFLAGS} $< $@
+TRIM?=          convert -trim $@ $@
 MD2TEX?=        pandoc -f markdown -t latex
 MD2TEXFLAGS?=
+MD2HTML?=       pandoc -f markdown -t html
+MD2HTMLFLAGS?=
+
+TEX2HTML?=      pandoc -f latex -t html
+TEX2HTMLFLAGS?=
 TEX2TEXT?=      detex
 TEX2TEXTFLAGS?=
 .PHONY: print
@@ -48,7 +59,19 @@ todo:
 %.ps: %.dvi
 	${DVIPS} ${DVIPSFLAGS} $<
 %.pdf: %.odt
-	${ODT2PDF} ${ODT2PDFFLAGS} $<
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.ods
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.odg
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.odp
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.docx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.xlsx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
+%.pdf: %.pptx
+	${ODF2PDF} ${ODF2PDFFLAGS} $<
 
 %.pdf: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
@@ -59,9 +82,17 @@ todo:
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
 %.tex: %.dia
 	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
+%.png: %.xcf
+	${XCF2PNG}
+	${TRIM}
 
 %.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+%.html: %.md
+	${MD2HTML} ${MD2HTMLFLAGS} $< > $@
+
+%.html: %.tex
+	${TEX2HTML} ${TEX2HTMLFLAGS} $< > $@
 %.txt: %.tex
 	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
 

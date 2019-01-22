@@ -68,12 +68,16 @@ $(foreach site,${PUB_SITES},$(eval $(call publish_target,${site})))
 define chown
 $(if ${PUB_GROUP-$(1)},\
   ${SSH} ${PUB_SERVER-$(1)}\
-  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)}) ${PUB_DIR-$(1)};,)
+  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)})\
+  $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
+  ,)
 endef
 define chmod
 $(if ${PUB_CHMOD-$(1)},\
   ${SSH} ${PUB_SERVER-$(1)}\
-  ${CHMOD} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)};,)
+  ${CHMOD} ${PUB_CHMOD-$(1)}\
+  $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
+  ,)
 endef
 define publish-ssh
 ${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}; \

@@ -1,6 +1,8 @@
 makefiles
 ===============================================================================
 
+[![CircleCI](https://circleci.com/gh/dbosk/makefiles.svg?style=svg)](https://circleci.com/gh/dbosk/makefiles)
+
 These are a set of generic makefiles for handling course material and research 
 publications in an easy manner.  I started development during my first years as 
 Lecturer in Mid Sweden University 

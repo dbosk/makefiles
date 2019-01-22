@@ -1,6 +1,8 @@
 ifndef TEX_MK
 TEX_MK=true
 
+.NOTPARALLEL:
+
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
@@ -21,7 +23,6 @@ XINDYFLAGS?=
 TEX_PYTHONTEX?=
 PYTHONTEX?=   pythontex3
 PYTHONTEXFLAGS?=
-TEX_EXT_DIR-acmproc?=     acm
 ${TEX_OUTDIR}/%.aux: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
@@ -34,10 +35,10 @@ ${TEX_OUTDIR}/%.bcf: %.tex
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
 	${BIBER} -O $@ ${BIBERFLAGS} $<
 ifneq (${TEX_BBL},)
-%.pdf: ${TEX_OUTDIR}/%.bbl
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
 ifneq (${TEX_PYTHONTEX},)
-%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
 endif
 ${TEX_OUTDIR}/%.idx: %.tex
 	${MKDIR} ${TEX_OUTDIR}
@@ -45,7 +46,7 @@ ${TEX_OUTDIR}/%.idx: %.tex
 ${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
 	${XINDY} -o $@ ${XINDYFLAGS} $<
 ifneq (${TEX_IND},)
-%.pdf: ${TEX_OUTDIR}/%.ind
+%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.ind
 endif
 ${TEX_OUTDIR}/%.nlo: %.tex
 	${MKDIR} ${TEX_OUTDIR}
@@ -151,40 +152,15 @@ TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
 TEX_EXT_URL-biblatex-lncs?=   https://github.com/neapel/biblatex-lncs.git
 
 $(eval $(call download_repo,biblatex-lncs))
-${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls:
-	${CURL} -o $@ http://www.acm.org/sigs/publications/acm_proc_article-sp.cls
-acm_proc_article-sp.cls: ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
-	${LN} $^ $@
-.PHONY: acmproc
-acmproc: acm_proc_article-sp.cls
-.PHONY: distclean clean-acmproc
-distclean: clean-acmproc
-clean-acmproc:
-	${RM} acm_proc_article-sp.cls
-	${RM} ${TEX_EXT_DIR-acmproc}/acm_proc_article-sp.cls
-TEX_EXT_FILES-acmsmall?=  acmsmall.cls
-TEX_EXT_DIR-acmsmall?=    acm
-TEX_EXT_SRC-acmsmall?=    v2-acmsmall.zip
-TEX_EXT_URL-acmsmall?=    http://www.acm.org/publications/latex_style/v2-acmsmall.zip
-TEX_EXT_EXTRACT-acmsmall?=${UNZIP} $< -d ${TEX_EXT_DIR-acmsmall}
-
-$(eval $(call download_archive,acmsmall))
-TEX_EXT_FILES-acmlarge?=  acmlarge.cls
-TEX_EXT_DIR-acmlarge?=    acm
-TEX_EXT_SRC-acmlarge?=    v2-acmlarge.zip
-TEX_EXT_URL-acmlarge?=    http://www.acm.org/publications/latex_style/v2-acmlarge.zip
-TEX_EXT_EXTRACT-acmlarge?=${UNZIP} $< -d ${TEX_EXT_DIR-acmlarge}
-
-$(eval $(call download_archive,acmlarge))
 rfc.bib:
 	${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
-	  | ${UNCOMPRESS} - > $@ ; \
+	  | ${UNCOMPRESS.gz} - > $@ ; \
 	${SED} -i "s/@misc/@techreport/" $@
 
 ${TEXMF}/tex/latex/rfc.bib:
 	mkdir -p ${TEXMF}/tex/latex/
 	${CURL} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \
-	  | ${UNCOMPRESS} - > $@ ; \
+	  | ${UNCOMPRESS.gz} - > $@ ; \
 	${SED} -i "s/@misc/@techreport/" $@
 .PHONY: rfc
 rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
@@ -192,7 +168,7 @@ rfc: rfc.bib ${TEXMF}/tex/latex/rfc.bib
 distclean: clean-rfc
 clean-rfc:
 	${RM} rfc.bib
-TEX_EXT_FILES-popets?=by-nc-nd.pdf dg-degruyter.pdf dgruyter_NEW.sty
+TEX_EXT_FILES-popets?=by-nc-nd.pdf sciendo-logo.pdf dgruyter_NEW.sty
 TEX_EXT_URL-popets?=https://petsymposium.org/files/popets.zip
 TEX_EXT_DIR-popets?=popets
 TEX_EXT_SRC-popets?=popets.zip

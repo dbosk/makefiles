@@ -39,7 +39,7 @@ endif
 endif
 @
 
-The thing we want to do is to build the given goals ([[MAKECMDGOALS]]), i.e.\ 
+The thing we want to do is to build the given goals ([[MAKECMDGOALS]]), \ie 
 the targets specified on the command-line, in all subdirectories listed in 
 [[SUBDIR]].
 For each directory, we specify a recipe which runs make in the subdirectory 

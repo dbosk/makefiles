@@ -35,11 +35,11 @@ PUB_CHMOD?=         o+r
 \subsection{Publication methods}
 
 There are currently three methods for publication:
-\begin{inparablank}
+\begin{enumerate*}
 \item [[ssh]],
 \item [[git]], and
 \item [[at]].
-\end{inparablank}
+\end{enumerate*}
 The default method is [[ssh]].
 <<variables>>=
 PUB_METHOD?=        ssh
@@ -83,7 +83,7 @@ PUB_BRANCH?=        master
 
 \subsection{Publishing to multiple sites}
 
-We might also be interested in publishing files to several places, e.g.\ to 
+We might also be interested in publishing files to several places, \eg to 
 a set of mirrors.
 The variable [[PUB_SITES]] contains a list of sites.
 <<variables>>=
@@ -91,8 +91,8 @@ PUB_SITES?=         main
 @ We supply one by default, this allows us to simply use the general variables 
 above.
 This way, site-specific overrides can be specified by appending the variable 
-with the site name, e.g.\ [[-main]].
-All other values are copied from the defaults, i.e.\ the general variables.
+with the site name, \eg [[-main]].
+All other values are copied from the defaults, \ie the general variables.
 <<variables>>=
 define variables
 PUB_METHOD-$(1)?=   ${PUB_METHOD}
@@ -134,7 +134,7 @@ management system.
 One way is to create a tag every time a publication is made.
 
 To enable this feature we set the variable [[PUB_AUTOTAG]] to true.
-By default we let it be false, i.e.\ this feature is disabled.
+By default we let it be false, \ie this feature is disabled.
 <<variables>>=
 PUB_AUTOTAG?=       false
 @
@@ -245,7 +245,9 @@ server.
 define chown
 $(if ${PUB_GROUP-$(1)},\
   ${SSH} ${PUB_SERVER-$(1)}\
-  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)}) ${PUB_DIR-$(1)};,)
+  ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)})\
+  $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
+  ,)
 endef
 @ Conversely, the [[chmod]] function does the same but with the chmod(1) 
 command.
@@ -255,7 +257,9 @@ Note, however, that we do not run these commands if [[PUB_GROUP]] or
 define chmod
 $(if ${PUB_CHMOD-$(1)},\
   ${SSH} ${PUB_SERVER-$(1)}\
-  ${CHMOD} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)};,)
+  ${CHMOD} ${PUB_CHMOD-$(1)}\
+  $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
+  ,)
 endef
 @
 
