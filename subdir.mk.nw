@@ -26,6 +26,8 @@ containing the space-separated list of subdirectories, exists.
 ifndef SUBDIR_MK
 SUBDIR_MK=true
 
+INCLUDE_MAKEFILES?=.
+
 ifdef SUBDIR
 <<let the recipe for each subdirectory recurse into it>>
 endif
@@ -45,9 +47,14 @@ the targets specified on the command-line, in all subdirectories listed in
 For each directory, we specify a recipe which runs make in the subdirectory 
 with the goals specified on the command-line.
 <<let the recipe for each subdirectory recurse into it>>=
+.PHONY: ${SUBDIR}
 ${SUBDIR}::
-	${MAKE} -C $@ ${MAKECMDGOALS}
-@
+	${MAKE} -C $@ -I ${INCLUDE_MAKEFILES} ${MAKECMDGOALS}
+@ We also want to give the sub-make access to our [[INCLUDE_MAKEFILES]], hence 
+the [[-I]] option.
+This is mostly due to (backwards) compatibility with the MIUN versions (see 
+\cref{miun.compat.mk}) of the makefiles, which pre-dates the 
+[[INCLUDE_MAKEFILES]] construction.
 
 To ensure these recipes are run we need to ensure that they are prerequisites
 to the goals.
