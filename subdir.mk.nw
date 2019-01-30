@@ -53,13 +53,9 @@ ${SUBDIR}::
 
 Those [[actual_goals]] is the intersection of the goals specified on the 
 command-line and those specified in [[SUBDIR_GOALS]].
-However, we also have the case of no goals from the command-line but the 
-\emph{default goal} being in [[SUBDIR_GOALS]], thus we get:
 <<variables>>=
-actual_goals=$(sort $(filter ${SUBDIR_GOALS},${MAKECMDGOALS} ${.DEFAULT_GOAL))
-@
-
-To ensure these recipes are run we need to ensure that they are prerequisites
+actual_goals=$(sort $(filter ${SUBDIR_GOALS},${MAKECMDGOALS}))
+@ To ensure these recipes are run we need to ensure that they are prerequisites
 to those goals.
 <<add subdirectories as prerequisites for the goals>>=
 ifneq (${actual_goals},)
@@ -67,3 +63,19 @@ ifneq (${actual_goals},)
 ${actual_goals}: ${SUBDIR}
 endif
 @
+
+Finally, we must consider the case of the default goal, \ie no goal is 
+specified on the command line.
+In this case we simply check if the default goal ([[.DEFAULT_GOAL]]) is among 
+the desired goals ([[SUBDIR_GOALS]]).
+<<add subdirectories as prerequisites for the goals>>=
+ifneq ($(filter ${.DEFAULT_GOAL},${SUBDIR_GOALS}),)
+.PHONY: ${.DEFAULT_GOAL}
+${.DEFAULT_GOAL}: ${SUBDIR}
+endif
+@ We note that if we specify no goals on the command line, then 
+[[actual_goals]] will be the empty string.
+This means that we execute the default goal in each subdirectory recursively: 
+\eg if the current default goal is [[all]], but its [[clean]] in a 
+subdirectory, then we will execute [[all]] here but [[clean]] there --- not 
+[[all]] in both places.
