@@ -244,7 +244,7 @@ server.
 <<helper functions>>=
 define chown
 $(if ${PUB_GROUP-$(1)},\
-  ${SSH} ${PUB_SERVER-$(1)}\
+  $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)})\
   ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)})\
   $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
   ,)
@@ -256,7 +256,7 @@ Note, however, that we do not run these commands if [[PUB_GROUP]] or
 <<helper functions>>=
 define chmod
 $(if ${PUB_CHMOD-$(1)},\
-  ${SSH} ${PUB_SERVER-$(1)}\
+  $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)})\
   ${CHMOD} ${PUB_CHMOD-$(1)}\
   $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
   ,)
@@ -278,7 +278,7 @@ endef
 @ To create the directory on the server is straight-forward, we simply run the 
 command over \ac{SSH}.
 <<create directory on server>>=
-${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${MKDIR} ${PUB_DIR-$(1)}
 @
 
 Next is the packing of the files.
@@ -312,7 +312,7 @@ $(foreach site,${PKG_SITES},$(eval PUB_REGEX-${site}?=${PUB_REGEX}))
 Finally, we extract the files on the server by running the corresponding pax(1) 
 instance over \ac{SSH}.
 <<extract the files on the server>>=
-${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${UNPAX} \
   -s "\"|^|$(strip ${PUB_DIR-$(1)})/|p\""
 @
 
@@ -337,8 +337,8 @@ new ones.
 The first thing we want to do is to create a temporary directory on the server.
 We do this in the proper way.
 <<create temporary directory>>=
-TMPPUB=$$(${SSH} ${PUB_SERVER-$(1)} "export TMPDIR=${PUB_TMPDIR-$(1)} && \
-  ${MKTMPDIR-$(1)}")
+TMPPUB=$$($(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) \
+  "export TMPDIR=${PUB_TMPDIR-$(1)} && ${MKTMPDIR-$(1)}")
 @ We allow the user to override the [[mktemp]] command per server, since this 
 command might differ on different servers.
 <<variables>>=
@@ -350,7 +350,7 @@ The difference between this and previous upload is the extraction.
 We will now use a different regular expression, one which prepends the 
 temporary directory to all files.
 <<extract the files in the temporary directory>>=
-${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${UNPAX} \
   -s "\"|^|$${TMPPUB}/|p\""
 @
 
@@ -358,7 +358,7 @@ Finally, we must add the at(1) job on the server.
 This is done by changing the directory to the temporary directory, then we echo
 the commands we want to execute later and pipe those to the at(1) command.
 <<add at-job on the server>>=
-${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) "cd $${TMPPUB} && (\
   echo 'mv ${PUB_FILES-$(1)} ${PUB_DIR-$(2)};' \
   $(if ${PUB_CHMOD-$(1)},\
     echo '${CHMOD-$(1)} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)};',) \
@@ -384,7 +384,8 @@ Then we pipe the archive to the server, unpack as before and finally run
 <<git method>>=
 define publish-git
 git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
-  | ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),"; \
+  | $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) \
+    ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),"; \
 $(call chown,$(1)) \
 $(call chmod,$(1))
 endef

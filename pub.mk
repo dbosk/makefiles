@@ -67,40 +67,40 @@ endef
 $(foreach site,${PUB_SITES},$(eval $(call publish_target,${site})))
 define chown
 $(if ${PUB_GROUP-$(1)},\
-  ${SSH} ${PUB_SERVER-$(1)}\
+  $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)})\
   ${CHOWN} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)})\
   $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
   ,)
 endef
 define chmod
 $(if ${PUB_CHMOD-$(1)},\
-  ${SSH} ${PUB_SERVER-$(1)}\
+  $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)})\
   ${CHMOD} ${PUB_CHMOD-$(1)}\
   $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
   ,)
 endef
 define publish-ssh
-${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}; \
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${MKDIR} ${PUB_DIR-$(1)}; \
 [ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
 xargs ${PAX} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
   -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
-${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${UNPAX} \
   -s "\"|^|$(strip ${PUB_DIR-$(1)})/|p\""; \
 $(call chown,$(1)) \
 $(call chmod,$(1))
 endef
 define publish-at
-${SSH} ${PUB_SERVER-$(1)} ${MKDIR} ${PUB_DIR-$(1)}; \
-TMPPUB=$$(${SSH} ${PUB_SERVER-$(1)} "export TMPDIR=${PUB_TMPDIR-$(1)} && \
-  ${MKTMPDIR-$(1)}"); \
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${MKDIR} ${PUB_DIR-$(1)}; \
+TMPPUB=$$($(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) \
+  "export TMPDIR=${PUB_TMPDIR-$(1)} && ${MKTMPDIR-$(1)}"); \
 [ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
 xargs ${PAX} \
   $(foreach regex,${PUB_REGEX-$(1)},-s ${regex}) \
   -s "|^.*/$(strip ${PUB_IGNORE-$(1)})/.*$$||p" | \
-${SSH} ${PUB_SERVER-$(1)} ${UNPAX} \
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${UNPAX} \
   -s "\"|^|$${TMPPUB}/|p\""; \
-${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
+$(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) "cd $${TMPPUB} && (\
   echo 'mv ${PUB_FILES-$(1)} ${PUB_DIR-$(2)};' \
   $(if ${PUB_CHMOD-$(1)},\
     echo '${CHMOD-$(1)} ${PUB_CHMOD-$(1)} ${PUB_DIR-$(1)};',) \
@@ -110,7 +110,8 @@ ${SSH} ${PUB_SERVER-$(1)} "cd $${TMPPUB} && (\
 endef
 define publish-git
 git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
-  | ${SSH} ${PUB_SERVER-$(1)} ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),"; \
+  | $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) \
+    ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),"; \
 $(call chown,$(1)) \
 $(call chmod,$(1))
 endef
