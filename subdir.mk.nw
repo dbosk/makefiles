@@ -9,14 +9,17 @@ into.
 We note that the subdirectories will be built in depth-first search order 
 (unless we use parallel execution).
 
-By default, for any goals passed on the command line we will add the directories 
-in [[SUBDIR]] as prerequisites.
+By default, we will recurse into the subdirectories in [[SUBDIR]] for any goals 
+passed on the command line.
 This behaviour can be overridden by changing the value of [[SUBDIR_GOALS]] from 
 its default:
 <<variables>>=
 SUBDIR_GOALS?=${MAKECMDGOALS}
-@ Like this we can add the subdirectories in [[SUBDIR]] as prerequisites manually 
-to only a subset of desired targets.
+@ Like this we can ensure that we only recurse into the subdirectories only for 
+a subset of desired targets.
+
+Any variables that should be passed down to sub-makes should be exported using 
+the [[export]] directive of make.
 
 \section{Implementation}
 
