@@ -1,19 +1,18 @@
 ifndef SUBDIR_MK
 SUBDIR_MK=true
 
+SUBDIR_GOALS?=${MAKECMDGOALS}
+actual_goals=$(sort $(filter ${SUBDIR_GOALS},${MAKECMDGOALS} ${.DEFAULT_GOAL))
+
 ifdef SUBDIR
 ${SUBDIR}::
-	${MAKE} -C $@ ${MAKECMDGOALS}
+	${MAKE} -C $@ ${actual_goals}
 endif
 
-SUBDIR_ALL_GOALS?=yes
-
-ifeq (${SUBDIR_ALL_GOALS},yes)
-ifneq (${MAKECMDGOALS},)
-.PHONY: ${MAKECMDGOALS}
-${MAKECMDGOALS}: ${SUBDIR}
-else
-${.DEFAULT_GOAL}: ${SUBDIR}
+ifneq (${SUBDIR_GOALS},)
+ifneq (${actual_goals},)
+.PHONY: ${actual_goals}
+${actual_goals}: ${SUBDIR}
 endif
 endif
 
