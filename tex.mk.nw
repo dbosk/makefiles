@@ -133,7 +133,8 @@ However, as latexmk(1) is set as the default in \cref{tex:Intro}, we can
 already add the following line to the cleaning recipe.
 <<clean recipe>>=
 -latexmk -C -output-directory=${TEX_OUTDIR}
-${RM} -R ${TEX_OUTDIR}
+[ "${TEX_OUTDIR}" -ef "$$(pwd)" ] || \
+  ${RM} -R ${TEX_OUTDIR}
 ${RM} *.pytxcode
 ${RM} pythontex-files-*
 @
