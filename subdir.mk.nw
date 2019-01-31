@@ -7,14 +7,19 @@ a space-separated list of directory names.
 Then each subdirectory may in turn hold a new set of subdirectories to descend 
 into.
 We note that the subdirectories will be built in depth-first search order 
-(unless we allow parallel execution).
+(unless we use parallel execution).
 
-By default, for any goals passed on the command line we will add the directories 
-in [[SUBDIR]] as prerequisites.
-This behaviour can be overridden by setting [[SUBDIR_ALL_GOALS]] to anything 
-different from [[yes]].
-Like this we can add the subdirectories in [[SUBDIR]] as prerequisites manually 
-to only a subset of desired targets.
+By default, we will recurse into the subdirectories in [[SUBDIR]] for any goals 
+passed on the command line.
+This behaviour can be overridden by changing the value of [[SUBDIR_GOALS]] from 
+its default:
+<<variables>>=
+SUBDIR_GOALS?=${MAKECMDGOALS}
+@ Like this we can ensure that we only recurse into the subdirectories only for 
+a subset of desired targets.
+
+Any variables that should be passed down to sub-makes should be exported using 
+the [[export]] directive of make.
 
 \section{Implementation}
 
@@ -26,39 +31,54 @@ containing the space-separated list of subdirectories, exists.
 ifndef SUBDIR_MK
 SUBDIR_MK=true
 
+<<variables>>
+
 ifdef SUBDIR
 <<let the recipe for each subdirectory recurse into it>>
 endif
 
-SUBDIR_ALL_GOALS?=yes
-
-ifeq (${SUBDIR_ALL_GOALS},yes)
+ifneq (${SUBDIR_GOALS},)
 <<add subdirectories as prerequisites for the goals>>
 endif
 
 endif
 @
 
-The thing we want to do is to build the given goals ([[MAKECMDGOALS]]), \ie 
-the targets specified on the command-line, in all subdirectories listed in 
-[[SUBDIR]].
+The thing we want to do is to build the given goals ([[SUBDIR_GOALS]]), \ie the 
+targets specified on the command-line by default, in all subdirectories listed 
+in [[SUBDIR]].
 For each directory, we specify a recipe which runs make in the subdirectory 
-with the goals specified on the command-line.
+with the appropriate goals.
 <<let the recipe for each subdirectory recurse into it>>=
 ${SUBDIR}::
-	${MAKE} -C $@ ${MAKECMDGOALS}
+	${MAKE} -C $@ ${actual_goals}
 @
 
-To ensure these recipes are run we need to ensure that they are prerequisites
-to the goals.
-This also means that if no goals are given on the command-line, then we should 
-use the default goal.
+Those [[actual_goals]] is the intersection of the goals specified on the 
+command-line and those specified in [[SUBDIR_GOALS]].
+<<variables>>=
+actual_goals=$(sort $(filter ${SUBDIR_GOALS},${MAKECMDGOALS}))
+@ To ensure these recipes are run we need to ensure that they are prerequisites
+to those goals.
 <<add subdirectories as prerequisites for the goals>>=
-ifneq (${MAKECMDGOALS},)
-.PHONY: ${MAKECMDGOALS}
-${MAKECMDGOALS}: ${SUBDIR}
-else
+ifneq (${actual_goals},)
+.PHONY: ${actual_goals}
+${actual_goals}: ${SUBDIR}
+endif
+@
+
+Finally, we must consider the case of the default goal, \ie no goal is 
+specified on the command line.
+In this case we simply check if the default goal ([[.DEFAULT_GOAL]]) is among 
+the desired goals ([[SUBDIR_GOALS]]).
+<<add subdirectories as prerequisites for the goals>>=
+ifneq ($(filter ${.DEFAULT_GOAL},${SUBDIR_GOALS}),)
+.PHONY: ${.DEFAULT_GOAL}
 ${.DEFAULT_GOAL}: ${SUBDIR}
 endif
-@ We note that this will cause the default goal of each subdirectory to be 
-built, not the same goal which is the default goal in the root.
+@ We note that if we specify no goals on the command line, then 
+[[actual_goals]] will be the empty string.
+This means that we execute the default goal in each subdirectory recursively: 
+\eg if the current default goal is [[all]], but its [[clean]] in a 
+subdirectory, then we will execute [[all]] here but [[clean]] there --- not 
+[[all]] in both places.
