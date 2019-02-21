@@ -180,7 +180,8 @@ clean: clean-tex
 
 clean-tex:
 	-latexmk -C -output-directory=${TEX_OUTDIR}
-	${RM} -R ${TEX_OUTDIR}
+	[ "${TEX_OUTDIR}" -ef "$$(pwd)" ] || \
+	  ${RM} -R ${TEX_OUTDIR}
 	${RM} *.pytxcode
 	${RM} pythontex-files-*
 
