@@ -3,9 +3,9 @@ ENV DEBIAN_FRONTEND noninteractive
 MAINTAINER Daniel Bosk <dbosk@kth.se>
 LABEL se.bosk.daniel.makefiles.version="$Id: d88da65bf8a9ffd00984ea7e7f77c34f61a50c0b $"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
-RUN apt update -y && apt install -y \
-  texlive-full
-RUN apt update -y && apt install -y \
+RUN apt update -y && apt install --no-install-recommends -y \
+  texlive-full \
+  xindy \
   curl \
   git \
   gnuplot \
@@ -18,8 +18,8 @@ RUN apt update -y && apt install -y \
   python3-numpy \
   python3-pygments \
   python3-scipy \
-  qrencode \
-  xindy
+  qrencode && \
+  rm -Rf /var/lib/apt/lists/*
 COPY doc.mk /usr/local/include
 COPY exam.mk /usr/local/include
 COPY haskell.mk /usr/local/include
