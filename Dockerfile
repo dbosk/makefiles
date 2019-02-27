@@ -18,7 +18,8 @@ RUN apt update -y && apt install -y \
   python3-numpy \
   python3-pygments \
   python3-scipy \
-  qrencode
+  qrencode \
+  xindy
 COPY doc.mk /usr/local/include
 COPY exam.mk /usr/local/include
 COPY haskell.mk /usr/local/include
