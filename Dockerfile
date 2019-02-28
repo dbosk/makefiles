@@ -10,6 +10,7 @@ RUN apt-get update -y && \
     xindy \
   && \
   apt-get purge -fy texlive-*-doc && \
+  apt-get autoremove -y && \
   rm -Rf /var/lib/apt/lists/* && \
   rm -Rf /usr/share/doc && \
   rm -Rf /usr/share/man
