@@ -1,11 +1,12 @@
 FROM ubuntu:latest
 ENV DEBIAN_FRONTEND noninteractive
 MAINTAINER Daniel Bosk <dbosk@kth.se>
-LABEL se.bosk.daniel.makefiles.version="$Id: 198175dc3b11e7c72e26822df02cc276c2838a23 $"
+LABEL se.bosk.daniel.makefiles.version="$Id: c451d40a177d563967864b78ead97997ee73372b $"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 RUN apt update -y && \
   apt install -y \
     texlive-full \
+    latexmk \
     xindy \
   && \
   apt purge -fy texlive-fonts-extra-doc \

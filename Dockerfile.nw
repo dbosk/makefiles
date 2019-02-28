@@ -38,6 +38,7 @@ this image.
 RUN apt update -y && \
   apt install -y \
     texlive-full \
+    latexmk \
     xindy \
   && \
   apt purge -fy texlive-fonts-extra-doc \
