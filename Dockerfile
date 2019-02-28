@@ -4,18 +4,19 @@ MAINTAINER Daniel Bosk <dbosk@kth.se>
 LABEL se.bosk.daniel.makefiles.version="$Id: c451d40a177d563967864b78ead97997ee73372b $"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 RUN apt-get update -y && \
-  apt-get install -y \
+  apt-get install --no-install-recommends -y \
     texlive-* \
     latexmk \
     xindy \
+    biber \
   && \
-  apt-get purge -fy texlive-*-doc && \
+  apt-get purge -fy *-doc && \
   apt-get autoremove -y && \
   rm -Rf /var/lib/apt/lists/* && \
   rm -Rf /usr/share/doc && \
   rm -Rf /usr/share/man
 RUN apt-get update -y && \
-  apt-get install -y \
+  apt-get install --no-install-recommends -y \
     curl \
     git \
     gnuplot \
@@ -31,7 +32,7 @@ RUN apt-get update -y && \
     qrencode \
     unzip \
   && \
-  apt-get purge -fy make-doc && \
+  apt-get purge -fy *-doc && \
   rm -Rf /var/lib/apt/lists/* && \
   rm -Rf /usr/share/doc && \
   rm -Rf /usr/share/man

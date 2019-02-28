@@ -36,12 +36,13 @@ We will put TeXLive in its own layer, to avoid redoing that whenever we update
 this image.
 <<install packages>>=
 RUN apt-get update -y && \
-  apt-get install -y \
+  apt-get install --no-install-recommends -y \
     texlive-* \
     latexmk \
     xindy \
+    biber \
   && \
-  apt-get purge -fy texlive-*-doc && \
+  apt-get purge -fy *-doc && \
   apt-get autoremove -y && \
   rm -Rf /var/lib/apt/lists/* && \
   rm -Rf /usr/share/doc && \
@@ -51,7 +52,7 @@ RUN apt-get update -y && \
 We will now concentrate smaller packages to a separate RUN command.
 <<install packages>>=
 RUN apt-get update -y && \
-  apt-get install -y \
+  apt-get install --no-install-recommends -y \
     curl \
     git \
     gnuplot \
@@ -67,7 +68,7 @@ RUN apt-get update -y && \
     qrencode \
     unzip \
   && \
-  apt-get purge -fy make-doc && \
+  apt-get purge -fy *-doc && \
   rm -Rf /var/lib/apt/lists/* && \
   rm -Rf /usr/share/doc && \
   rm -Rf /usr/share/man
