@@ -10,7 +10,6 @@ The [[<<Dockerfile>>]] will have the following structure:
 <<image info>>
 <<install packages>>
 <<copy makefiles>>
-<<set workdir>>
 @
 
 We will base the environment on Ubuntu.
@@ -28,16 +27,42 @@ LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 @
 
 We install the basic packages needed.
-To make as small a Docker image as we can, we will do everything in one 
-go\footnote{%
+To make as small a Docker image as we can, we will do as much as possible with 
+as few RUN commands as possible\footnote{%
   See \url{https://hackernoon.com/tips-to-reduce-docker-image-sizes-876095da3b34} 
   for a discussion on how to reduce the size of images.
 }.
+We will put TeXLive in its own layer, to avoid redoing that whenever we update 
+this image.
 <<install packages>>=
 RUN apt update -y && \
   apt install --no-install-recommends -y \
     texlive-full \
     xindy \
+  && \
+  apt purge -fy texlive-fonts-extra-doc \
+    texlive-latex-base-doc \
+    texlive-fonts-recommended-doc \
+    texlive-latex-extra-doc \
+    texlive-latex-recommended-doc \
+    texlive-metapost-doc \
+    texlive-humanities-doc \
+    texlive-pictures-doc \
+    texlive-pstricks-doc \
+    texlive-publishers-doc \
+    texlive-science-doc \
+  && \
+  apt autoclean -y && \
+  apt autoremove -y && \
+  apt clean && \
+  rm -Rf /var/lib/apt/lists/* && \
+  rm -Rf /usr/share/doc && \
+  rm -Rf /usr/share/man
+@
+
+We will now concentrate smaller packages to a separate RUN command.
+<<install packages>>=
+RUN apt install --no-install-recommends -y \
     curl \
     git \
     gnuplot \
@@ -50,9 +75,15 @@ RUN apt update -y && \
     python3-numpy \
     python3-pygments \
     python3-scipy \
-    qrencode && \
+    qrencode \
+  && \
+  apt purge -fy make-doc && \
+  apt autoclean -y && \
+  apt autoremove -y && \
+  apt clean && \
   rm -Rf /var/lib/apt/lists/* && \
-  rm -Rf /usr/share/doc
+  rm -Rf /usr/share/doc && \
+  rm -Rf /usr/share/man
 @
 
 We copy every makefile into the image's directory [[/usr/local/include]] to 
@@ -70,9 +101,4 @@ COPY results.mk /usr/local/include
 COPY subdir.mk /usr/local/include
 COPY tex.mk /usr/local/include
 COPY transform.mk /usr/local/include
-@
-
-Finally, we set the default working directory.
-<<set workdir>>=
-WORKDIR /workdir
 @
