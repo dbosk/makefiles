@@ -3,32 +3,18 @@ ENV DEBIAN_FRONTEND noninteractive
 MAINTAINER Daniel Bosk <dbosk@kth.se>
 LABEL se.bosk.daniel.makefiles.version="$Id: c451d40a177d563967864b78ead97997ee73372b $"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
-RUN apt update -y && \
-  apt install -y \
-    texlive-full \
+RUN apt-get update -y && \
+  apt-get install -y \
+    texlive-* \
     latexmk \
     xindy \
   && \
-  apt purge -fy texlive-fonts-extra-doc \
-    texlive-latex-base-doc \
-    texlive-fonts-recommended-doc \
-    texlive-latex-extra-doc \
-    texlive-latex-recommended-doc \
-    texlive-metapost-doc \
-    texlive-humanities-doc \
-    texlive-pictures-doc \
-    texlive-pstricks-doc \
-    texlive-publishers-doc \
-    texlive-science-doc \
-  && \
-  apt autoclean -y && \
-  apt autoremove -y && \
-  apt clean && \
+  apt-get purge -fy texlive-*-doc && \
   rm -Rf /var/lib/apt/lists/* && \
   rm -Rf /usr/share/doc && \
   rm -Rf /usr/share/man
-RUN apt update -y && \
-  apt install -y \
+RUN apt-get update -y && \
+  apt-get install -y \
     curl \
     git \
     gnuplot \
@@ -44,10 +30,7 @@ RUN apt update -y && \
     qrencode \
     unzip \
   && \
-  apt purge -fy make-doc && \
-  apt autoclean -y && \
-  apt autoremove -y && \
-  apt clean && \
+  apt-get purge -fy make-doc && \
   rm -Rf /var/lib/apt/lists/* && \
   rm -Rf /usr/share/doc && \
   rm -Rf /usr/share/man
