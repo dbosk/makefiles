@@ -62,7 +62,8 @@ RUN apt update -y && \
 
 We will now concentrate smaller packages to a separate RUN command.
 <<install packages>>=
-RUN apt install --no-install-recommends -y \
+RUN apt update -y && \
+  apt install --no-install-recommends -y \
     curl \
     git \
     gnuplot \
