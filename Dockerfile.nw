@@ -77,6 +77,7 @@ RUN apt update -y && \
     python3-pygments \
     python3-scipy \
     qrencode \
+    unzip \
   && \
   apt purge -fy make-doc && \
   apt autoclean -y && \

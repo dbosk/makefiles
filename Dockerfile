@@ -26,7 +26,8 @@ RUN apt update -y && \
   rm -Rf /var/lib/apt/lists/* && \
   rm -Rf /usr/share/doc && \
   rm -Rf /usr/share/man
-RUN apt install --no-install-recommends -y \
+RUN apt update -y && \
+  apt install --no-install-recommends -y \
     curl \
     git \
     gnuplot \
@@ -40,6 +41,7 @@ RUN apt install --no-install-recommends -y \
     python3-pygments \
     python3-scipy \
     qrencode \
+    unzip \
   && \
   apt purge -fy make-doc && \
   apt autoclean -y && \
