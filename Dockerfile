@@ -4,7 +4,7 @@ MAINTAINER Daniel Bosk <dbosk@kth.se>
 LABEL se.bosk.daniel.makefiles.version="$Id: 198175dc3b11e7c72e26822df02cc276c2838a23 $"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 RUN apt update -y && \
-  apt install --no-install-recommends -y \
+  apt install -y \
     texlive-full \
     xindy \
   && \
@@ -27,7 +27,7 @@ RUN apt update -y && \
   rm -Rf /usr/share/doc && \
   rm -Rf /usr/share/man
 RUN apt update -y && \
-  apt install --no-install-recommends -y \
+  apt install -y \
     curl \
     git \
     gnuplot \

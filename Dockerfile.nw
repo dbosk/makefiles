@@ -36,7 +36,7 @@ We will put TeXLive in its own layer, to avoid redoing that whenever we update
 this image.
 <<install packages>>=
 RUN apt update -y && \
-  apt install --no-install-recommends -y \
+  apt install -y \
     texlive-full \
     xindy \
   && \
@@ -63,7 +63,7 @@ RUN apt update -y && \
 We will now concentrate smaller packages to a separate RUN command.
 <<install packages>>=
 RUN apt update -y && \
-  apt install --no-install-recommends -y \
+  apt install -y \
     curl \
     git \
     gnuplot \
