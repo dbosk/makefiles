@@ -23,6 +23,9 @@ XINDYFLAGS?=
 TEX_PYTHONTEX?=
 PYTHONTEX?=   pythontex3
 PYTHONTEXFLAGS?=
+BIBTOOL?=     bibtool
+BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d
+ARCHIVE.bib?= ${CAT} $@ $% | ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
 ${TEX_OUTDIR}/%.aux: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<

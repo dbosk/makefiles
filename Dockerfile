@@ -9,6 +9,7 @@ RUN apt-get update -y && \
     latexmk \
     xindy \
     biber \
+    bibtool \
   && \
   apt-get purge -fy *-doc && \
   apt-get autoremove -y && \
