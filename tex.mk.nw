@@ -96,6 +96,10 @@ of the subbibliographies [[sub0.bib]] and [[sub1.bib]]:
 \begin{lstlisting}
 full.bib: full.bib(sub0.bib sub1.bib)
 \end{lstlisting}
+Or, directly as a dependency for the PDF:
+\begin{lstlisting}
+paper.pdf: full.bib(sub0.bib sub1.bib)
+\end{lstlisting}
 
 
 \section{Implementation overview}
