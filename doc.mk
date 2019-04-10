@@ -26,12 +26,12 @@ XCF2PNGFLAGS?=  -flatten
 XCF2PNG?=       convert ${XCF2PNGFLAGS} $< $@
 TRIM?=          convert -trim $@ $@
 MD2TEX?=        pandoc -f markdown -t latex
-MD2TEXFLAGS?=
+MD2TEXFLAGS?=   -s
 MD2HTML?=       pandoc -f markdown -t html
-MD2HTMLFLAGS?=
+MD2HTMLFLAGS?=  -s
 
 TEX2HTML?=      pandoc -f latex -t html
-TEX2HTMLFLAGS?=
+TEX2HTMLFLAGS?= -s
 TEX2TEXT?=      detex
 TEX2TEXTFLAGS?=
 .PHONY: print
