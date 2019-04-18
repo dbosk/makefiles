@@ -24,7 +24,7 @@ TEX_PYTHONTEX?=
 PYTHONTEX?=   pythontex3
 PYTHONTEXFLAGS?=
 BIBTOOL?=     bibtool
-BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d
+BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
 ARCHIVE.bib?= ${CAT} $@ $% | ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
 ${TEX_OUTDIR}/%.aux: %.tex
 	${MKDIR} ${TEX_OUTDIR}
