@@ -10,7 +10,7 @@ CONF?= 	/etc/mk.conf
 CURRENT_URL=https://github.com/dbosk/miuntex/releases/download/v1.0
 
 
-.PHONY: clean-depends
+.PHONY: clean-depends distclean
 
 
 ### MIUN Miscellanous package and Logo ###
@@ -55,7 +55,7 @@ miunmisc: miunmisc.sty miunmisc-English.dict miunmisc-Swedish.dict
 miunmisc: miunlogo
 
 .PHONY: clean-miunmisc clean-miunlogo
-clean-depends: clean-miunmisc clean-miunlogo
+clean-depends distclean: clean-miunmisc clean-miunlogo
 clean-miunmisc: clean-tex
 	${RM} ${MIUNMISC_FILES}
 	${RM} miunmisc.sty miunmisc-English.dict miunmisc-Swedish.dict
@@ -88,7 +88,7 @@ endif
 miunart: ${MIUNART_FILES} miunlogo
 
 .PHONY: clean-miunart
-clean-depends: clean-miunart
+clean-depends distclean: clean-miunart
 clean-miunart:
 	${RM} ${MIUNART_FILES}
 
@@ -117,7 +117,7 @@ endif
 miunasgn: ${MIUNASGN_FILES} miunlogo
 
 .PHONY: clean-miunasgn
-clean-depends: clean-miunasgn
+clean-depends distclean: clean-miunasgn
 clean-miunasgn:
 	${RM} ${MIUNASGN_FILES}
 
@@ -146,7 +146,7 @@ endif
 miunexam: ${MIUNEXAM_FILES} miunlogo
 
 .PHONY: clean-miunexam
-clean-depends: clean-miunexam
+clean-depends distclean: clean-miunexam
 clean-miunexam:
 	${RM} ${MIUNEXAM_FILES}
 
@@ -167,7 +167,7 @@ miunlett.cls:
 miunlett: miunlett.cls miunlogo
 
 .PHONY: clean-miunlett
-clean-depends: clean-miunlett
+clean-depends distclean: clean-miunlett
 clean-miunlett:
 	${RM} miunlett.cls
 
@@ -196,7 +196,7 @@ endif
 miunprot: ${MIUNPROT_FILES} miunlogo
 
 .PHONY: clean-miunprot
-clean-depends: clean-miunprot
+clean-depends distclean: clean-miunprot
 clean-miunprot:
 	${RM} ${MIUNPROT_FILES}
 
@@ -225,7 +225,7 @@ endif
 miunthes: ${MIUNTHES_FILES} miunlogo latexmkrc
 
 .PHONY: clean-miunthes
-clean-depends: clean-miunthes
+clean-depends distclean: clean-miunthes
 clean-miunthes:
 	${RM} ${MIUNTHES_FILES}
 

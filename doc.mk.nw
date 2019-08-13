@@ -21,6 +21,9 @@ Then first comes our variables described above followed by the targets.
 ifndef DOC_MK
 DOC_MK=true
 
+INCLUDE_MAKEFILES?=.
+include ${INCLUDE_MAKEFILES}/portability.mk
+
 <<variables>>
 <<target for printing>>
 <<target for word counting>>
@@ -138,6 +141,7 @@ The conversions that are implemented are the following:
 <<XCF to PNG>>
 
 <<MD to TeX>>
+<<to HTML>>
 <<TeX to text>>
 @
 
@@ -256,11 +260,28 @@ customary when working with text in the terminal.
 We use the [[pandoc]] program to convert between Markdown and TeX.
 <<variables>>=
 MD2TEX?=        pandoc -f markdown -t latex
-MD2TEXFLAGS?=
+MD2TEXFLAGS?=   -s
 @ This gives the following suffix rule.
 <<MD to TeX>>=
 %.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+@
+
+Sometimes we want to convert to HTML, we will use [[pandoc]] to convert both 
+Markdown and LaTeX to HTML.
+<<variables>>=
+MD2HTML?=       pandoc -f markdown -t html
+MD2HTMLFLAGS?=  -s
+
+TEX2HTML?=      pandoc -f latex -t html
+TEX2HTMLFLAGS?= -s
+@ Then we can provide following two rules:
+<<to HTML>>=
+%.html: %.md
+	${MD2HTML} ${MD2HTMLFLAGS} $< > $@
+
+%.html: %.tex
+	${TEX2HTML} ${TEX2HTMLFLAGS} $< > $@
 @
 
 There are times when we want to convert out TeX-files to plain text, \eg to 

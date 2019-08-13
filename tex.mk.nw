@@ -98,6 +98,23 @@ We add the phony targets
 Technologies (PoPETS, De Gruyter Open/Sciendo).
 \end{itemize}
 
+Finally, we add a method to quickly merge bibliographies without redundancy.
+This is based on the archive syntax of make(1).
+In particular, we extend the general rules from [[portability.mk]].
+<<variables>>=
+BIBTOOL?=     bibtool
+BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
+ARCHIVE.bib?= ${CAT} $@ $% | ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
+@ This would allow us have the resulting full bibliography [[full.bib]] consist 
+of the subbibliographies [[sub0.bib]] and [[sub1.bib]]:
+\begin{lstlisting}
+full.bib: full.bib(sub0.bib sub1.bib)
+\end{lstlisting}
+Or, directly as a dependency for the PDF:
+\begin{lstlisting}
+paper.pdf: full.bib(sub0.bib sub1.bib)
+\end{lstlisting}
+
 
 \section{Implementation overview}
 
@@ -106,6 +123,8 @@ The include file uses the old C-style technique to prevent multiple inclusions.
 <<tex.mk>>=
 ifndef TEX_MK
 TEX_MK=true
+
+.NOTPARALLEL:
 
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
@@ -119,6 +138,11 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 endif
 @ We include [[portability.mk]] (\cref{portability.mk}) to get portable 
 settings for several common utilities.
+It is currently not possible to run the TeX-builds in parallel, hence the need 
+for the [[.NOTPARALLEL]] target --- this runs any jobs that includes [[tex.mk]] 
+  in serial.
+However, this is not inherited, any recursive make invocations will run in 
+parallel unless [[.NOTPARALLEL]] is specified there as well.
 
 We will start with the targets for cleaning.
 We provide two phony targets, [[clean-tex]] and [[distclean-tex]], and we 
@@ -140,7 +164,8 @@ However, as latexmk(1) is set as the default in \cref{tex:Intro}, we can
 already add the following line to the cleaning recipe.
 <<clean recipe>>=
 -latexmk -C -output-directory=${TEX_OUTDIR}
-${RM} -R ${TEX_OUTDIR}
+[ "${TEX_OUTDIR}" -ef "$$(pwd)" ] || \
+  ${RM} -R ${TEX_OUTDIR}
 ${RM} *.pytxcode
 ${RM} pythontex-files-*
 @
