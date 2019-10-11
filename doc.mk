@@ -26,7 +26,9 @@ XCF2PNGFLAGS?=  -flatten
 XCF2PNG?=       convert ${XCF2PNGFLAGS} $< $@
 TRIM?=          convert -trim $@ $@
 MD2TEX?=        pandoc -f markdown -t latex
+TEX2MD?=        pandoc -f latex -t markdown
 MD2TEXFLAGS?=   -s
+TEX2MDFLAGS?=   -s
 MD2HTML?=       pandoc -f markdown -t html
 MD2HTMLFLAGS?=  -s
 
@@ -88,6 +90,8 @@ todo:
 
 %.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+%.md: %.tex
+	${TEX2MD} ${TEX2MDFLAGS} < $< > $@
 %.html: %.md
 	${MD2HTML} ${MD2HTMLFLAGS} $< > $@
 

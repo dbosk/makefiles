@@ -260,11 +260,15 @@ customary when working with text in the terminal.
 We use the [[pandoc]] program to convert between Markdown and TeX.
 <<variables>>=
 MD2TEX?=        pandoc -f markdown -t latex
+TEX2MD?=        pandoc -f latex -t markdown
 MD2TEXFLAGS?=   -s
-@ This gives the following suffix rule.
+TEX2MDFLAGS?=   -s
+@ This gives the following suffix rules.
 <<MD to TeX>>=
 %.tex: %.md
 	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+%.md: %.tex
+	${TEX2MD} ${TEX2MDFLAGS} < $< > $@
 @
 
 Sometimes we want to convert to HTML, we will use [[pandoc]] to convert both 
