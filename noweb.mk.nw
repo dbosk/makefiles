@@ -124,10 +124,8 @@ We will simply set the default variables.
 <<variables>>=
 <<defaults for C and C++>>
 <<defaults for Haskell>>
-<<defaults for Python>>
 <<defaults for Make>>
-<<defaults for LaTeX>>
-<<defaults for shell scripts>>
+<<defaults for remaining>>
 @ As noted above, we need some special rules for the C and C++ header files, 
 but no extra rules for any other language.
 <<special rules for different languages>>=
@@ -189,27 +187,23 @@ NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) $< | ${CPIF} $@
 same reason as for the weaving, GHC automatically tangles Haskell's native 
 literate files ([[.lhs]]).
 
-For Python, there is no special processing needed, we simply use the flags we 
-set above.
-<<defaults for Python>>=
-NOWEB_SUFFIXES+=    .py
-NOTANGLEFLAGS.py?=  ${NOTANGLEFLAGS}
-NOTANGLE.py?=       notangle ${NOTANGLEFLAGS.py} -R$(notdir $@) $< > $@
-@ It is the same case for makefiles.
+Make also requires slightly modified flags:
 <<defaults for Make>>=
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
 NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) $< > $@
-@ And for LaTeX.
-<<defaults for LaTeX>>=
-NOWEB_SUFFIXES+=    .sty .cls
-NOTANGLEFLAGS.sty?= ${NOTANGLEFLAGS}
-NOTANGLE.sty?=      notangle ${NOTANGLEFLAGS.sty} -R$(notdir $@) $< > $@
-NOTANGLEFLAGS.cls?= ${NOTANGLEFLAGS}
-NOTANGLE.cls?=      notangle ${NOTANGLEFLAGS.cls} -R$(notdir $@) $< > $@
-@ And also for shell scripts.
-<<defaults for shell scripts>>=
-NOWEB_SUFFIXES+=    .sh
-NOTANGLEFLAGS.sh?=  ${NOTANGLEFLAGS}
-NOTANGLE.sh?=       notangle ${NOTANGLEFLAGS.sh} -R$(notdir $@) $< > $@
+@
+
+For Python, LaTeX, shell scripts and Go, there is no special processing needed, 
+we simply use the flags we set above.
+<<defaults for remaining>>=
+LAST_SUFFIXES=      .py .sty .cls .sh .go
+
+define default_tangling
+NOWEB_SUFFIXES+=    $(1)
+NOTANGLEFLAGS$(1)?=$${NOTANGLEFLAGS}
+NOTANGLE$(1)?=     notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) $$< > $$@
+endef
+
+$(foreach suffix,${LAST_SUFFIXES},$(eval $(call default_tangling,${suffix})))
 @
