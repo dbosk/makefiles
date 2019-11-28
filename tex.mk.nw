@@ -84,6 +84,23 @@ We add the phony targets
 Technologies (PoPETS, De Gruyter Open).
 \end{itemize}
 
+Finally, we add a method to quickly merge bibliographies without redundancy.
+This is based on the archive syntax of make(1).
+In particular, we extend the general rules from [[portability.mk]].
+<<variables>>=
+BIBTOOL?=     bibtool
+BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
+ARCHIVE.bib?= ${CAT} $@ $% | ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
+@ This would allow us have the resulting full bibliography [[full.bib]] consist 
+of the subbibliographies [[sub0.bib]] and [[sub1.bib]]:
+\begin{lstlisting}
+full.bib: full.bib(sub0.bib sub1.bib)
+\end{lstlisting}
+Or, directly as a dependency for the PDF:
+\begin{lstlisting}
+paper.pdf: full.bib(sub0.bib sub1.bib)
+\end{lstlisting}
+
 
 \section{Implementation overview}
 

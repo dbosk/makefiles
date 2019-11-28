@@ -48,6 +48,9 @@ DOCKER_ID_USER?=dbosk
 docker-makefiles: Dockerfile
 	docker build -t makefiles .
 	docker tag makefiles ${DOCKER_ID_USER}/makefiles
+
+.PHONY: push
+push: docker-makefiles
 	docker push ${DOCKER_ID_USER}/makefiles
 
 Dockerfile: Dockerfile.nw
