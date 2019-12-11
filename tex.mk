@@ -54,7 +54,8 @@ ifneq (${TEX_BBL},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
 ifneq (${TEX_PYTHONTEX},)
-%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
+%.pdf: pythontex-files-%/%.pytxmcr
+${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxmcr
 endif
 ${TEX_OUTDIR}/%.idx: %.tex
 	${MKDIR} ${TEX_OUTDIR}
@@ -72,6 +73,7 @@ ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
 	${COMPILE.nlo}
 pythontex-files-%/%.pytxcode: %.tex
 	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
+%.pytxcode: ${TEX_OUTDIR}/%.pytxcode
 %.pdf ${TEX_OUTDIR}/%.pdf: %.tex
 	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@
@@ -186,7 +188,7 @@ clean-tex:
 	[ "${TEX_OUTDIR}" -ef "$$(pwd)" ] || \
 	  ${RM} -R ${TEX_OUTDIR}
 	${RM} *.pytxcode
-	${RM} pythontex-files-*
+	${RM} -R pythontex-files-*
 
 .PHONY: distclean distclean-tex
 distclean: distclean-tex

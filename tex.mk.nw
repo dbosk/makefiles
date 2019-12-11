@@ -167,7 +167,7 @@ already add the following line to the cleaning recipe.
 [ "${TEX_OUTDIR}" -ef "$$(pwd)" ] || \
   ${RM} -R ${TEX_OUTDIR}
 ${RM} *.pytxcode
-${RM} pythontex-files-*
+${RM} -R pythontex-files-*
 @
 
 
@@ -318,13 +318,18 @@ sub makenlo2nls {
 Occasionally we use PythonTeX.
 We also provide a target for the required files.
 <<PythonTeX files>>=
-pythontex-files-%/%.pytxcode: %.tex
+pythontex-files-%/%.pytxmcr: pythontex-files-%
+pythontex-files-%: %.pytxcode
 	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
-@ As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
+%.pytxcode: ${TEX_OUTDIR}/%.pytxcode
+@
+
+As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
 file as a prerequisite if the variable [[TEX_PYTHONTEX]] is set.
 <<bibliography files>>=
 ifneq (${TEX_PYTHONTEX},)
-%.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxcode
+%.pdf: pythontex-files-%/%.pytxmcr
+${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxmcr
 endif
 @
 

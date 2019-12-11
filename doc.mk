@@ -10,30 +10,57 @@ WC?=        wc
 WCFLAGS?=   -w
 TODO?=        ${GREP} "\(XXX\|TODO\|FIXME\)"
 TODOFLAGS?=
-PDF2PS?=      pdf2ps
+PDF2PS?=          pdf2ps
 PDF2PSFLAGS?=
-PS2PDF?=      ps2pdf
+CONVERT.pdf.ps?=  ${PDF2PS} ${PDF2PSFLAGS} $<
+
+PS2PDF?=          ps2pdf
 PS2PDFFLAGS?=
-DVIPS?=       dvips
+CONVERT.ps.pdf?=  ${PS2PDF} ${PS2PDFFLAGS} $<
+DVIPS?=           dvips
 DVIPSFLAGS?=
-ODF2PDF?=     soffice --convert-to pdf
-ODF2PDFFLAGS?=--headless
-INKSCAPE?=      inkscape
-INKSCAPEFLAGS?= -D -z --export-latex
-DIA?=           dia
+CONVERT.dvi.ps?=  ${DVIPS} ${DVIPSFLAGS} $<
+ODF2PDF?=         soffice --convert-to pdf
+ODF2PDFFLAGS?=    --headless
+CONVERT.odt.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.ods.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.odg.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.odp.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.doc.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.docx.pdf?=${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.xls.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.xlsx.pdf?=${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.ppt.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.pptx.pdf?=${ODF2PDF} ${ODF2PDFFLAGS} $<
+INKSCAPE?=        inkscape
+INKSCAPEFLAGS?=   -D -z --export-latex
+CONVERT.svg.pdf?= ${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
+CONVERT.svg.ps?=  ${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
+CONVERT.svg.eps?= ${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
+DIA?=             dia
 DIAFLAGS?=
-XCF2PNGFLAGS?=  -flatten
-XCF2PNG?=       convert ${XCF2PNGFLAGS} $< $@
-TRIM?=          convert -trim $@ $@
+CONVERT.dia.tex?= ${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
+XCF2PNGFLAGS?=    -flatten
+XCF2PNG?=         convert ${XCF2PNGFLAGS} $< $@
+TRIM?=            convert -trim $@ $@
+CONVERT.xcf.png?= ${XCF2PNG} && ${TRIM}
 MD2TEX?=        pandoc -f markdown -t latex
 MD2TEXFLAGS?=   -s
-MD2HTML?=       pandoc -f markdown -t html
-MD2HTMLFLAGS?=  -s
+CONVERT.md.tex?=${MD2TEX} ${MD2TEXFLAGS} -o $@ $<
 
-TEX2HTML?=      pandoc -f latex -t html
-TEX2HTMLFLAGS?= -s
-TEX2TEXT?=      detex
+TEX2MD?=        pandoc -f latex -t markdown
+TEX2MDFLAGS?=   -s
+CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
+MD2HTML?=           pandoc -f markdown -t html
+MD2HTMLFLAGS?=      -s
+CONVERT.md.html?=   ${MD2HTML} ${MD2HTMLFLAGS} -o $@ $<
+
+TEX2HTML?=          pandoc -f latex -t html
+TEX2HTMLFLAGS?=     -s
+CONVERT.tex.html?=  ${TEX2HTML} ${TEX2HTMLFLAGS} -o $@ $<
+TEX2TEXT?=        detex
 TEX2TEXTFLAGS?=
+CONVERT.tex.txt?= ${TEX2TEXT} ${TEX2TEXTFLAGS} -o $@ $<
 .PHONY: print
 print:
 	$(foreach doc,$^,\
@@ -53,47 +80,38 @@ todo:
 	  $(if ${TODO-${doc}},${TODO-${doc}},${TODO}) \
 	  $(if ${TODOFLAGS-${doc}},${TODOFLAGS-${doc}},${TODOFLAGS});echo;)
 %.ps: %.pdf
-	${PDF2PS} ${PDF2PSFLAGS} $<
+	${CONVERT.pdf.ps}
+
 %.pdf: %.ps
-	${PS2PDF} ${PS2PDFFLAGS} $<
+	${CONVERT.ps.pdf}
 %.ps: %.dvi
-	${DVIPS} ${DVIPSFLAGS} $<
-%.pdf: %.odt
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.ods
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.odg
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.odp
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.docx
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.xlsx
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.pptx
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
+	${CONVERT.dvi.ps}
+define def_convert_rule
+%.pdf: %.$(1)
+	${CONVERT.$(1).pdf}
+endef
+$(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\
+  $(eval $(call def_convert_rule,${suf})))
 
 %.pdf: %.svg
-	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
-%.ps: %.svg
-	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
-
-%.eps: %.svg
-	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
+	${CONVERT.svg.pdf}
+%.ps %.eps: %.svg
+	${CONVERT.svg.$(suffix $@)
 %.tex: %.dia
-	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
+	${CONVERT.dia.tex}
 %.png: %.xcf
-	${XCF2PNG}
-	${TRIM}
+	${CONVERT.xcf.png}
 
 %.tex: %.md
-	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+	${CONVERT.md.tex}
+%.md: %.tex
+	${CONVERT.tex.md}
 %.html: %.md
-	${MD2HTML} ${MD2HTMLFLAGS} $< > $@
+	${CONVERT.md.html}
 
 %.html: %.tex
-	${TEX2HTML} ${TEX2HTMLFLAGS} $< > $@
+	${CONVERT.tex.html}
 %.txt: %.tex
-	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
+	${CONVERT.tex.txt}
 
 endif
