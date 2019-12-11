@@ -125,13 +125,14 @@ TODOFLAGS?=
 \subsection{Format conversion}
 \label{FormatConversion}
 
-The format conversion is done using pattern rules.
-This means that whenever we need a file in a certain format, we simply keep the
-name but change the suffix (\enquote{file extension}).
-The conversions that are implemented are the following:
+We often want to convert a file from one format to another.
+We will now write a pattern along the lines of make's conventions for 
+compilation targets~\cite[Sect.~10.2, second to last paragraph]{GNUMake}.
+\Ie, [[CONVERT.a.b]] will convert a file with suffix [[.a]] to a format with 
+suffix [[.b]].
+We provide the following patterns:
 <<suffix rules for format conversion>>=
-<<PDF to PS>>
-<<PS to PDF>>
+<<PDF and PS>>
 <<DVI to PS>>
 <<ODF to PDF>>
 
@@ -149,53 +150,56 @@ The conversions that are implemented are the following:
 
 To convert PDFs to PostScript format, we use the [[pdf2ps]] command by default.
 <<variables>>=
-PDF2PS?=      pdf2ps
+PDF2PS?=          pdf2ps
 PDF2PSFLAGS?=
-PS2PDF?=      ps2pdf
+CONVERT.pdf.ps?=  ${PDF2PS} ${PDF2PSFLAGS} $<
+
+PS2PDF?=          ps2pdf
 PS2PDFFLAGS?=
-@ This allows us to specify the rule as follows.
-<<PDF to PS>>=
+CONVERT.ps.pdf?=  ${PS2PDF} ${PS2PDFFLAGS} $<
+@ This allows us to specify the rules as follows.
+<<PDF and PS>>=
 %.ps: %.pdf
-	${PDF2PS} ${PDF2PSFLAGS} $<
-@ We also have the other way around.
-<<PS to PDF>>=
+	${CONVERT.pdf.ps}
+
 %.pdf: %.ps
-	${PS2PDF} ${PS2PDFFLAGS} $<
+	${CONVERT.ps.pdf}
 @
 
 We do similarly for DVI-files that we want to convert to PostScript.
 <<variables>>=
-DVIPS?=       dvips
+DVIPS?=           dvips
 DVIPSFLAGS?=
+CONVERT.dvi.ps?=  ${DVIPS} ${DVIPSFLAGS} $<
 @ With those variables we let
 <<DVI to PS>>=
 %.ps: %.dvi
-	${DVIPS} ${DVIPSFLAGS} $<
+	${CONVERT.dvi.ps}
 @
 
 There is no good conversion program for the Open Document Format (ODF) files.
-We will use LibreOffice.
+We will use LibreOffice although that will incur some manual labour.
 <<variables>>=
-ODF2PDF?=     soffice --convert-to pdf
-ODF2PDFFLAGS?=--headless
-@ This yields the following suffix rule.
+ODF2PDF?=         soffice --convert-to pdf
+ODF2PDFFLAGS?=    --headless
+CONVERT.odt.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.ods.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.odg.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.odp.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.doc.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.docx.pdf?=${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.xls.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.xlsx.pdf?=${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.ppt.pdf?= ${ODF2PDF} ${ODF2PDFFLAGS} $<
+CONVERT.pptx.pdf?=${ODF2PDF} ${ODF2PDFFLAGS} $<
+@ Then we can generate the suffix rules as follows.
 <<ODF to PDF>>=
-%.pdf: %.odt
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.ods
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.odg
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.odp
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-@ We will also try to do this for the corresponding Microsoft formats:
-<<ODF to PDF>>=
-%.pdf: %.docx
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.xlsx
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
-%.pdf: %.pptx
-	${ODF2PDF} ${ODF2PDFFLAGS} $<
+define def_convert_rule
+%.pdf: %.$(1)
+	${CONVERT.$(1).pdf}
+endef
+$(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\
+  $(eval $(call def_convert_rule,${suf})))
 @
 
 \subsubsection{Figure formats}
@@ -211,44 +215,45 @@ We will use Inkscape for working with SVGs, because Inkscape allows us to
 export the graphics part as PDF and all text in it as TeX.
 Unlike previously, we will only allow flags for [[inkscape]] to be set.
 <<variables>>=
-INKSCAPE?=      inkscape
-INKSCAPEFLAGS?= -D -z --export-latex
+INKSCAPE?=        inkscape
+INKSCAPEFLAGS?=   -D -z --export-latex
+CONVERT.svg.pdf?= ${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
+CONVERT.svg.ps?=  ${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
+CONVERT.svg.eps?= ${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
 @
 <<SVG to PDF>>=
 %.pdf: %.svg
-	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
+	${CONVERT.svg.pdf}
 @ We can thus create similar rules for the formats PS and EPS, instead of PDF.
 <<SVG to PS>>=
-%.ps: %.svg
-	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
-
-%.eps: %.svg
-	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
+%.ps %.eps: %.svg
+	${CONVERT.svg.$(suffix $@)
 @
 
 Dia is a useful tool for making figures over network topologies etc.
 Fortunately, Dia can output native TeX.
 Similarly to Inkscape, we will only provide flags for Dia.
 <<variables>>=
-DIA?=           dia
+DIA?=             dia
 DIAFLAGS?=
+CONVERT.dia.tex?= ${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
 @ That gives the suffix rule as follows.
 <<DIA to TeX>>=
 %.tex: %.dia
-	${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
+	${CONVERT.dia.tex}
 @
 
 Gimp is a useful tool for raster graphics.
 We can convert Gimps own format XCF to PNG using the ImageMagic library.
 <<variables>>=
-XCF2PNGFLAGS?=  -flatten
-XCF2PNG?=       convert ${XCF2PNGFLAGS} $< $@
-TRIM?=          convert -trim $@ $@
+XCF2PNGFLAGS?=    -flatten
+XCF2PNG?=         convert ${XCF2PNGFLAGS} $< $@
+TRIM?=            convert -trim $@ $@
+CONVERT.xcf.png?= ${XCF2PNG} && ${TRIM}
 @ Then we can have the following rule:
 <<XCF to PNG>>=
 %.png: %.xcf
-	${XCF2PNG}
-	${TRIM}
+	${CONVERT.xcf.png}
 @
 
 \subsubsection{Text-based formats}
@@ -260,43 +265,49 @@ customary when working with text in the terminal.
 We use the [[pandoc]] program to convert between Markdown and TeX.
 <<variables>>=
 MD2TEX?=        pandoc -f markdown -t latex
-TEX2MD?=        pandoc -f latex -t markdown
 MD2TEXFLAGS?=   -s
+CONVERT.md.tex?=${MD2TEX} ${MD2TEXFLAGS} -o $@ $<
+
+TEX2MD?=        pandoc -f latex -t markdown
 TEX2MDFLAGS?=   -s
+CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
 @ This gives the following suffix rules.
 <<MD to TeX>>=
 %.tex: %.md
-	${MD2TEX} ${MD2TEXFLAGS} < $< > $@
+	${CONVERT.md.tex}
 %.md: %.tex
-	${TEX2MD} ${TEX2MDFLAGS} < $< > $@
+	${CONVERT.tex.md}
 @
 
 Sometimes we want to convert to HTML, we will use [[pandoc]] to convert both 
 Markdown and LaTeX to HTML.
 <<variables>>=
-MD2HTML?=       pandoc -f markdown -t html
-MD2HTMLFLAGS?=  -s
+MD2HTML?=           pandoc -f markdown -t html
+MD2HTMLFLAGS?=      -s
+CONVERT.md.html?=   ${MD2HTML} ${MD2HTMLFLAGS} -o $@ $<
 
-TEX2HTML?=      pandoc -f latex -t html
-TEX2HTMLFLAGS?= -s
+TEX2HTML?=          pandoc -f latex -t html
+TEX2HTMLFLAGS?=     -s
+CONVERT.tex.html?=  ${TEX2HTML} ${TEX2HTMLFLAGS} -o $@ $<
 @ Then we can provide following two rules:
 <<to HTML>>=
 %.html: %.md
-	${MD2HTML} ${MD2HTMLFLAGS} $< > $@
+	${CONVERT.md.html}
 
 %.html: %.tex
-	${TEX2HTML} ${TEX2HTMLFLAGS} $< > $@
+	${CONVERT.tex.html}
 @
 
 There are times when we want to convert out TeX-files to plain text, \eg to 
 count the words.
 To do this we simply use the [[detex]] program.
 <<variables>>=
-TEX2TEXT?=      detex
+TEX2TEXT?=        detex
 TEX2TEXTFLAGS?=
+CONVERT.tex.txt?= ${TEX2TEXT} ${TEX2TEXTFLAGS} -o $@ $<
 @ This gives us the following suffix rule.
 <<TeX to text>>=
 %.txt: %.tex
-	${TEX2TEXT} ${TEX2TEXTFLAGS} $< > $@
+	${CONVERT.tex.txt}
 @
 
