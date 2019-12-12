@@ -264,11 +264,11 @@ customary when working with text in the terminal.
 
 We use the [[pandoc]] program to convert between Markdown and TeX.
 <<variables>>=
-MD2TEX?=        pandoc -f markdown -t latex
+MD2TEX?=        pandoc
 MD2TEXFLAGS?=   -s
 CONVERT.md.tex?=${MD2TEX} ${MD2TEXFLAGS} -o $@ $<
 
-TEX2MD?=        pandoc -f latex -t markdown
+TEX2MD?=        pandoc
 TEX2MDFLAGS?=   -s
 CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
 @ This gives the following suffix rules.
@@ -282,11 +282,11 @@ CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
 Sometimes we want to convert to HTML, we will use [[pandoc]] to convert both 
 Markdown and LaTeX to HTML.
 <<variables>>=
-MD2HTML?=           pandoc -f markdown -t html
+MD2HTML?=           pandoc
 MD2HTMLFLAGS?=      -s
 CONVERT.md.html?=   ${MD2HTML} ${MD2HTMLFLAGS} -o $@ $<
 
-TEX2HTML?=          pandoc -f latex -t html
+TEX2HTML?=          pandoc
 TEX2HTMLFLAGS?=     -s
 CONVERT.tex.html?=  ${TEX2HTML} ${TEX2HTMLFLAGS} -o $@ $<
 @ Then we can provide following two rules:

@@ -44,18 +44,18 @@ XCF2PNGFLAGS?=    -flatten
 XCF2PNG?=         convert ${XCF2PNGFLAGS} $< $@
 TRIM?=            convert -trim $@ $@
 CONVERT.xcf.png?= ${XCF2PNG} && ${TRIM}
-MD2TEX?=        pandoc -f markdown -t latex
+MD2TEX?=        pandoc
 MD2TEXFLAGS?=   -s
 CONVERT.md.tex?=${MD2TEX} ${MD2TEXFLAGS} -o $@ $<
 
-TEX2MD?=        pandoc -f latex -t markdown
+TEX2MD?=        pandoc
 TEX2MDFLAGS?=   -s
 CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
-MD2HTML?=           pandoc -f markdown -t html
+MD2HTML?=           pandoc
 MD2HTMLFLAGS?=      -s
 CONVERT.md.html?=   ${MD2HTML} ${MD2HTMLFLAGS} -o $@ $<
 
-TEX2HTML?=          pandoc -f latex -t html
+TEX2HTML?=          pandoc
 TEX2HTMLFLAGS?=     -s
 CONVERT.tex.html?=  ${TEX2HTML} ${TEX2HTMLFLAGS} -o $@ $<
 TEX2TEXT?=        detex
