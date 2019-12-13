@@ -103,7 +103,7 @@ $(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\
 	${CONVERT.md.tex}
 define to_html_rule
 %.html: %.$(1)
-	${CONVERT.$(1).html)
+	${CONVERT.$(1).html}
 endef
 $(foreach suf,md tex,$(eval $(call to_html_rule,${suf})))
 %.txt: %.tex
