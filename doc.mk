@@ -99,8 +99,8 @@ $(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\
 %.png: %.xcf
 	${CONVERT.xcf.png}
 
-%.tex: %.md
-	${CONVERT.md.tex}
+%.md: %.tex
+	${CONVERT.tex.md}
 define to_html_rule
 %.html: %.$(1)
 	${CONVERT.$(1).html}

@@ -294,8 +294,8 @@ TEX2MDFLAGS?=   -s
 CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
 @ This gives the following suffix rules.
 <<MD to TeX>>=
-%.tex: %.md
-	${CONVERT.md.tex}
+%.md: %.tex
+	${CONVERT.tex.md}
 @
 
 Sometimes we want to convert to HTML, we will use [[pandoc]] to convert both 
