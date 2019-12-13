@@ -86,13 +86,8 @@ Technologies (PoPETS, De Gruyter Open).
 
 Finally, we add a method to quickly merge bibliographies without redundancy.
 This is based on the archive syntax of make(1).
-In particular, we extend the general rules from [[portability.mk]].
-<<variables>>=
-BIBTOOL?=     bibtool
-BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
-ARCHIVE.bib?= ${CAT} $@ $% | ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
-@ This would allow us have the resulting full bibliography [[full.bib]] consist 
-of the subbibliographies [[sub0.bib]] and [[sub1.bib]]:
+This allows us to have the resulting full bibliography [[full.bib]] consist of 
+the subbibliographies [[sub0.bib]] and [[sub1.bib]]:
 \begin{lstlisting}
 full.bib: full.bib(sub0.bib sub1.bib)
 \end{lstlisting}
@@ -418,6 +413,18 @@ ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
   ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 done
+@
+
+
+\section{Targets for merging bibliographies}
+
+To merge bibliographies we will use [[bibtool]] and make's archive rules.
+In particular, we extend the general rules we defined in [[portability.mk]].
+<<variables>>=
+BIBTOOL?=     bibtool
+BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
+ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
+  ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
 @
 
 
