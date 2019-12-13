@@ -130,9 +130,13 @@ We will now write a pattern along the lines of make's conventions for
 compilation targets~\cite[Sect.~10.2, second to last paragraph]{GNUMake}.
 \Ie, [[CONVERT.a.b]] will convert a file with suffix [[.a]] to a format with 
 suffix [[.b]].
+However, we will only provide pattern rules for the most common direction, \eg 
+from [[.a]] to [[.b]] but not from [[.b]] to [[.a]].
+Having both will cause make to drop one due to circular dependencies.
+
 We provide the following patterns:
 <<suffix rules for format conversion>>=
-<<PDF and PS>>
+<<PS to PDF>>
 <<DVI to PS>>
 <<ODF to PDF>>
 
@@ -142,7 +146,7 @@ We provide the following patterns:
 <<XCF to PNG>>
 
 <<MD to TeX>>
-<<to HTML>>
+<<MD, TeX to HTML>>
 <<TeX to text>>
 @
 
@@ -158,10 +162,7 @@ PS2PDF?=          ps2pdf
 PS2PDFFLAGS?=
 CONVERT.ps.pdf?=  ${PS2PDF} ${PS2PDFFLAGS} $<
 @ This allows us to specify the rules as follows.
-<<PDF and PS>>=
-%.ps: %.pdf
-	${CONVERT.pdf.ps}
-
+<<PS to PDF>>=
 %.pdf: %.ps
 	${CONVERT.ps.pdf}
 @
@@ -275,8 +276,6 @@ CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
 <<MD to TeX>>=
 %.tex: %.md
 	${CONVERT.md.tex}
-%.md: %.tex
-	${CONVERT.tex.md}
 @
 
 Sometimes we want to convert to HTML, we will use [[pandoc]] to convert both 
@@ -290,12 +289,12 @@ TEX2HTML?=          pandoc
 TEX2HTMLFLAGS?=     -s
 CONVERT.tex.html?=  ${TEX2HTML} ${TEX2HTMLFLAGS} -o $@ $<
 @ Then we can provide following two rules:
-<<to HTML>>=
-%.html: %.md
-	${CONVERT.md.html}
-
-%.html: %.tex
-	${CONVERT.tex.html}
+<<MD, TeX to HTML>>=
+define to_html_rule
+%.html: %.$(1)
+	${CONVERT.$(1).html)
+endef
+$(foreach suf,md tex,$(eval $(call to_html_rule,${suf})))
 @
 
 There are times when we want to convert out TeX-files to plain text, \eg to 

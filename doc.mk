@@ -79,9 +79,6 @@ todo:
 	  $(if ${PRETODO-${doc}},${PRETODO-${doc}} |,$(if ${PRETODO},${PRETODO} |,)) \
 	  $(if ${TODO-${doc}},${TODO-${doc}},${TODO}) \
 	  $(if ${TODOFLAGS-${doc}},${TODOFLAGS-${doc}},${TODOFLAGS});echo;)
-%.ps: %.pdf
-	${CONVERT.pdf.ps}
-
 %.pdf: %.ps
 	${CONVERT.ps.pdf}
 %.ps: %.dvi
@@ -104,13 +101,11 @@ $(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\
 
 %.tex: %.md
 	${CONVERT.md.tex}
-%.md: %.tex
-	${CONVERT.tex.md}
-%.html: %.md
-	${CONVERT.md.html}
-
-%.html: %.tex
-	${CONVERT.tex.html}
+define to_html_rule
+%.html: %.$(1)
+	${CONVERT.$(1).html)
+endef
+$(foreach suf,md tex,$(eval $(call to_html_rule,${suf})))
 %.txt: %.tex
 	${CONVERT.tex.txt}
 
