@@ -26,6 +26,9 @@ These variables have [[-<file>]] versions, but no flags variable.
 
 Finally, we also provide a set of suffix rules for automatic conversion between 
 different formats, see \cref{FormatConversion} for details about the formats.
+In general, we provide the variable [[CONVERT.a.b]] which can be used in 
+recipes to convert a file of format [[.a]] to a file of format [[.b]].
+The command run is designed to fit a rule of the form [[%.b: %.a]].
 
 
 \section{Implementation}
