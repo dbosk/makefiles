@@ -312,7 +312,7 @@ CONVERT.tex.html?=  ${TEX2HTML} ${TEX2HTMLFLAGS} -o $@ $<
 <<MD, TeX to HTML>>=
 define to_html_rule
 %.html: %.$(1)
-	${CONVERT.$(1).html)
+	${CONVERT.$(1).html}
 endef
 $(foreach suf,md tex,$(eval $(call to_html_rule,${suf})))
 @
