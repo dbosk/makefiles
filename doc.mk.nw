@@ -6,8 +6,24 @@ This include file provides exactly that.
 
 We provide a target [[print]] which prints its prerequisites, see 
 \cref{Printing} for details.
+It prints them using [[${LPR} ${LPRFLAGS} <file>]].
+Each of these variables has specialized [[LPR-<file>]] and [[LPRFLAGS-<file>]] 
+versions, which means that different documents can be printed with different 
+commands and flags.
+
 We also provide a target [[wc]] which counts the words of its prerequisites 
 (\cref{WordCounting}).
+The counting is done with [[${WC} ${WCFLAGS} <file>]].
+There is also a [[todo]] target (\cref{ToDoLists}) which grep's its 
+prerequisites for common todo comments (\eg TODO, XXX, FIXME).
+
+Each of [[wc]] and [[todo]] has the specialized [[-<file>]] versions of the 
+variables, same as for [[print]].
+However, [[wc]] and [[todo]] additionally have a [[PREWC]] and [[PRETODO]] 
+commands which pipe their output to the [[WC]] and [[TODO]] commands, 
+respectively.
+These variables have [[-<file>]] versions, but no flags variable.
+
 Finally, we also provide a set of suffix rules for automatic conversion between 
 different formats, see \cref{FormatConversion} for details about the formats.
 
@@ -102,7 +118,8 @@ wc:
 	  $(if ${WCFLAGS-${doc}},${WCFLAGS-${doc}},${WCFLAGS});)
 @
 
-\subsection{To-do lists}
+\subsection{To-do lists}%
+\label{ToDoLists}
 
 Similarly to the [[wc]] target, we would also like to add a [[todo]] target 
 which generates a to-do list from the to-do comments in the source files (\ie 
