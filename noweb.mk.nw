@@ -2,18 +2,17 @@
 
 The [[noweb.mk]] include provides suffix rules for weaving and tangling 
 (produce documentation and code, respectively).
-To use it correctly there are some suffix naming conventions.
+The framework uses the conventions of make~\cite[Section~10.2]{GNUMake}.
 
 The suffix rules of make works by taking a prerequisite with one suffix and 
 applying the recipe to get a target with another suffix.
 This requires the stem of the filename to be identical.
-This means that some jobs must be done using specific recipe.
-
-We assume that there is a main TeX file which will include the woven 
-documentation.
-So all invocations of [[noweave]] use the [[-n]] option.
-Furthermore, some language-specialized suffixes, such as [[cxx.nw]], will use 
-[[noweave]] options suitable for that language.
+The framework can handle files of suffixes defined in [[NOWEB_SUFFIXES]].
+However, we also provide [[NOWEAVE.tex]] to weave a TeX file ([[.tex]]) from a 
+NOWEB file ([[.nw]]) and [[NOTANGLE.suf]] to tangle a [[.suf]] file from a 
+NOWEB file ([[.nw]]).
+There is also a [[NOWEAVE.pdf]] to weave directly to PDF.
+This assumes that the file is independent, \ie no special LaTeX preamble.
 
 
 \section{Implementation}
@@ -44,13 +43,8 @@ larger document, and
 For the first case, we let
 <<variables>>=
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
-@ The default options that we will use can be controlled with the following 
-variable.
-<<variables>>=
 NOWEAVEFLAGS.tex?=  -x -n -delay -t2
-@
-
-Now we need to specify all the suffixes to use and then construct suffix rules 
+@ Now we need to specify all the suffixes to use and then construct suffix rules 
 for all of them.
 Fortunately we can use the same recipe for all, so we only need to write one 
 recipe for multiple targets.
@@ -76,7 +70,7 @@ go from [[.nw]] directly to [[.pdf]].
 NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
   latexmk -pdf ${@:.pdf=.tex}
-NOWEAVEFLAGS.pdf?=  -x -delay -t2
+NOWEAVEFLAGS.pdf?=  -x -t2
 @
 
 \subsection{Tangling code}
@@ -124,18 +118,15 @@ $(addprefix %,${NOWEB_SUFFIXES}): %.nw
 	${NOTANGLE$(suffix $@)}
 @
 
-The case with suffixes can paradoxically be done without introducing the 
-suffixes.
+For the other case, we add rules using the suffix prefixed to [[.nw]].
 <<tangle source files with suffix>>=
 define with_suffix_target
 %$(1): %$(1).nw
 	$${NOTANGLE$$(suffix $$@)}
 endef
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call with_suffix_target,${suf})))
-@ The reason for this is that the suffix is now captured by the pattern on both
-sides, \ie for target \emph{and} prerequisite.
-However, this rule does not capture some thing we want, \eg we cannot tangle 
-a header file [[.h]] from a [[.cpp.nw]] file.
+@ However, this rule does not capture some of the things we want, \eg we cannot 
+tangle a header file [[.h]] from a [[.cpp.nw]] file.
 We must add these rules manually, which we do below.
 
 \paragraph{Rules for different languages}
@@ -217,15 +208,21 @@ NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) $< > $@
 @
 
 For Python, LaTeX, shell scripts and Go, there is no special processing needed, 
-we simply use the flags we set above.
+we simply use the flags we set in the beginning.
+We will now iterate through \emph{all} suffixes, including [[.mk]] and [[.cpp]] 
+\etc that we have already defined options for.
+Since we use the [[?=]] operator, those we have already defined will be 
+ignored.
+This has the added benefit that one can simply add [[.suf]] to 
+[[NOWEB_SUFFIXES]] and this code will automatically generate the default 
+settings.
 <<defaults for remaining>>=
-LAST_SUFFIXES=      .py .sty .cls .sh .go
+NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
-NOWEB_SUFFIXES+=    $(1)
-NOTANGLEFLAGS$(1)?=$${NOTANGLEFLAGS}
-NOTANGLE$(1)?=     notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) $$< > $$@
+NOTANGLEFLAGS$(1)?= $${NOTANGLEFLAGS}
+NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) $$< > $$@
 endef
 
-$(foreach suffix,${LAST_SUFFIXES},$(eval $(call default_tangling,${suffix})))
+$(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
 @

@@ -34,15 +34,14 @@ NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) $< | ${CPIF} $@
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
 NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) $< > $@
-LAST_SUFFIXES=      .py .sty .cls .sh .go
+NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
-NOWEB_SUFFIXES+=    $(1)
-NOTANGLEFLAGS$(1)?=$${NOTANGLEFLAGS}
-NOTANGLE$(1)?=     notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) $$< > $$@
+NOTANGLEFLAGS$(1)?= $${NOTANGLEFLAGS}
+NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) $$< > $$@
 endef
 
-$(foreach suffix,${LAST_SUFFIXES},$(eval $(call default_tangling,${suffix})))
+$(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
 .SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
 .nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
 	${NOWEAVE.tex}
