@@ -152,13 +152,17 @@ generated file.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
 NOTANGLEFLAGS.c?=   ${NOTANGLEFLAGS} -L
-NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
-NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cpp?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 @
 
 For C-family source code, we will assume that the header files (declarations) 
@@ -181,13 +185,17 @@ However, for this we must add extra pattern rules.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
 NOTANGLEFLAGS.h?=   ${NOTANGLEFLAGS} -L
-NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
-NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hpp?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 @
 
 The suffix rules for Haskell is similar to those for C and C++, due to the 
@@ -195,7 +203,8 @@ Glasgow Haskell Compiler (GHC) being very close to the C and C++ compilers.
 <<defaults for Haskell>>=
 NOWEB_SUFFIXES+=    .hs
 NOTANGLEFLAGS.hs?=  ${NOTANGLEFLAGS} -L
-NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 @ We also note that we do not need any suffix rule for [[.lhs]] files, for the 
 same reason as for the weaving, GHC automatically tangles Haskell's native 
 literate files ([[.lhs]]).
@@ -204,7 +213,8 @@ Make also requires slightly modified flags:
 <<defaults for Make>>=
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
-NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) $< > $@
+NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) \
+  $(filter %.nw,$^) > $@
 @
 
 For Python, LaTeX, shell scripts and Go, there is no special processing needed, 
@@ -221,7 +231,8 @@ NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
 NOTANGLEFLAGS$(1)?= $${NOTANGLEFLAGS}
-NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) $$< > $$@
+NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
+  $$(filter %.nw,$$^) > $$@
 endef
 
 $(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
