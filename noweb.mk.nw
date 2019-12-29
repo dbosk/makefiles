@@ -24,8 +24,13 @@ ifndef NOWEB_MK
 NOWEB_MK = true
 
 <<variables>>
+
 <<suffix rules for weaving documentation>>
 <<suffix rules for tangling code>>
+
+INCLUDE_MAKEFILES?=.
+MAKEFILES_DIR?=${INCLUDE_MAKEFILES}
+include ${MAKEFILES_DIR}/tex.mk
 
 endif
 @
