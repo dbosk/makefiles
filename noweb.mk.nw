@@ -45,7 +45,15 @@ larger document, and
 \item when a source program is independent and should be converted to PDF.
 \end{enumerate}
 
-For the first case, we let
+The order of the rules are important.
+To ensure make takes the \enquote{shortcut} of the second case, we must specify 
+that rule first.
+<<suffix rules for weaving documentation>>=
+<<suffix rule for weaving to PDF>>
+<<suffix rule for weaving to TeX>>
+@
+
+Now, for the first case, we let
 <<variables>>=
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
 NOWEAVEFLAGS.tex?=  -x -n -delay -t2
@@ -57,18 +65,30 @@ We will use a variable [[NOWEB_SUFFIXES]] to keep a list of supported suffixes.
 Since these suffixes only matter for tangling, we will set the variable in that
 section.
 For now, we only use it.
-<<suffix rules for weaving documentation>>=
-.SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
-.nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
+<<suffix rule for weaving to TeX>>=
+%.tex: %.nw
 	${NOWEAVE.tex}
+
+define def_weave_to_tex
+%.tex: %$(1).nw
+	$${NOWEAVE.tex}
+endef
+
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 @
 
 To differentiate the second case from the first (in terms of suffix rules), we 
 go from [[.nw]] directly to [[.pdf]].
-<<suffix rules for weaving documentation>>=
-.SUFFIXES: .pdf
-.nw.pdf $(addsuffix .nw.pdf,${NOWEB_SUFFIXES}):
+<<suffix rule for weaving to PDF>>=
+%.pdf: %.nw
 	${NOWEAVE.pdf}
+
+define def_weave_to_pdf
+%.pdf: %$(1).nw
+	$${NOWEAVE.pdf}
+endef
+
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
 @ What differs [[NOWEAVE.pdf]] from [[NOWEAVE.tex]] is the options to 
 [[noweave]] and the compilation step (instead of having that separately).
 <<variables>>=

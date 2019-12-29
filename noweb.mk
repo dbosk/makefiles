@@ -53,12 +53,25 @@ NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
 endef
 
 $(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
-.SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
-.nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
-	${NOWEAVE.tex}
-.SUFFIXES: .pdf
-.nw.pdf $(addsuffix .nw.pdf,${NOWEB_SUFFIXES}):
+
+%.pdf: %.nw
 	${NOWEAVE.pdf}
+
+define def_weave_to_pdf
+%.pdf: %$(1).nw
+	$${NOWEAVE.pdf}
+endef
+
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
+%.tex: %.nw
+	${NOWEAVE.tex}
+
+define def_weave_to_tex
+%.tex: %$(1).nw
+	$${NOWEAVE.tex}
+endef
+
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 define with_suffix_target
 %$(1): %$(1).nw
 	$${NOTANGLE$$(suffix $$@)}
