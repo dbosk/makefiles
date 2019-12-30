@@ -25,12 +25,12 @@ NOWEB_MK = true
 
 <<variables>>
 
-<<suffix rules for weaving documentation>>
-<<suffix rules for tangling code>>
-
 INCLUDE_MAKEFILES?=.
 MAKEFILES_DIR?=${INCLUDE_MAKEFILES}
 include ${MAKEFILES_DIR}/tex.mk
+
+<<suffix rules for weaving documentation>>
+<<suffix rules for tangling code>>
 
 endif
 @
@@ -78,7 +78,13 @@ $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 @
 
 To differentiate the second case from the first (in terms of suffix rules), we 
-go from [[.nw]] directly to [[.pdf]].
+go from [[.nw]] directly to [[.pdf]]\footnote{%
+  Note, however, that these pattern rules will never be used by make.
+  The make algorithm performs a depth-first search, thus make will take the 
+  long way by first converting to TeX, then to PDF.
+  We can determine which of these two pattern rules should be used by moving 
+  the inclusion of the [[tex.mk]] include file above.
+}.
 <<suffix rule for weaving to PDF>>=
 %.pdf: %.nw
 	${NOWEAVE.pdf}

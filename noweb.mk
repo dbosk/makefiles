@@ -54,6 +54,10 @@ endef
 
 $(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
 
+INCLUDE_MAKEFILES?=.
+MAKEFILES_DIR?=${INCLUDE_MAKEFILES}
+include ${MAKEFILES_DIR}/tex.mk
+
 %.pdf: %.nw
 	${NOWEAVE.pdf}
 
@@ -90,9 +94,5 @@ $(addprefix %,${NOWEB_SUFFIXES}): %.nw
 
 %.hxx: %.cxx.nw
 	${NOTANGLE.hxx}
-
-INCLUDE_MAKEFILES?=.
-MAKEFILES_DIR?=${INCLUDE_MAKEFILES}
-include ${MAKEFILES_DIR}/tex.mk
 
 endif
