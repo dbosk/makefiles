@@ -190,7 +190,7 @@ rules\footnote{
 <<general pattern rule for compression>>=
 define compress
 %$(1): %
-	${COMPRESS$(1)}
+	$${COMPRESS$(1)}
 endef
 $(foreach suf,${COMPRESS_SUFFIXES},$(eval $(call compress,${suf})))
 @ In a similar fashion, we can use the following general pattern rule for 
@@ -198,7 +198,7 @@ uncompression.
 <<general pattern rule for uncompression>>=
 define uncompress
 %: %$(1)
-	${UNCOMPRESS$(1)}
+	$${UNCOMPRESS$(1)}
 endef
 $(foreach suf,${UNCOMPRESS_SUFFIXES},$(eval $(call uncompress,${suf})))
 @ We note that due to to the [[call]] and [[eval]] above, we must escape the 
@@ -267,7 +267,7 @@ However, we can provide a function which create such targets automatically.
 <<function to generate extraction targets>>=
 define extract
 $(1): $(2)
-	${EXTRACT$(suffix $(2))}
+	$${EXTRACT$(suffix $(2))}
 endef
 @ Now we only need to provide the [[EXTRACT.XXX]] for every type of archive we 
 might want to use.
@@ -285,7 +285,7 @@ To prevent this we add the [[-m]] option to tar(1).
 <<variables for archive programs>>=
 UNTAR?=       tar -xm
 UNPAX?=       pax -rzp m
-EXTRACT.tar?= ${UNTAR} -f $$< $$@
+EXTRACT.tar?= ${UNTAR} -f $< $@
 @ It will be similar for zip archives.
 The option to prevent resetting the modification time for unzip(1) is [[-DD]].
 Unfortunately, MacOS ships with an ancient version of unzip(1), one which does 
@@ -297,5 +297,5 @@ UNZIP?=       unzip
 else
 UNZIP?=       unzip -DD
 endif
-EXTRACT.zip?= ${UNZIP} $$< $$@
+EXTRACT.zip?= ${UNZIP} $< $@
 @
