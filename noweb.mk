@@ -1,47 +1,81 @@
 ifndef NOWEB_MK
 NOWEB_MK = true
 
-NOWEAVE?=       noweave ${NOWEAVEFLAGS} $< > $@
-NOWEAVEFLAGS?=  -x -n -delay -t2
+NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
+NOWEAVEFLAGS.tex?=  -x -n -delay -t2
+NOWEAVE.pdf?=       \
+  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
+  latexmk -pdf ${@:.pdf=.tex}
+NOWEAVEFLAGS.pdf?=  -x -t2
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS?=
 CPIF?=          cpif
 NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
 NOTANGLEFLAGS.c?=   ${NOTANGLEFLAGS} -L
-NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
-NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cpp?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
 NOTANGLEFLAGS.h?=   ${NOTANGLEFLAGS} -L
-NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
-NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hpp?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOWEB_SUFFIXES+=    .hs
 NOTANGLEFLAGS.hs?=  ${NOTANGLEFLAGS} -L
-NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
-NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) $< > $@
-LAST_SUFFIXES=      .py .sty .cls .sh .go
+NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) \
+  $(filter %.nw,$^) > $@
+NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
-NOWEB_SUFFIXES+=    $(1)
-NOTANGLEFLAGS$(1)?=$${NOTANGLEFLAGS}
-NOTANGLE$(1)?=     notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) $$< > $$@
+NOTANGLEFLAGS$(1)?= $${NOTANGLEFLAGS}
+NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
+  $$(filter %.nw,$$^) > $$@
 endef
 
-$(foreach suffix,${LAST_SUFFIXES},$(eval $(call default_tangling,${suffix})))
-.SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
-.nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
-	${NOWEAVE}
+$(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
+
+INCLUDE_MAKEFILES?=.
+MAKEFILES_DIR?=${INCLUDE_MAKEFILES}
+include ${MAKEFILES_DIR}/tex.mk
+
+%.pdf: %.nw
+	${NOWEAVE.pdf}
+
+define def_weave_to_pdf
+%.pdf: %$(1).nw
+	$${NOWEAVE.pdf}
+endef
+
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
+%.tex: %.nw
+	${NOWEAVE.tex}
+
+define def_weave_to_tex
+%.tex: %$(1).nw
+	$${NOWEAVE.tex}
+endef
+
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 define with_suffix_target
 %$(1): %$(1).nw
 	$${NOTANGLE$$(suffix $$@)}

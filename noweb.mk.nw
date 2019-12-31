@@ -2,18 +2,17 @@
 
 The [[noweb.mk]] include provides suffix rules for weaving and tangling 
 (produce documentation and code, respectively).
-To use it correctly there are some suffix naming conventions.
+The framework uses the conventions of make~\cite[Section~10.2]{GNUMake}.
 
 The suffix rules of make works by taking a prerequisite with one suffix and 
 applying the recipe to get a target with another suffix.
 This requires the stem of the filename to be identical.
-This means that some jobs must be done using specific recipe.
-
-We assume that there is a main TeX file which will include the woven 
-documentation.
-So all invocations of [[noweave]] use the [[-n]] option.
-Furthermore, some language-specialized suffixes, such as [[cxx.nw]], will use 
-[[noweave]] options suitable for that language.
+The framework can handle files of suffixes defined in [[NOWEB_SUFFIXES]].
+However, we also provide [[NOWEAVE.tex]] to weave a TeX file ([[.tex]]) from a 
+NOWEB file ([[.nw]]) and [[NOTANGLE.suf]] to tangle a [[.suf]] file from a 
+NOWEB file ([[.nw]]).
+There is also a [[NOWEAVE.pdf]] to weave directly to PDF.
+This assumes that the file is independent, \ie no special LaTeX preamble.
 
 
 \section{Implementation}
@@ -25,6 +24,11 @@ ifndef NOWEB_MK
 NOWEB_MK = true
 
 <<variables>>
+
+INCLUDE_MAKEFILES?=.
+MAKEFILES_DIR?=${INCLUDE_MAKEFILES}
+include ${MAKEFILES_DIR}/tex.mk
+
 <<suffix rules for weaving documentation>>
 <<suffix rules for tangling code>>
 
@@ -34,15 +38,26 @@ endif
 \subsection{Weaving documentation}
 
 We will use the [[noweave]] command to weave the documentation.
-<<variables>>=
-NOWEAVE?=       noweave ${NOWEAVEFLAGS} $< > $@
-@ The default options that we will use can be controlled with the following 
-variable.
-<<variables>>=
-NOWEAVEFLAGS?=  -x -n -delay -t2
+We are interested in two cases:
+\begin{enumerate}
+\item when a source program should be converted to TeX to be included in a 
+larger document, and
+\item when a source program is independent and should be converted to PDF.
+\end{enumerate}
+
+The order of the rules are important.
+To ensure make takes the \enquote{shortcut} of the second case, we must specify 
+that rule first.
+<<suffix rules for weaving documentation>>=
+<<suffix rule for weaving to PDF>>
+<<suffix rule for weaving to TeX>>
 @
 
-Now we need to specify all the suffixes to use and then construct suffix rules 
+Now, for the first case, we let
+<<variables>>=
+NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
+NOWEAVEFLAGS.tex?=  -x -n -delay -t2
+@ Now we need to specify all the suffixes to use and then construct suffix rules 
 for all of them.
 Fortunately we can use the same recipe for all, so we only need to write one 
 recipe for multiple targets.
@@ -50,12 +65,44 @@ We will use a variable [[NOWEB_SUFFIXES]] to keep a list of supported suffixes.
 Since these suffixes only matter for tangling, we will set the variable in that
 section.
 For now, we only use it.
-<<suffix rules for weaving documentation>>=
-.SUFFIXES: .nw .tex $(addsuffix .nw,${NOWEB_SUFFIXES})
-.nw.tex $(addsuffix .nw.tex,${NOWEB_SUFFIXES}):
-	${NOWEAVE}
+<<suffix rule for weaving to TeX>>=
+%.tex: %.nw
+	${NOWEAVE.tex}
+
+define def_weave_to_tex
+%.tex: %$(1).nw
+	$${NOWEAVE.tex}
+endef
+
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 @
 
+To differentiate the second case from the first (in terms of suffix rules), we 
+go from [[.nw]] directly to [[.pdf]]\footnote{%
+  Note, however, that these pattern rules will never be used by make.
+  The make algorithm performs a depth-first search, thus make will take the 
+  long way by first converting to TeX, then to PDF.
+  We can determine which of these two pattern rules should be used by moving 
+  the inclusion of the [[tex.mk]] include file above.
+}.
+<<suffix rule for weaving to PDF>>=
+%.pdf: %.nw
+	${NOWEAVE.pdf}
+
+define def_weave_to_pdf
+%.pdf: %$(1).nw
+	$${NOWEAVE.pdf}
+endef
+
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
+@ What differs [[NOWEAVE.pdf]] from [[NOWEAVE.tex]] is the options to 
+[[noweave]] and the compilation step (instead of having that separately).
+<<variables>>=
+NOWEAVE.pdf?=       \
+  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
+  latexmk -pdf ${@:.pdf=.tex}
+NOWEAVEFLAGS.pdf?=  -x -t2
+@
 
 \subsection{Tangling code}
 
@@ -102,18 +149,15 @@ $(addprefix %,${NOWEB_SUFFIXES}): %.nw
 	${NOTANGLE$(suffix $@)}
 @
 
-The case with suffixes can paradoxically be done without introducing the 
-suffixes.
+For the other case, we add rules using the suffix prefixed to [[.nw]].
 <<tangle source files with suffix>>=
 define with_suffix_target
 %$(1): %$(1).nw
 	$${NOTANGLE$$(suffix $$@)}
 endef
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call with_suffix_target,${suf})))
-@ The reason for this is that the suffix is now captured by the pattern on both
-sides, \ie for target \emph{and} prerequisite.
-However, this rule does not capture some thing we want, \eg we cannot tangle 
-a header file [[.h]] from a [[.cpp.nw]] file.
+@ However, this rule does not capture some of the things we want, \eg we cannot 
+tangle a header file [[.h]] from a [[.cpp.nw]] file.
 We must add these rules manually, which we do below.
 
 \paragraph{Rules for different languages}
@@ -139,13 +183,17 @@ generated file.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
 NOTANGLEFLAGS.c?=   ${NOTANGLEFLAGS} -L
-NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
-NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cpp?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 @
 
 For C-family source code, we will assume that the header files (declarations) 
@@ -168,13 +216,17 @@ However, for this we must add extra pattern rules.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
 NOTANGLEFLAGS.h?=   ${NOTANGLEFLAGS} -L
-NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
-NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hpp?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 @
 
 The suffix rules for Haskell is similar to those for C and C++, due to the 
@@ -182,7 +234,8 @@ Glasgow Haskell Compiler (GHC) being very close to the C and C++ compilers.
 <<defaults for Haskell>>=
 NOWEB_SUFFIXES+=    .hs
 NOTANGLEFLAGS.hs?=  ${NOTANGLEFLAGS} -L
-NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) $< | ${CPIF} $@
+NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) \
+  $(filter %.nw,$^) | ${CPIF} $@
 @ We also note that we do not need any suffix rule for [[.lhs]] files, for the 
 same reason as for the weaving, GHC automatically tangles Haskell's native 
 literate files ([[.lhs]]).
@@ -191,19 +244,27 @@ Make also requires slightly modified flags:
 <<defaults for Make>>=
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
-NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) $< > $@
+NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) \
+  $(filter %.nw,$^) > $@
 @
 
 For Python, LaTeX, shell scripts and Go, there is no special processing needed, 
-we simply use the flags we set above.
+we simply use the flags we set in the beginning.
+We will now iterate through \emph{all} suffixes, including [[.mk]] and [[.cpp]] 
+\etc that we have already defined options for.
+Since we use the [[?=]] operator, those we have already defined will be 
+ignored.
+This has the added benefit that one can simply add [[.suf]] to 
+[[NOWEB_SUFFIXES]] and this code will automatically generate the default 
+settings.
 <<defaults for remaining>>=
-LAST_SUFFIXES=      .py .sty .cls .sh .go
+NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
-NOWEB_SUFFIXES+=    $(1)
-NOTANGLEFLAGS$(1)?=$${NOTANGLEFLAGS}
-NOTANGLE$(1)?=     notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) $$< > $$@
+NOTANGLEFLAGS$(1)?= $${NOTANGLEFLAGS}
+NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
+  $$(filter %.nw,$$^) > $$@
 endef
 
-$(foreach suffix,${LAST_SUFFIXES},$(eval $(call default_tangling,${suffix})))
+$(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
 @

@@ -6,20 +6,33 @@ TEX_MK=true
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
-LATEX?=       latexmk -dvi
-PDFLATEX?=    latexmk -pdf
-LATEXFLAGS?=  -use-make
-TEX_OUTDIR?=  ltxobj
+LATEX?=           latexmk -dvi -use-make
+PDFLATEX?=        latexmk -pdf -use-make
+LATEXFLAGS?=
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.dtx?=  ${PREPROCESS.tex}
+TEX_OUTDIR?=      ltxobj
+COMPILE.tex?=     \
+  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  while (grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log}); \
+    do ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  done
+COMPILE.dtx?=     ${COMPILE.tex}
 TEX_BBL?=
-BIBTEX?=      bibtexu
+BIBTEX?=            bibtexu
 BIBTEXFLAGS?=
-BIBER?=       biber
+BIBLIOGRAPHY.aux?=  ${BIBTEX} ${BIBTEXFLAGS} $<
+BIBER?=             biber
 BIBERFLAGS?=
+BIBLIOGRAPHY.bcf?=  ${BIBER} -O $@ ${BIBERFLAGS} $<
 TEX_IND?=
-MAKEINDEX?=   makeindex
-MAKEIDXFLAGS?=
 XINDY?=       texindy
 XINDYFLAGS?=
+COMPILE.idx?= ${XINDY} ${OUTPUT_OPTION} ${XINDYFLAGS} $<
+
+MAKEINDEX?=   makeindex
+MAKEIDXFLAGS?=
+COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 TEX_PYTHONTEX?=
 PYTHONTEX?=   pythontex3
 PYTHONTEXFLAGS?=
@@ -29,15 +42,15 @@ ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
   ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
 ${TEX_OUTDIR}/%.aux: %.tex
 	${MKDIR} ${TEX_OUTDIR}
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	${PREPROCESS.tex}
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
-	${BIBTEX} ${BIBTEXFLAGS} $<
+	${BIBLIOGRAPHY.aux}
 	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 ${TEX_OUTDIR}/%.bcf: %.tex
 	${MKDIR} ${TEX_OUTDIR}
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	${PREPROCESS.tex}
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
-	${BIBER} -O $@ ${BIBERFLAGS} $<
+	${BIBLIOGRAPHY.bcf}
 ifneq (${TEX_BBL},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
@@ -47,28 +60,23 @@ ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxmcr
 endif
 ${TEX_OUTDIR}/%.idx: %.tex
 	${MKDIR} ${TEX_OUTDIR}
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	${PREPROCESS.tex}
 ${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
-	${XINDY} -o $@ ${XINDYFLAGS} $<
+	${COMPILE.idx}
 ifneq (${TEX_IND},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.ind
 endif
 ${TEX_OUTDIR}/%.nlo: %.tex
 	${MKDIR} ${TEX_OUTDIR}
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	${PREPROCESS.tex}
 
 ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
-	${MKDIR} ${TEX_OUTDIR}
-	${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} -s nomencl.ist $<
-pythontex-files-%/%.pytxmcr: pythontex-files-%
-pythontex-files-%: %.pytxcode
+	${COMPILE.nlo}
+pythontex-files-%/%.pytxcode: %.tex
 	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
 %.pytxcode: ${TEX_OUTDIR}/%.pytxcode
 %.pdf ${TEX_OUTDIR}/%.pdf: %.tex
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
-	  ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-	done
+	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
 %.dvi ${TEX_OUTDIR}/%.dvi: %.tex
@@ -83,10 +91,7 @@ latexmkrc:
 %.cls %.sty: %.ins
 	${LATEX} $<
 %.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
-	  ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-	done
+	${COMPILE.dtx}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
 %.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
@@ -95,14 +100,8 @@ latexmkrc:
 	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
-${TEX_OUTDIR}/%.aux: %.dtx
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-
-${TEX_OUTDIR}/%.bcf: %.dtx
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-
-${TEX_OUTDIR}/%.idx: %.dtx
-	${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
+	${PREPROCESS.dtx}
 define download_archive
 $(foreach file,${TEX_EXT_FILES-$(1)},\
   $(eval $(notdir ${file}): ${TEX_EXT_DIR-$(1)}/${file}))
