@@ -292,10 +292,10 @@ CONVERT.md.tex?=${MD2TEX} ${MD2TEXFLAGS} -o $@ $<
 TEX2MD?=        pandoc
 TEX2MDFLAGS?=   -s
 CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
-@ This gives the following suffix rules.
+@ Since we occasionally want to convert TeX to Markdown, we will not provide 
+any pattern rule.
 <<MD to TeX>>=
-%.tex: %.md
-	${CONVERT.md.tex}
+# no %.md: %.tex rule
 @
 
 Sometimes we want to convert to HTML, we will use [[pandoc]] to convert both 
