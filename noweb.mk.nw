@@ -116,8 +116,9 @@ this rule to the different languages.
 
 We will use notangle(1).
 <<variables>>=
-NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $< | ${CPIF} $@
 NOTANGLEFLAGS?=
+NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $(filter %.nw,$^) | \
+                  ${CPIF} $@
 @ We will also use the command cpif(1).
 This command only updates the files if they have changed.
 We need this since many files may reside in the same NOWEB source file, but 
