@@ -108,15 +108,9 @@ NOWEAVEFLAGS.pdf?=  -x -t2
 
 We will now cover the rules for tangling the source code for different 
 languages.
-<<suffix rules for tangling code>>=
-<<general tangling rules>>
-<<special rules for different languages>>
-@ We will first write some general pattern rules, then supply ways to adapt 
-this rule to the different languages.
-
 We will use notangle(1).
 <<variables>>=
-NOTANGLEFLAGS?=
+NOTANGLEFLAGS?= -t2
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $(filter %.nw,$^) | \
                   ${CPIF} $@
 @ We will also use the command cpif(1).
@@ -130,35 +124,39 @@ CPIF?=          cpif
 @ However, since we use this variable, cpif(1) can be substituted for tee(1) in 
 desirable situations.
 
-\paragraph{General pattern rules}
-
-There are two general pattern rules that we will add.
-<<general tangling rules>>=
-<<tangle source files with suffix>>
-<<tangle source files without suffix>>
-@ In the first one, we will tangle a file with suffix [[.suf]] from the source 
-file with suffix [[.suf.nw]] and in the second a source file with suffix 
-[[.nw]].
-
-We can start with the second.
-In this rule, we have a file with a supported suffix [[.suf]] depend on the 
-NOWEB source file with suffix [[.nw]].
-Then we let the recipe be set by the variable [[NOTANGLE.suf]], which is the 
-convention followed by make(1)~\cite[Sect.\ 10.2]{GNUMake}.
-<<tangle source files without suffix>>=
-$(addprefix %,${NOWEB_SUFFIXES}): %.nw
-	${NOTANGLE$(suffix $@)}
+We will add rules for various languages.
+The order is important, the most general rule must come last.
+<<suffix rules for tangling code>>=
+<<special rules for different languages>>
+<<general tangling rules>>
 @
 
-For the other case, we add rules using the suffix prefixed to [[.nw]].
-<<tangle source files with suffix>>=
-define with_suffix_target
-%$(1): %$(1).nw
-	$${NOTANGLE$$(suffix $$@)}
-endef
-$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call with_suffix_target,${suf})))
-@ However, this rule does not capture some of the things we want, \eg we cannot 
-tangle a header file [[.h]] from a [[.cpp.nw]] file.
+\paragraph{General pattern rules}
+
+There are two general pattern rules that we will add, with double suffix 
+([[.suf.nw]] to [[.suf]]) and without ([[.nw]] to [[.suf]]).
+The first case can be captured easily with a pattern rule.
+This rule will also handle cases like [[Makefile.nw]] to [[Makefile]], 
+completely without any suffix.
+<<general tangling rules>>=
+<<tangle source files without double suffix>>
+
+%: %.nw
+	${NOTANGLE$(suffix $@)}
+@ We will add suffix-specific definitions of [[NOTANGLE]] below.
+
+For files without the double suffix, we have a file with a supported suffix 
+[[.suf]] depend on the NOWEB source file with suffix [[.nw]].
+Then we let the recipe be set by the variable [[NOTANGLE.suf]], which is the 
+convention followed by make(1)~\cite[Sect.\ 10.2]{GNUMake}.
+<<tangle source files without double suffix>>=
+$(addprefix %,${NOWEB_SUFFIXES}): %.nw
+	${NOTANGLE$(suffix $@)}
+@ This allows us to make, for example, both [[example.h]] and [[example.cpp]] 
+from [[example.nw]].
+
+However, neither of these rules capture tangling, for example, a header file 
+[[.h]] from a [[.cpp.nw]] file.
 We must add these rules manually, which we do below.
 
 \paragraph{Rules for different languages}
