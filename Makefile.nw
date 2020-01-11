@@ -175,3 +175,11 @@ all: makefiles.tar.gz
 ${RM} makefiles.tar.gz
 @
 
+\subsection{Testing}
+
+Finally, we provide tests in [[tests.mk]].
+This is documented in the following sections.
+To use it, we must include it in the [[Makefile]].
+<<include files>>=
+include tests.mk
+@

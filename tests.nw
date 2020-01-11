@@ -1,0 +1,6 @@
+\section{Compressed files and archives}
+
+[[portability.mk]] defines variable names for programs on various systems, \eg 
+[[GREP]] will be [[grep]] on GNU/Linux but [[ggrep]] on BSD.
+Otherwise, the most useful functionality provided here is working with 
+compressed files and file archives.
