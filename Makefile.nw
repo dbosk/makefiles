@@ -67,7 +67,7 @@ MAKEFILES_INCLUDE=${INCLUDE_MAKEFILES}
 <<include files>>
 @
 
-\subsection{The documentation and include files}
+\subsection{Tangling, weaving and compiling LaTeX}
 
 The documentation depends on the main TeX file, preamble and 
 bibliographies.
@@ -85,6 +85,8 @@ ${RM} Dockerfile.tex
 @
 
 To automatically compile the documentation, we use the [[tex.mk]] include.
+Once this include is present, make will be able to make a [[.pdf]] from a 
+[[.tex]] file.
 <<include files>>=
 include ${MAKEFILES_INCLUDE}/tex.mk
 @
@@ -102,8 +104,11 @@ $(1) $(1:.mk=.tex): $(1).nw
 endef
 
 $(foreach mkfile,${MKFILES},$(eval $(call makefiles_depends,${mkfile})))
-@ Tangling an [[.nw]] file into an [[.mk]] file requires the [[noweb.mk]] 
-include.
+@
+
+To automatically tangle an [[.nw]] file into an [[.mk]], we use the 
+[[noweb.mk]] include.
+Once this is present, make knows how to make an [[.mk]] file from an [[.nw]].
 <<include files>>=
 include ${MAKEFILES_INCLUDE}/noweb.mk
 @
@@ -115,7 +120,8 @@ to use the repo as an independent Git submodule in project repos.
 ${RM} ${MKFILES:.mk=.tex}
 @
 
-We also have files for which this doesn't work.
+We also have files for which this doesn't work (the target doesn't have the 
+name in common with its source).
 Then we can provide a one-liner recipe, also thanks to [[noweb.mk]].
 <<OTHERS targets>>=
 latexmkrc: tex.mk.nw
@@ -123,7 +129,7 @@ latexmkrc: tex.mk.nw
 
 gitattributes: transform.mk.nw
 	${NOTANGLE}
-@ Of these files, we only want to keep [[latexmkrc]].
+@ Of these files, we only want to keep [[latexmkrc]] after cleaning.
 <<clean recipe>>=
 ${RM} gitattributes Dockerfile
 @
@@ -160,11 +166,11 @@ This requires the [[pkg.mk]] include.
 include ${MAKEFILES_INCLUDE}/pkg.mk
 @ We only need to set some variables that [[pkg.mk]] expects.
 <<package setup>>=
-PKG_PACKAGES?=			main
-PKG_NAME-main= 			makefiles
+PKG_PACKAGES?=			    main
+PKG_NAME-main= 			    makefiles
 
-PKG_PREFIX=				  /usr/local
-PKG_INSTALL_DIR=		/include
+PKG_PREFIX=				      /usr/local
+PKG_INSTALL_DIR=		    /include
 
 PKG_INSTALL_FILES-main=	${MKFILES}
 PKG_TARBALL_FILES-main=	${PKG_INSTALL_FILES-main} ${OTHERS} Makefile README.md
