@@ -26,6 +26,7 @@ makefiles.pdf: exam.bib
 makefiles.pdf: transform.bib
 makefiles.pdf: tex.bib
 makefiles.pdf: Dockerfile.tex
+makefiles.pdf: tests.tex
 define makefiles_depends
 makefiles.pdf: $(1:.mk=.tex)
 $(1) $(1:.mk=.tex): $(1).nw
@@ -64,6 +65,7 @@ clean:
 	${RM} ${MKFILES:.mk=.tex}
 	${RM} gitattributes Dockerfile
 	${RM} makefiles.tar.gz
+	${RM} tests.mk
 
 distclean:
 	docker image rm makefiles
@@ -73,3 +75,7 @@ MAKEFILES_INCLUDE=${INCLUDE_MAKEFILES}
 include ${MAKEFILES_INCLUDE}/tex.mk
 include ${MAKEFILES_INCLUDE}/noweb.mk
 include ${MAKEFILES_INCLUDE}/pkg.mk
+tests.mk: tests.nw $(addsuffix .nw,${MKFILES})
+	${NOTANGLE}
+
+include tests.mk

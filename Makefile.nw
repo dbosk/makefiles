@@ -71,6 +71,7 @@ makefiles.pdf: exam.bib
 makefiles.pdf: transform.bib
 makefiles.pdf: tex.bib
 makefiles.pdf: Dockerfile.tex
+makefiles.pdf: tests.tex
 @ We must add the generated files to the clean recipe.
 <<clean recipe>>=
 ${RM} makefiles.pdf
@@ -175,11 +176,19 @@ all: makefiles.tar.gz
 ${RM} makefiles.tar.gz
 @
 
-\subsection{Testing}
+\section{Testing all functionality}
 
 Finally, we provide tests in [[tests.mk]].
-This is documented in the following sections.
+This file is tangled from all parts of the framework.
 To use it, we must include it in the [[Makefile]].
 <<include files>>=
+tests.mk: tests.nw $(addsuffix .nw,${MKFILES})
+	${NOTANGLE}
+
 include tests.mk
+@ This also requires
+<<clean recipe>>=
+${RM} tests.mk
 @
+
+\input{tests.tex}

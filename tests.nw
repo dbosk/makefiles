@@ -1,6 +1,35 @@
-\section{Compressed files and archives}
+We now provide the details of [[tests.mk]], which will test all functionality 
+of this framework and will thus be interesting for illustrating a variety of 
+the framework's use.
 
-[[portability.mk]] defines variable names for programs on various systems, \eg 
-[[GREP]] will be [[grep]] on GNU/Linux but [[ggrep]] on BSD.
-Otherwise, the most useful functionality provided here is working with 
-compressed files and file archives.
+We provide a [[test]] target that will run all tests, each test will be a 
+dependency for [[test]].
+The target [[test-clean]] will clean up.
+(The [[clean]] target will depend on [[test-clean]] so that it will 
+automatically be run when [[clean]] is run.)
+Finally, [[run-tests]] will depend on any tests defined throughout the 
+framework.
+
+All tests will be run in a subdirectory [[tests]].
+The [[test]] target will set this up and start executing [[run-tests]] in that 
+directory.
+<<tests.mk>>=
+.PHONY: test
+test:
+	${MKDIR} tests
+	${MAKE} -C tests -f ../tests.mk run-tests
+
+.PHONY: clean test-clean
+test-clean:
+	${RM} tests
+
+clean: test-clean
+
+.PHONY: run-tests
+run-tests:
+	true
+@
+
+Now, each NOWEB source file of the framework can define a [[<<tests.mk>>]] code 
+block that will be appended to [[<<tests.mk>>]] here (thanks to the recipe for 
+[[tests.mk]] in [[Makefile]]).
