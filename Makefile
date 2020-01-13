@@ -3,12 +3,6 @@ MKFILES+=		  pkg.mk pub.mk transform.mk
 MKFILES+=		  tex.mk doc.mk
 MKFILES+=		  noweb.mk haskell.mk
 MKFILES+=		  exam.mk results.mk
-#MKFILES+=		  miun.port.mk
-
-MIUNFILES+=		miun.docs.mk miun.tex.mk miun.subdir.mk
-MIUNFILES+=		miun.package.mk miun.pub.mk miun.course.mk
-MIUNFILES+=		miun.export.mk miun.results.mk latexmkrc
-MIUNFILES+=		miun.depend.mk
 
 OTHERS+=		  latexmkrc
 OTHERS+=		  gitattributes
@@ -17,7 +11,6 @@ OTHERS+= 		  Dockerfile
 .PHONY: all
 all: makefiles.pdf
 all: ${MKFILES}
-#all: ${MIUNFILES}
 all: ${OTHERS}
 
 makefiles.pdf: makefiles.tex preamble.tex makefiles.bib
@@ -47,11 +40,11 @@ docker-makefiles: Dockerfile
 
 push: docker-makefiles
 	docker push ${DOCKER_ID_USER}/makefiles
-PKG_PACKAGES?=			main
-PKG_NAME-main= 			makefiles
+PKG_PACKAGES?=			    main
+PKG_NAME-main= 			    makefiles
 
-PKG_PREFIX=				  /usr/local
-PKG_INSTALL_DIR=		/include
+PKG_PREFIX=				      /usr/local
+PKG_INSTALL_DIR=		    /include
 
 PKG_INSTALL_FILES-main=	${MKFILES}
 PKG_TARBALL_FILES-main=	${PKG_INSTALL_FILES-main} ${OTHERS} Makefile README.md
