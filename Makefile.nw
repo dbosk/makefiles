@@ -1,0 +1,177 @@
+\section{Makefile for this framework}\label{Makefile}
+
+The [[Makefile]] for this repository should provide instructions to make all 
+the files needed by this framework along with its documentation 
+([[makefiles.pdf]]).
+<<Makefile>>=
+MKFILES+=		  portability.mk subdir.mk
+MKFILES+=		  pkg.mk pub.mk transform.mk
+MKFILES+=		  tex.mk doc.mk
+MKFILES+=		  noweb.mk haskell.mk
+MKFILES+=		  exam.mk results.mk
+
+OTHERS+=		  latexmkrc
+OTHERS+=		  gitattributes
+OTHERS+= 		  Dockerfile
+
+.PHONY: all
+all: makefiles.pdf
+all: ${MKFILES}
+all: ${OTHERS}
+
+<<makefiles.pdf target>>
+<<MKFILES targets>>
+<<OTHERS targets>>
+@
+
+It also provides targets for creating a Docker image from the [[Dockerfile]] 
+and pushing it to Docker Hub.
+<<Makefile>>=
+DOCKER_ID_USER?=dbosk
+
+.PHONY: docker-makefiles push
+docker-makefiles: Dockerfile
+	<<Docker image recipe>>
+
+push: docker-makefiles
+	<<Docker push recipe>>
+@
+
+We also use the package framework ([[pkg.mk]]) to provide a package which can 
+install the makefiles on the system.
+<<Makefile>>=
+<<package setup>>
+@
+
+We also need the standard targets for cleaning and some include files.
+<<Makefile>>=
+.PHONY: clean distclean
+clean:
+	<<clean recipe>>
+
+distclean:
+	<<distclean recipe>>
+@
+
+Finally, we need some include files from this very framework.
+<<Makefile>>=
+INCLUDE_MAKEFILES=.
+MAKEFILES_INCLUDE=${INCLUDE_MAKEFILES}
+<<include files>>
+@
+
+\subsection{Tangling, weaving and compiling LaTeX}
+
+The documentation depends on the main TeX file, preamble and 
+bibliographies.
+<<makefiles.pdf target>>=
+makefiles.pdf: makefiles.tex preamble.tex makefiles.bib
+makefiles.pdf: intro.tex Makefile.tex
+makefiles.pdf: exam.bib
+makefiles.pdf: transform.bib
+makefiles.pdf: tex.bib
+makefiles.pdf: Dockerfile.tex
+@ We must add the generated files to the clean recipe.
+<<clean recipe>>=
+${RM} makefiles.pdf
+${RM} Dockerfile.tex
+@
+
+To automatically compile the documentation, we use the [[tex.mk]] include.
+Once this include is present, make will be able to make a [[.pdf]] from a 
+[[.tex]] file.
+<<include files>>=
+include ${MAKEFILES_INCLUDE}/tex.mk
+@
+
+Additionally, it depends on [[.tex]] versions of all the [[.mk]] files.
+We will generate the targets for both [[.tex]] and [[.mk]] versions, both of 
+these are generated from the [[.nw]] file.
+The functionality of [[noweb.mk]] allows us to reduce this to the line
+equivalent to [[%.mk %.tex: %.nw]] below.
+Then the pattern rules will do the work.
+<<MKFILES targets>>=
+define makefiles_depends
+makefiles.pdf: $(1:.mk=.tex)
+$(1) $(1:.mk=.tex): $(1).nw
+endef
+
+$(foreach mkfile,${MKFILES},$(eval $(call makefiles_depends,${mkfile})))
+@
+
+To automatically tangle an [[.nw]] file into an [[.mk]], we use the 
+[[noweb.mk]] include.
+Once this is present, make knows how to make an [[.mk]] file from an [[.nw]].
+<<include files>>=
+include ${MAKEFILES_INCLUDE}/noweb.mk
+@
+
+We should also add these generated file to the cleaning recipe.
+However, we only remove the [[.tex]] files, we keep the tangled [[.mk]] files 
+to use the repo as an independent Git submodule in project repos.
+<<clean recipe>>=
+${RM} ${MKFILES:.mk=.tex}
+@
+
+We also have files for which this doesn't work (the target doesn't have the 
+name in common with its source).
+Then we can provide a one-liner recipe, also thanks to [[noweb.mk]].
+<<OTHERS targets>>=
+latexmkrc: tex.mk.nw
+	${NOTANGLE}
+
+gitattributes: transform.mk.nw
+	${NOTANGLE}
+@ Of these files, we only want to keep [[latexmkrc]] after cleaning.
+<<clean recipe>>=
+${RM} gitattributes Dockerfile
+@
+
+\subsection{The Docker image}
+
+The [[Dockerfile]] is used to produce a Docker image.
+We provide a phony target [[docker-makefiles]] to produce the [[makefiles]] 
+Docker image.
+<<Docker image recipe>>=
+docker build -t makefiles .
+docker tag makefiles ${DOCKER_ID_USER}/makefiles
+@
+
+We also provide a phony target [[push]] to push the makefiles image to Docker 
+Hub.
+<<Docker push recipe>>=
+docker push ${DOCKER_ID_USER}/makefiles
+@
+
+Lastly, we need to cleaning.
+We provide a [[distclean]] target to remove the (quite sizeable) Docker image.
+<<distclean recipe>>=
+docker image rm makefiles
+docker image rm dbosk/makefiles
+@
+
+\subsection{Packaging and publication}
+
+We provide a package that installs the makefiles in the system where make can 
+find them.
+This requires the [[pkg.mk]] include.
+<<include files>>=
+include ${MAKEFILES_INCLUDE}/pkg.mk
+@ We only need to set some variables that [[pkg.mk]] expects.
+<<package setup>>=
+PKG_PACKAGES?=			    main
+PKG_NAME-main= 			    makefiles
+
+PKG_PREFIX=				      /usr/local
+PKG_INSTALL_DIR=		    /include
+
+PKG_INSTALL_FILES-main=	${MKFILES}
+PKG_TARBALL_FILES-main=	${PKG_INSTALL_FILES-main} ${OTHERS} Makefile README.md
+
+.PHONY: all
+all: makefiles.tar.gz
+@ Then we want to remove the package when we clean.
+<<clean recipe>>=
+${RM} makefiles.tar.gz
+@
+

@@ -15,3 +15,5 @@ subdir.tex
 tex.tex
 transform.tex
 Dockerfile.tex
+intro.tex
+Makefile.tex

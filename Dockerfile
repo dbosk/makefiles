@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 ENV DEBIAN_FRONTEND noninteractive
 MAINTAINER Daniel Bosk <dbosk@kth.se>
-LABEL se.bosk.daniel.makefiles.version="$Id: 5dd2028b54e26e9081e0b5ed105b066d9e43da74 $"
+LABEL se.bosk.daniel.makefiles.version="$Id$"
 LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
 RUN apt-get update -y && \
   apt-get install --no-install-recommends -y \

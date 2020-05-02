@@ -3,33 +3,42 @@
 
 The aim of this include file is to make building LaTeX documents easier.
 First we want to add suffix rules for LaTeX similar to those already in 
-make(1)~\cite[see][Sect.\ 10.2]{GNUMake} for languages like C.
+make(1)~\cite[see][Sect.\ 10.2]{GNUMake} for \eg (plain) TeX and C.
 
-We provide several suffix rules.
-First, for ordinary documents, \ie to compile a [[.tex]] file to [[.pdf]], 
-[[.ps]] or [[.dvi]].
-Second, for classes and packages, \ie to compile
+The main goal is to improve the default rules of GNU make; to change from plain 
+TeX to LaTeX, to change from DVI-format to PDF-format.
+We provide several suffix rules:
+first, for ordinary documents, \ie to compile a [[.tex]] file to [[.pdf]],
+but we also provide suffix rules for [[.dvi]];
+second, for classes and packages, \ie to compile
 \begin{enumerate*}
-\item a DocTeX [[.dtx]] file to [[.pdf]], [[.ps]] or [[.dvi]] and
+\item a DocTeX [[.dtx]] file to [[.pdf]] or [[.dvi]] and
 \item an [[.ins]] file to [[.cls]] or [[.sty]].
 \end{enumerate*}
 The suffix rules we provide here follows the conventions set out 
 in~\cite[Sect.\ 10.2]{GNUMake}.
 
-The latex(1) and pdflatex(1) commands are controlled by
+To do the main LaTeX compilation, we use the following set up:
 <<variables>>=
-LATEX?=       latexmk -dvi
-PDFLATEX?=    latexmk -pdf
-@ Possible flags are controlled by
-<<variables>>=
-LATEXFLAGS?=  -use-make
-@ The output directory is by default
-<<variables>>=
-TEX_OUTDIR?=  ltxobj
-@ We note that we add this output directory to the search path for 
-prerequisites~\cite[see][Sect.\ 4.5.1]{GNUMake}.
-The reason for this is that we might need some out the objects as prerequisites 
-for other files.
+LATEX?=           latexmk -dvi -use-make
+PDFLATEX?=        latexmk -pdf -use-make
+LATEXFLAGS?=
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.dtx?=  ${PREPROCESS.tex}
+TEX_OUTDIR?=      ltxobj
+COMPILE.tex?=     \
+  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  while (grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log}); \
+    do ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  done
+COMPILE.dtx?=     ${COMPILE.tex}
+@ Thus one would have to change the [[COMPILE.tex]] variable to change format 
+from PDF to DVI unless a suffix rule is used.
+
+%We note that we add this output directory to the search path for 
+%prerequisites~\cite[see][Sect.\ 4.5.1]{GNUMake}.
+%The reason for this is that we might need some out the objects as prerequisites 
+%for other files.
 
 Normally, the above is all that is needed.
 However, if you need to manually build the bibliography, you can either add the
@@ -40,12 +49,14 @@ TEX_BBL?=
 @ Similarly as for the main LaTeX commands, the bibtex(1) command is controlled 
 by
 <<variables>>=
-BIBTEX?=      bibtexu
+BIBTEX?=            bibtexu
 BIBTEXFLAGS?=
+BIBLIOGRAPHY.aux?=  ${BIBTEX} ${BIBTEXFLAGS} $<
 @ And, in case we use biblatex, the biber(1) command is controlled by
 <<variables>>=
-BIBER?=       biber
+BIBER?=             biber
 BIBERFLAGS?=
+BIBLIOGRAPHY.bcf?=  ${BIBER} -O $@ ${BIBERFLAGS} $<
 @
 
 Similarly as for the bibliography, to enable indexing you can either manually 
@@ -55,10 +66,13 @@ to a non-empty string.
 TEX_IND?=
 @ The indexing-related programs are the following.
 <<variables>>=
-MAKEINDEX?=   makeindex
-MAKEIDXFLAGS?=
 XINDY?=       texindy
 XINDYFLAGS?=
+COMPILE.idx?= ${XINDY} ${OUTPUT_OPTION} ${XINDYFLAGS} $<
+
+MAKEINDEX?=   makeindex
+MAKEIDXFLAGS?=
+COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 @
 
 We also provide support for PythonTeX.
@@ -81,18 +95,13 @@ We add the phony targets
 \item[[rfc]] or [[rfc.bib]] for an up-to-date bibliography containing all 
 \ac{IETF} \acp{RFC},
 \item[[popets]] for the style files of the Proceedings of the Privacy Enhancing 
-Technologies (PoPETS, De Gruyter Open).
+Technologies (PoPETS, De Gruyter Open/Sciendo).
 \end{itemize}
 
 Finally, we add a method to quickly merge bibliographies without redundancy.
 This is based on the archive syntax of make(1).
-In particular, we extend the general rules from [[portability.mk]].
-<<variables>>=
-BIBTOOL?=     bibtool
-BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
-ARCHIVE.bib?= ${CAT} $@ $% | ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
-@ This would allow us have the resulting full bibliography [[full.bib]] consist 
-of the subbibliographies [[sub0.bib]] and [[sub1.bib]]:
+This allows us to have the resulting full bibliography [[full.bib]] consist of 
+the subbibliographies [[sub0.bib]] and [[sub1.bib]]:
 \begin{lstlisting}
 full.bib: full.bib(sub0.bib sub1.bib)
 \end{lstlisting}
@@ -194,16 +203,11 @@ Thus we will first introduce a rule for creating the [[.aux]] file.
 We will create it in the specified output directory.
 <<auxillary files>>=
 ${TEX_OUTDIR}/%.aux: %.tex
-	<<try to create output directory>>
-	<<run pdflatex>>
-@ To create the output directory we simply try mkdir(1).
-<<try to create output directory>>=
+	<<create output directory and preprocess TeX>>
+@ Then we simply do
+<<create output directory and preprocess TeX>>=
 ${MKDIR} ${TEX_OUTDIR}
-@ We can the simply run latex(1) with the specified output directory.
-Note that it does not matter whether we run latex(1) or pdflatex(1) to generate
-the [[.aux]] file.
-<<run pdflatex>>=
-${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+${PREPROCESS.tex}
 @
 
 \subsection{Bibliographies}
@@ -222,12 +226,8 @@ This means that we can have a target creating the desired [[.bbl]] file from
 the [[.aux]] file.
 <<bbl target for bibtex>>=
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
-	<<compile bbl with bibtex>>
-@ To compile the [[.bbl]] file using bibtex(1) and to put the output files in 
-the desired output directory, we can do this.
-<<compile bbl with bibtex>>=
-${BIBTEX} ${BIBTEXFLAGS} $<
-${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
+	${BIBLIOGRAPHY.aux}
+	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 @
 
 The second approach uses the [[biblatex]] package~\cite{biblatex} and 
@@ -237,14 +237,13 @@ file.
 Thus its target is exactly the same as that of the [[.aux]] file.
 <<bbl target for biber>>=
 ${TEX_OUTDIR}/%.bcf: %.tex
-	<<try to create output directory>>
-	<<run pdflatex>>
+	<<create output directory and preprocess TeX>>
 @ This [[.bcf]] file is in turn used by biber(1) to create the [[.bbl]] file.
 To compile the [[.bbl]] with biber(1) and put the output files in the desired
 directory, we do the following.
 <<bbl target for biber>>=
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
-	${BIBER} -O $@ ${BIBERFLAGS} $<
+	${BIBLIOGRAPHY.bcf}
 @
 
 As mentioned in \cref{tex:Intro}, we can automatically add the [[.bbl]] file as
@@ -275,14 +274,14 @@ the [[.aux]] file.
 Thus we can use the same type of target.
 <<indices files>>=
 ${TEX_OUTDIR}/%.idx: %.tex
-	<<try to create output directory>>
-	<<run pdflatex>>
+	<<create output directory and preprocess TeX>>
 @ The actual index, which resides in a [[.ind]] file, can then be generated as 
 follows.
 <<indices files>>=
 ${TEX_OUTDIR}/%.ind: ${TEX_OUTDIR}/%.idx
-	${XINDY} -o $@ ${XINDYFLAGS} $<
-@ As mentioned in \cref{tex:Intro}, we can automatically add the [[.ind]] file as
+	${COMPILE.idx}
+@ As mentioned in \cref{tex:Intro}, we can automatically add the [[.ind]] file 
+as
 a prerequisite if the variable [[TEX_IND]] is set.
 <<indices files>>=
 ifneq (${TEX_IND},)
@@ -294,12 +293,10 @@ For backwards compatibility, we provide the following code for the
 [[nomenclature]] package.
 <<indices files>>=
 ${TEX_OUTDIR}/%.nlo: %.tex
-	<<try to create output directory>>
-	<<run pdflatex>>
+	<<create output directory and preprocess TeX>>
 
 ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
-	<<try to create output directory>>
-	${MAKEINDEX} -o $@ ${MAKEIDXFLAGS} -s nomencl.ist $<
+	${COMPILE.nlo}
 @ And now we add the corresponding code for latexmk(1).
 The code is fetched from the latexmk example-files on \ac{CTAN}\footnote{%
   URL: \url{http://mirrors.ctan.org/support/latexmk/example_rcfiles/nomenclature_latexmkrc}
@@ -397,7 +394,7 @@ compilation --- this allows make(1) to track modification times correctly.
 the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
 <<document files>>=
 %.pdf ${TEX_OUTDIR}/%.pdf: %.tex
-	<<compile PDF>>
+	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
 %.dvi ${TEX_OUTDIR}/%.dvi: %.tex
@@ -405,19 +402,25 @@ the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
 	-${LN} ${TEX_OUTDIR}/$@ $@
 @
 
-Then the compilation step is the usual.
+The compilation step for DVI is the usual.
 We compile once, then we recompile as long as the log file tells us.
-<<compile PDF>>=
-${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
-  ${PDFLATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-done
-@ And the same for DVI files.
 <<compile DVI>>=
 ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
   ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 done
+@
+
+
+\section{Targets for merging bibliographies}
+
+To merge bibliographies we will use [[bibtool]] and make's archive rules.
+In particular, we extend the general rules we defined in [[portability.mk]].
+<<variables>>=
+BIBTOOL?=     bibtool
+BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
+ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
+  ${BIBTOOL} ${BIBTOOLFLAGS} -o $@
 @
 
 
@@ -443,7 +446,7 @@ We can then compile the documentation similarly to how we compile normal
 documents.
 <<compile class and package documentation>>=
 %.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
-	<<compile PDF>>
+	${COMPILE.dtx}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
 %.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
@@ -451,14 +454,8 @@ documents.
 	-${LN} ${TEX_OUTDIR}/$@ $@
 @ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
 <<compile class and package documentation>>=
-${TEX_OUTDIR}/%.aux: %.dtx
-	<<run pdflatex>>
-
-${TEX_OUTDIR}/%.bcf: %.dtx
-	<<run pdflatex>>
-
-${TEX_OUTDIR}/%.idx: %.dtx
-	<<run pdflatex>>
+${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
+	${PREPROCESS.dtx}
 @
 
 

@@ -49,18 +49,18 @@ ZIP?=         zip
 ARCHIVE.zip?= ${ZIP} -u $@ $%
 UNTAR?=       tar -xm
 UNPAX?=       pax -rzp m
-EXTRACT.tar?= ${UNTAR} -f $$< $$@
+EXTRACT.tar?= ${UNTAR} -f $< $@
 ifeq ($(shell uname),Darwin)
 UNZIP?=       unzip
 else
 UNZIP?=       unzip -DD
 endif
-EXTRACT.zip?= ${UNZIP} $$< $$@
+EXTRACT.zip?= ${UNZIP} $< $@
 (%):
 	${ARCHIVE$(suffix $@)}
 define extract
 $(1): $(2)
-	${EXTRACT$(suffix $(2))}
+	$${EXTRACT$(suffix $(2))}
 endef
 
 endif
