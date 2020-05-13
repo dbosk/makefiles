@@ -198,13 +198,11 @@ clean-mk:
 LLNCS?= .
 
 ${LLNCS}/llncs2e.zip:
-	wget -O $@ ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+	#wget -O $@ ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+	wget -O $@ ftp://ftp.springernature.com/cs-proceeding/llncs/llncs2e.zip
 
 LLNCS-files= 	llncs.cls
-LLNCS-files+= 	sprmindx.sty
-LLNCS-files+= 	splncs03.bst
-LLNCS-files+= 	aliascnt.sty
-LLNCS-files+= 	remreset.sty
+LLNCS-files+= 	splncs04.bst
 
 $(patsubst %,${LLNCS}/%,${LLNCS-files}): ${LLNCS}/llncs2e.zip
 	unzip -DD ${LLNCS}/llncs2e.zip ${@:${LLNCS}/=} -d ${LLNCS}
