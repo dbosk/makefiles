@@ -20,6 +20,8 @@ ODF2PDF?=     soffice --convert-to pdf
 ODF2PDFFLAGS?=--headless
 INKSCAPE?=      inkscape
 INKSCAPEFLAGS?= -D -z --export-latex
+PDFCROP?=       pdfcrop
+PDFCROPFLAGS?=
 DIA?=           dia
 DIAFLAGS?=
 XCF2PNGFLAGS?=  -flatten
@@ -75,6 +77,7 @@ todo:
 
 %.pdf: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
+	${PDFCROP} $@
 %.ps: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-ps=$@
 

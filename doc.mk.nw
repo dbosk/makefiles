@@ -213,10 +213,13 @@ Unlike previously, we will only allow flags for [[inkscape]] to be set.
 <<variables>>=
 INKSCAPE?=      inkscape
 INKSCAPEFLAGS?= -D -z --export-latex
+PDFCROP?=       pdfcrop
+PDFCROPFLAGS?=
 @
 <<SVG to PDF>>=
 %.pdf: %.svg
 	${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-pdf=$@
+	${PDFCROP} $@
 @ We can thus create similar rules for the formats PS and EPS, instead of PDF.
 <<SVG to PS>>=
 %.ps: %.svg
