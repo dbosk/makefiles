@@ -310,11 +310,11 @@ TEX2HTMLFLAGS?=     -s
 CONVERT.tex.html?=  ${TEX2HTML} ${TEX2HTMLFLAGS} -o $@ $<
 @ Then we can provide following two rules:
 <<MD, TeX to HTML>>=
-define to_html_rule
-%.html: %.$(1)
-	${CONVERT.$(1).html}
-endef
-$(foreach suf,md tex,$(eval $(call to_html_rule,${suf})))
+%.html: %.md
+  ${CONVERT.md.html}
+
+%.html: %.tex
+  ${CONVERT.tex.html}
 @
 
 There are times when we want to convert out TeX-files to plain text, \eg to 
