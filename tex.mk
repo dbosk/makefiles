@@ -143,10 +143,10 @@ clean-$(1):
 	[ "${TEX_EXT_DIR-$(1)}" = "." ] && ${RM} ${TEX_EXT_SRC-$(1)} \
 	  || ${RM} -R ${TEX_EXT_DIR-$(1)}
 endef
-TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.sty
+TEX_EXT_FILES-lncs?=  llncs.cls splncs04.bst
 TEX_EXT_DIR-lncs?=    lncs
 TEX_EXT_SRC-lncs?=    llncs2e.zip
-TEX_EXT_URL-lncs?=    ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+TEX_EXT_URL-lncs?=    ftp://ftp.springernature.com/cs-proceeding/llncs/llncs2e.zip
 TEX_EXT_EXTRACT-lncs?=${UNZIP} $$< -d ${TEX_EXT_DIR-lncs}
 
 $(eval $(call download_archive,lncs))
