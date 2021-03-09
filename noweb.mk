@@ -7,7 +7,7 @@ NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
   latexmk -pdf ${@:.pdf=.tex}
 NOWEAVEFLAGS.pdf?=  -x -t2
-NOTANGLEFLAGS?=
+NOTANGLEFLAGS?= -t2
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $(filter %.nw,$^) | \
                   ${CPIF} $@
 CPIF?=          cpif

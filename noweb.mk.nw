@@ -110,7 +110,7 @@ We will now cover the rules for tangling the source code for different
 languages.
 We will use notangle(1).
 <<variables>>=
-NOTANGLEFLAGS?=
+NOTANGLEFLAGS?= -t2
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $(filter %.nw,$^) | \
                   ${CPIF} $@
 @ We will also use the command cpif(1).
@@ -239,9 +239,7 @@ NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) \
 same reason as for the weaving, GHC automatically tangles Haskell's native 
 literate files ([[.lhs]]).
 
-Make also requires slightly modified flags.
-We need [[-t2]] to expand spaces into tabs, because make(1) requires tabs for 
-indentation, not spaces.
+Make also requires slightly modified flags:
 <<defaults for Make>>=
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
