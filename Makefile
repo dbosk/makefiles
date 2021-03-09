@@ -17,6 +17,8 @@ Makefile: Makefile.nw
 	${NOTANGLE.mk}
 Dockerfile: Dockerfile.nw
 	${NOTANGLE}
+LATEXFLAGS+=    -shell-escape
+TEX_PYTHONTEX=  yes
 makefiles.pdf: makefiles.tex preamble.tex makefiles.bib
 makefiles.pdf: intro.tex Makefile.tex
 makefiles.pdf: exam.bib

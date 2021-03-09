@@ -82,7 +82,7 @@ TEX_PYTHONTEX?=
 @ Then the required command and flags are controlled with the following 
 variables.
 <<variables>>=
-PYTHONTEX?=   pythontex3
+PYTHONTEX?=   pythontex
 PYTHONTEXFLAGS?=
 @
 
@@ -323,7 +323,7 @@ The code is as follows.
 <<PythonTeX files>>=
 ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 ${TEX_OUTDIR}/%.pytxmcr: ${TEX_OUTDIR}/%.pytxcode
-  cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(notdir $@)
+	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(notdir $@)
 @
 
 As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
