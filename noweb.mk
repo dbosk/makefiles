@@ -77,6 +77,13 @@ define def_weave_to_tex
 endef
 
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
+define with_suffix_target
+%$(1): %$(1).nw
+	$${NOTANGLE$$(suffix $$@)}
+endef
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call with_suffix_target,${suf})))
+$(addprefix %,${NOWEB_SUFFIXES}): %.nw
+	${NOTANGLE$(suffix $@)}
 %.h: %.c.nw
 	${NOTANGLE.h}
 
@@ -88,10 +95,5 @@ $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 
 %.hxx: %.cxx.nw
 	${NOTANGLE.hxx}
-$(addprefix %,${NOWEB_SUFFIXES}): %.nw
-	${NOTANGLE$(suffix $@)}
-
-%: %.nw
-	${NOTANGLE$(suffix $@)}
 
 endif
