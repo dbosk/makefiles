@@ -72,7 +72,8 @@ ${TEX_OUTDIR}/%.nlo: %.tex
 
 ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
 	${COMPILE.nlo}
-pythontex-files-%/%.pytxcode: %.tex
+pythontex-files-%/%.pytxmcr: pythontex-files-%
+pythontex-files-%: %.pytxcode
 	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
 %.pytxcode: ${TEX_OUTDIR}/%.pytxcode
 %.pdf ${TEX_OUTDIR}/%.pdf: %.tex
