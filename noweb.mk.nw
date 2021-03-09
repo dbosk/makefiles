@@ -183,7 +183,7 @@ and the compiler to point to lines in the NOWEB source file, and not to the
 generated file.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
-NOTANGLEFLAGS.c?=   ${NOTANGLEFLAGS} -L
+NOTANGLEFLAGS.c?=   -L
 NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) \
   $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
@@ -216,7 +216,7 @@ However, for this we must add extra pattern rules.
 @ Finally, we can define the variables used for tangling.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
-NOTANGLEFLAGS.h?=   ${NOTANGLEFLAGS} -L
+NOTANGLEFLAGS.h?=   -L
 NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) \
   $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
@@ -234,7 +234,7 @@ The suffix rules for Haskell is similar to those for C and C++, due to the
 Glasgow Haskell Compiler (GHC) being very close to the C and C++ compilers.
 <<defaults for Haskell>>=
 NOWEB_SUFFIXES+=    .hs
-NOTANGLEFLAGS.hs?=  ${NOTANGLEFLAGS} -L
+NOTANGLEFLAGS.hs?=  -L
 NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) \
   $(filter %.nw,$^) | ${CPIF} $@
 @ We also note that we do not need any suffix rule for [[.lhs]] files, for the 
@@ -246,7 +246,7 @@ We need [[-t2]] to expand spaces into tabs, because make(1) requires tabs for
 indentation, not spaces.
 <<defaults for Make>>=
 NOWEB_SUFFIXES+=    .mk
-NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
+NOTANGLEFLAGS.mk?=  -t2
 NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) \
   $(filter %.nw,$^) > $@
 @
@@ -264,7 +264,7 @@ settings.
 NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
-NOTANGLEFLAGS$(1)?= $${NOTANGLEFLAGS}
+NOTANGLEFLAGS$(1)?=
 NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
   $$(filter %.nw,$$^) > $$@
 endef

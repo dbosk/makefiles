@@ -12,7 +12,7 @@ NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $(filter %.nw,$^) | \
                   ${CPIF} $@
 CPIF?=          cpif
 NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
-NOTANGLEFLAGS.c?=   ${NOTANGLEFLAGS} -L
+NOTANGLEFLAGS.c?=   -L
 NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) \
   $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
@@ -25,7 +25,7 @@ NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
 NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) \
   $(filter %.nw,$^) | ${CPIF} $@
 NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
-NOTANGLEFLAGS.h?=   ${NOTANGLEFLAGS} -L
+NOTANGLEFLAGS.h?=   -L
 NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) \
   $(filter %.nw,$^) | ${CPIF} $@
 NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
@@ -38,17 +38,17 @@ NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
 NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) \
   $(filter %.nw,$^) | ${CPIF} $@
 NOWEB_SUFFIXES+=    .hs
-NOTANGLEFLAGS.hs?=  ${NOTANGLEFLAGS} -L
+NOTANGLEFLAGS.hs?=  -L
 NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) \
   $(filter %.nw,$^) | ${CPIF} $@
 NOWEB_SUFFIXES+=    .mk
-NOTANGLEFLAGS.mk?=  ${NOTANGLEFLAGS} -t2
+NOTANGLEFLAGS.mk?=  -t2
 NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) \
   $(filter %.nw,$^) > $@
 NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
-NOTANGLEFLAGS$(1)?= $${NOTANGLEFLAGS}
+NOTANGLEFLAGS$(1)?=
 NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
   $$(filter %.nw,$$^) > $$@
 endef

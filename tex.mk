@@ -34,7 +34,7 @@ MAKEINDEX?=   makeindex
 MAKEIDXFLAGS?=
 COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 TEX_PYTHONTEX?=
-PYTHONTEX?=   pythontex3
+PYTHONTEX?=   pythontex
 PYTHONTEXFLAGS?=
 BIBTOOL?=     bibtool
 BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
@@ -55,8 +55,7 @@ ifneq (${TEX_BBL},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
 ifneq (${TEX_PYTHONTEX},)
-%.pdf: pythontex-files-%/%.pytxmcr
-${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxmcr
+${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.pytxmcr
 endif
 ${TEX_OUTDIR}/%.idx: %.tex
 	${MKDIR} ${TEX_OUTDIR}
@@ -72,10 +71,10 @@ ${TEX_OUTDIR}/%.nlo: %.tex
 
 ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
 	${COMPILE.nlo}
-pythontex-files-%/%.pytxmcr: pythontex-files-%
-pythontex-files-%: %.pytxcode
-	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
-%.pytxcode: ${TEX_OUTDIR}/%.pytxcode
+${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
+	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
+%.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 %.pdf ${TEX_OUTDIR}/%.pdf: %.tex
 	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@

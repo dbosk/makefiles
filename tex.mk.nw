@@ -82,7 +82,7 @@ TEX_PYTHONTEX?=
 @ Then the required command and flags are controlled with the following 
 variables.
 <<variables>>=
-PYTHONTEX?=   pythontex3
+PYTHONTEX?=   pythontex
 PYTHONTEXFLAGS?=
 @
 
@@ -312,19 +312,26 @@ sub makenlo2nls {
 
 Occasionally we use PythonTeX.
 We also provide a target for the required files.
+However, this construction requires that we load PythonTeX as follows.
+\begin{minted}{LaTeX}
+\usepackage{pythontex}
+\setpythontexoutputdir{.}
+\setpythontexworkingdir{..}
+\end{minted}
+
+The code is as follows.
 <<PythonTeX files>>=
-pythontex-files-%/%.pytxmcr: pythontex-files-%
-pythontex-files-%: %.pytxcode
-	${PYTHONTEX} ${PYTHONTEXFLAGS} $<
-%.pytxcode: ${TEX_OUTDIR}/%.pytxcode
+${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
+	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
+%.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 @
 
 As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
 file as a prerequisite if the variable [[TEX_PYTHONTEX]] is set.
 <<bibliography files>>=
 ifneq (${TEX_PYTHONTEX},)
-%.pdf: pythontex-files-%/%.pytxmcr
-${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/pythontex-files-%/%.pytxmcr
+${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.pytxmcr
 endif
 @
 
