@@ -34,7 +34,7 @@ MAKEINDEX?=   makeindex
 MAKEIDXFLAGS?=
 COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 TEX_PYTHONTEX?=
-PYTHONTEX?=   pythontex3
+PYTHONTEX?=   pythontex
 PYTHONTEXFLAGS?=
 BIBTOOL?=     bibtool
 BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
@@ -72,8 +72,9 @@ ${TEX_OUTDIR}/%.nlo: %.tex
 ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
 	${COMPILE.nlo}
 ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
-${TEX_OUTDIR}/%.pytxmcr: ${TEX_OUTDIR}/%.pytxcode
-	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(notdir $@)
+	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
+%.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 %.pdf ${TEX_OUTDIR}/%.pdf: %.tex
 	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@
