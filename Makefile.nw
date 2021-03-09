@@ -65,6 +65,7 @@ MAKEFILES_INCLUDE=${INCLUDE_MAKEFILES}
 The documentation depends on the main TeX file, preamble and 
 bibliographies.
 <<makefiles.pdf target>>=
+<<flags>>
 makefiles.pdf: makefiles.tex preamble.tex makefiles.bib
 makefiles.pdf: intro.tex Makefile.tex
 makefiles.pdf: exam.bib
@@ -75,6 +76,13 @@ makefiles.pdf: Dockerfile.tex
 <<clean recipe>>=
 ${RM} makefiles.pdf
 ${RM} Dockerfile.tex
+@
+
+We want to use the PythonTeX and Minted packages.
+This requires some flags to LaTeX.
+<<flags>>=
+LATEXFLAGS+=    -shell-escape
+TEX_PYTHONTEX=  yes
 @
 
 To automatically compile the documentation, we use the [[tex.mk]] include.
