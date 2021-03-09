@@ -19,6 +19,8 @@ all: makefiles.pdf
 all: ${MKFILES}
 all: ${OTHERS}
 
+<<Makefile target>>
+<<Dockerfile target>>
 <<makefiles.pdf target>>
 <<MKFILES targets>>
 <<OTHERS targets>>
@@ -58,6 +60,14 @@ Finally, we need some include files from this very framework.
 INCLUDE_MAKEFILES=.
 MAKEFILES_INCLUDE=${INCLUDE_MAKEFILES}
 <<include files>>
+@
+
+\subsection{This [[Makefile]]'s target}
+
+We also must add a target for this [[Makefile]] itself.
+<<Makefile target>>=
+Makefile: Makefile.nw
+	${NOTANGLE.mk}
 @
 
 \subsection{Tangling, weaving and compiling LaTeX}
@@ -130,8 +140,13 @@ ${RM} gitattributes Dockerfile
 \subsection{The Docker image}
 
 The [[Dockerfile]] is used to produce a Docker image.
+<<Dockerfile target>>=
+Dockerfile: Dockerfile.nw
+	${NOTANGLE}
+@
+
 We provide a phony target [[docker-makefiles]] to produce the [[makefiles]] 
-Docker image.
+Docker image (see above).
 <<Docker image recipe>>=
 docker build -t makefiles .
 docker tag makefiles ${DOCKER_ID_USER}/makefiles

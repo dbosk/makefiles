@@ -20,6 +20,10 @@ all: ${MKFILES}
 #all: ${MIUNFILES}
 all: ${OTHERS}
 
+Makefile: Makefile.nw
+	${NOTANGLE.mk}
+Dockerfile: Dockerfile.nw
+	${NOTANGLE}
 makefiles.pdf: makefiles.tex preamble.tex makefiles.bib
 makefiles.pdf: intro.tex Makefile.tex
 makefiles.pdf: exam.bib
@@ -46,11 +50,11 @@ docker-makefiles: Dockerfile
 
 push: docker-makefiles
 	docker push ${DOCKER_ID_USER}/makefiles
-PKG_PACKAGES?=			main
-PKG_NAME-main= 			makefiles
+PKG_PACKAGES?=			    main
+PKG_NAME-main= 			    makefiles
 
-PKG_PREFIX=				  /usr/local
-PKG_INSTALL_DIR=		/include
+PKG_PREFIX=				      /usr/local
+PKG_INSTALL_DIR=		    /include
 
 PKG_INSTALL_FILES-main=	${MKFILES}
 PKG_TARBALL_FILES-main=	${PKG_INSTALL_FILES-main} ${OTHERS} Makefile README.md
