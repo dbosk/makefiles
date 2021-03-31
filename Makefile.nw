@@ -142,7 +142,7 @@ gitattributes: transform.mk.nw
 	${NOTANGLE}
 @ Of these files, we only want to keep [[latexmkrc]] after cleaning.
 <<clean recipe>>=
-${RM} gitattributes Dockerfile
+${RM} gitattributes
 @
 
 \subsection{The Docker image}

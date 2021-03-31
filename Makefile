@@ -61,7 +61,7 @@ clean:
 	${RM} makefiles.pdf
 	${RM} Dockerfile.tex
 	${RM} ${MKFILES:.mk=.tex}
-	${RM} gitattributes Dockerfile
+	${RM} gitattributes
 	${RM} makefiles.tar.gz
 
 distclean:
