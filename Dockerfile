@@ -30,6 +30,7 @@ RUN apt-get update -y && \
     python3-numpy \
     python3-pygments \
     python3-scipy \
+    python3-pip \
     qrencode \
     unzip \
   && \
