@@ -586,8 +586,8 @@ We use the downloader described above.
 TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.sty
 TEX_EXT_DIR-lncs?=    lncs
 TEX_EXT_SRC-lncs?=    llncs2e.zip
-TEX_EXT_URL-lncs?=    ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
-TEX_EXT_EXTRACT-lncs?=${UNZIP} $$< -d ${TEX_EXT_DIR-lncs}
+TEX_EXT_URL-lncs?=    https://resource-cms.springernature.com/springer-cms/rest/v1/content/19238648/data/v1
+TEX_EXT_EXTRACT-lncs?=${UNZIP} -u $$< -d ${TEX_EXT_DIR-lncs}
 
 $(eval $(call download_archive,lncs))
 @
