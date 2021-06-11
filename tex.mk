@@ -133,7 +133,7 @@ $(1): $(notdir ${TEX_EXT_FILES-$(1)})
 $(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}): \
   ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}
 $(addprefix ${TEX_EXT_DIR-$(1)}/,${TEX_EXT_FILES-$(1)}):
-	${LN} ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}/$${@:${TEX_EXT_DIR-$(1)}/%=%} $$@
+	${LN} ${TEX_EXT_SRC-$(1)}/$${@:${TEX_EXT_DIR-$(1)}/%=%} $$@
 ${TEX_EXT_DIR-$(1)}/${TEX_EXT_SRC-$(1)}:
 	git clone ${TEX_EXT_URL-$(1)} $$@
 .PHONY: distclean clean-$(1)
@@ -155,7 +155,7 @@ llncs: lncs
 TEX_EXT_FILES-biblatex-lncs?= lncs.bbx lncs.cbx lncs.dbx
 TEX_EXT_DIR-biblatex-lncs?=   lncs
 TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
-TEX_EXT_URL-biblatex-lncs?=   https://github.com/neapel/biblatex-lncs.git
+TEX_EXT_URL-biblatex-lncs?=   https://github.com/NorwegianRockCat/biblatex-lncs.git
 
 $(eval $(call download_repo,biblatex-lncs))
 rfc.bib:
