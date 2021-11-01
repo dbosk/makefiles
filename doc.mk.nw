@@ -248,7 +248,7 @@ CONVERT.svg.eps?= ${INKSCAPE} ${INKSCAPEFLAGS} --file=$< --export-eps=$@
 @ We can thus create similar rules for the formats PS and EPS, instead of PDF.
 <<SVG to PS>>=
 %.ps %.eps: %.svg
-	${CONVERT.svg.$(suffix $@)
+	${CONVERT.svg$(suffix $@)}
 @
 
 Dia is a useful tool for making figures over network topologies etc.

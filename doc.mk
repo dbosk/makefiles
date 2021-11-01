@@ -93,7 +93,7 @@ $(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\
 %.pdf: %.svg
 	${CONVERT.svg.pdf}
 %.ps %.eps: %.svg
-	${CONVERT.svg.$(suffix $@)
+	${CONVERT.svg$(suffix $@)}
 %.tex: %.dia
 	${CONVERT.dia.tex}
 %.png: %.xcf
