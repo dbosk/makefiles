@@ -8,10 +8,15 @@ OTHERS+=		  latexmkrc
 OTHERS+=		  gitattributes
 OTHERS+= 		  Dockerfile
 
+PUB_FILES+=		  makefiles.pdf
+
 .PHONY: all
-all: makefiles.pdf
+all: ${PUB_FILES}
 all: ${MKFILES}
 all: ${OTHERS}
+
+.PHONY: publish
+publish: gh-release
 
 Makefile: Makefile.nw
 	${NOTANGLE.mk}
@@ -72,3 +77,4 @@ MAKEFILES_INCLUDE=${INCLUDE_MAKEFILES}
 include ${MAKEFILES_INCLUDE}/tex.mk
 include ${MAKEFILES_INCLUDE}/noweb.mk
 include ${MAKEFILES_INCLUDE}/pkg.mk
+include ${MAKEFILES_INCLUDE}/pub.mk

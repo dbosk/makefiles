@@ -7,6 +7,12 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 PUB_FILES?=
 IGNORE_FILES?=      \(\.svn\|\.git\|CVS\)
 PUB_IGNORE?=        ${IGNORE_FILES}
+PUB_AUTOTAG?=       false
+PUB_VCS?=           git
+PUB_TAG_OPTS?=
+PUB_TAG_NAME?=      $(shell date +%Y%m%d-%H%M)
+PUB_AUTOCOMMIT?=    false
+PUB_COMMIT_OPTS?=   -av
 PUB_SERVER?=        localhost
 PUB_DIR?=           ${PUBDIR}/${CATEGORY}
 PUB_USER?=          ${USER}
@@ -37,12 +43,6 @@ PUB_BRANCH-$(1)?=   ${PUB_BRANCH}
 endef
 
 $(foreach site,${PUB_SITES},$(eval $(call variables,${site})))
-PUB_AUTOTAG?=       false
-PUB_VCS?=           git
-PUB_TAG_OPTS?=
-PUB_TAG_NAME?=      $(shell date +%Y%m%d-%H%M)
-PUB_AUTOCOMMIT?=    false
-PUB_COMMIT_OPTS?=   -av
 PUB_REGEX?=     "|^(.*)$$$$|\1|p"
 $(foreach site,${PKG_SITES},$(eval PUB_REGEX-${site}?=${PUB_REGEX}))
 $(foreach site,${PUB_SITES},$(eval MKTMPDIR-${site}?=${MKTMPDIR}))
@@ -51,20 +51,31 @@ CHOWN-$(1)?=  ${CHOWN}
 CHMOD-$(1)?=  ${CHMOD}
 endef
 $(foreach site,${PUB_SITES},$(eval $(call chown_and_chmod,${site})))
-.PHONY: publish
-publish: $(foreach site,${PUB_SITES},publish-${site})
+
+.PHONY: publish upload gh-release
+
 ifeq (${PUB_AUTOTAG},true)
-publish: autotag
+upload: autotag
+gh-release: autotag
 else ifeq (${PUB_AUTOCOMMIT},true)
-publish: autocommit
+upload: autocommit
+gh-release: autocommit
 endif
-define publish_target
-.PHONY: publish-$(1)
-publish-$(1): $(foreach file,${PUB_FILES-$(1)},${file})
-	$$(call publish-${PUB_METHOD-$(1)},$(1))
+
+.PHONY: upload
+upload: $(foreach site,${PUB_SITES},upload-${site})
+ifeq (${PUB_AUTOTAG},true)
+upload: autotag
+else ifeq (${PUB_AUTOCOMMIT},true)
+upload: autocommit
+endif
+define upload_target
+.PHONY: upload-$(1)
+upload-$(1): $(foreach file,${PUB_FILES-$(1)},${file})
+	$$(call upload-${PUB_METHOD-$(1)},$(1))
 endef
 
-$(foreach site,${PUB_SITES},$(eval $(call publish_target,${site})))
+$(foreach site,${PUB_SITES},$(eval $(call upload_target,${site})))
 define chown
 $(if ${PUB_GROUP-$(1)},\
   $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)})\
@@ -79,7 +90,7 @@ $(if ${PUB_CHMOD-$(1)},\
   $(foreach f,${PUB_FILES-$(1)},${PUB_DIR-$(1)}/$f );\
   ,)
 endef
-define publish-ssh
+define upload-ssh
 $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${MKDIR} ${PUB_DIR-$(1)}; \
 [ -n "${PUB_FILES-$(1)}" ] && find ${PUB_FILES-$(1)} -type f -or -type l | \
 xargs ${PAX} \
@@ -90,7 +101,7 @@ $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${UNPAX} \
 $(call chown,$(1)) \
 $(call chmod,$(1))
 endef
-define publish-at
+define upload-at
 $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${MKDIR} ${PUB_DIR-$(1)}; \
 TMPPUB=$$($(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) \
   "export TMPDIR=${PUB_TMPDIR-$(1)} && ${MKTMPDIR-$(1)}"); \
@@ -108,13 +119,18 @@ $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) "cd $${TMPPUB} && (\
     echo '${CHOWN-$(1)} ${PUB_USER-$(1)}:$(strip ${PUB_GROUP-$(1)}) ${PUB_DIR-$(1)};',) \
   ) | at ${PKG_AT}"
 endef
-define publish-git
+define upload-git
 git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
   | $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) \
     ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),"; \
 $(call chown,$(1)) \
 $(call chmod,$(1))
 endef
+.PHONY: gh-release
+gh-release: ${PUB_FILES}
+	git push --all
+	git push --tags
+	gh release create -t ${PUB_TAG_NAME} ${PUB_TAG_NAME} ${PUB_FILES}
 autocommit-git = git diff --quiet || git commit ${PUB_COMMIT_OPTS}
 autocommit-svn = svn commit ${PUB_COMMIT_OPTS}
 autocommit-cvs = cvs commit ${PUB_COMMIT_OPTS}

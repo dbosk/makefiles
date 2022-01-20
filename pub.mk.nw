@@ -1,9 +1,15 @@
 \section{Introduction and usage}
 
 Sometimes we wish to easily publish a release of the material we work with.
-Here we provide the functionality of publishing files to servers.
-We provide a general framework and then three different methods of publishing 
-that can be plugged in.
+Here we provide the functionality of publishing files, we have two ways:
+\begin{enumerate}
+\item the [[upload]] target which uploads files to a server, and
+\item the [[gh-release]] target which creates a release on the GitHub repo.
+\end{enumerate}
+To use the [[publish]] target, we must add either [[publish: upload]] or 
+[[publish: gh-release]] to our [[Makefile]].
+
+\subsection{Specifying files}
 
 The idea is to publish files, and this is common between all publication 
 methods.
@@ -11,11 +17,61 @@ This is controlled with the [[PUB_FILES]] variable, which is set to a space
 separated list of file names.
 <<variables>>=
 PUB_FILES?=
-@ For convenience, we can also control files to ignore.
+@ The [[upload]] target will take the files in [[PUB_FILES]] and upload them to 
+the target server (more below).
+The [[gh-release]] on the other hand will use the [[PUB_FILES]] as attachment 
+to the release.
+
+For convenience, we can also control files to ignore.
 <<variables>>=
 IGNORE_FILES?=      \(\.svn\|\.git\|CVS\)
 PUB_IGNORE?=        ${IGNORE_FILES}
-@ Publication means that we upload the files somewhere.
+@ However, this only applies to the [[upload]] target.
+
+\subsection{Automatically tag on publication}
+
+Since the published files usually are stripped of their versioning information,
+it can be a good idea to keep track of the corresponding version in the version
+management system.
+One way is to create a tag every time a publication is made.
+
+To enable this feature we set the variable [[PUB_AUTOTAG]] to true.
+By default we let it be false, \ie this feature is disabled.
+<<variables>>=
+PUB_AUTOTAG?=       false
+@ Note that for [[gh-release]] this doesn't matter, a tag will be created on 
+the GitHub side if it doesn't exist already.
+
+The first thing we need is to know which \ac{VCS} is used.
+We control this with [[PUB_VCS]].
+<<variables>>=
+PUB_VCS?=           git
+@ The only thing needed more than this is any options that the user want to 
+use.
+<<variables>>=
+PUB_TAG_OPTS?=
+@ The tag name is controlled with the following variable.
+The default value is today's date and the current time.
+<<variables>>=
+PUB_TAG_NAME?=      $(shell date +%Y%m%d-%H%M)
+@
+
+The tagging will be wrong if we have forgotten to commit the files we were 
+working on.
+For this reason we also provide a similar feature which automatically makes 
+a commit.
+This feature is also disabled by default.
+<<variables>>=
+PUB_AUTOCOMMIT?=    false
+@ The command and options are similarly set with the following.
+<<variables>>=
+PUB_COMMIT_OPTS?=   -av
+@
+
+
+\section{Configuration for publishing files on a server, [[upload]]}
+
+Publication means that we upload the files somewhere.
 This is controlled by the following variable.
 <<variables>>=
 PUB_SERVER?=        localhost
@@ -126,45 +182,6 @@ PUB_SERVER-mirror2 =  foo.bar.mirror2
 \end{lstlisting}
 \end{example}
 
-\subsection{Automatically tag on publication}
-
-Since the published files usually are stripped of their versioning information,
-it can be a good idea to keep track of the corresponding version in the version
-management system.
-One way is to create a tag every time a publication is made.
-
-To enable this feature we set the variable [[PUB_AUTOTAG]] to true.
-By default we let it be false, \ie this feature is disabled.
-<<variables>>=
-PUB_AUTOTAG?=       false
-@
-
-The first thing we need is to know which \ac{VCS} is used.
-We control this with [[PUB_VCS]].
-<<variables>>=
-PUB_VCS?=           git
-@ The only thing needed more than this is any options that the user want to 
-use.
-<<variables>>=
-PUB_TAG_OPTS?=
-@ The tag name is controlled with the following variable.
-The default value is today's date and the current time.
-<<variables>>=
-PUB_TAG_NAME?=      $(shell date +%Y%m%d-%H%M)
-@
-
-The tagging will be wrong if we have forgotten to commit the files we were 
-working on.
-For this reason we also provide a similar feature which automatically makes 
-a commit.
-This feature is also disabled by default.
-<<variables>>=
-PUB_AUTOCOMMIT?=    false
-@ The command and options are similarly set with the following.
-<<variables>>=
-PUB_COMMIT_OPTS?=   -av
-@
-
 
 \section{Implementation}
 
@@ -179,9 +196,20 @@ INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
 <<variables>>
-<<target for publishing>>
-<<publication methods>>
-<<targets for automatic tagging and committing>>
+
+.PHONY: publish upload gh-release
+
+ifeq (${PUB_AUTOTAG},true)
+upload: autotag
+gh-release: autotag
+else ifeq (${PUB_AUTOCOMMIT},true)
+upload: autocommit
+gh-release: autocommit
+endif
+
+<<upload target>>
+<<gh-release target>>
+<<autotag and autocommit targets>>
 
 endif
 @
@@ -190,38 +218,44 @@ We will now cover the different parts below.
 The [[<<variables>>]] block has been covered in the usage section, but the 
 remaining are discussed below.
 
-\subsection{The general publication mechanism}
+\subsection{The upload publication mechanism, [[upload]]}
+
+The upload target consists of two parts.
+<<upload target>>=
+<<target for uploading>>
+<<publication methods>>
+@
 
 We have a general publication mechanism that drives the publication process and
 uses the methods described below.
-We have a general target [[publish]] to be invoked by the user.
-Then we have a specific [[publish-site]] target for each site, which does the 
+We have a general target [[upload]] to be invoked by the user.
+Then we have a specific [[upload-site]] target for each site, which does the 
 actual publication.
 We add all those as prerequisites to the main target.
-<<target for publishing>>=
-.PHONY: publish
-publish: $(foreach site,${PUB_SITES},publish-${site})
+<<target for uploading>>=
+.PHONY: upload
+upload: $(foreach site,${PUB_SITES},upload-${site})
 @ Depending on the settings for automatic commits and tags, we also add targets
 for those functionalities as prerequisites.
-<<target for publishing>>=
+<<target for uploading>>=
 ifeq (${PUB_AUTOTAG},true)
-publish: autotag
+upload: autotag
 else ifeq (${PUB_AUTOCOMMIT},true)
-publish: autocommit
+upload: autocommit
 endif
 @
 
 Next up is the actual site-specific targets.
-The prerequisites are the files that should be published.
+The prerequisites are the files that should be uploaded.
 Then the recipe is simply a call to the relevant publication method.
-<<target for publishing>>=
-define publish_target
-.PHONY: publish-$(1)
-publish-$(1): $(foreach file,${PUB_FILES-$(1)},${file})
-	$$(call publish-${PUB_METHOD-$(1)},$(1))
+<<target for uploading>>=
+define upload_target
+.PHONY: upload-$(1)
+upload-$(1): $(foreach file,${PUB_FILES-$(1)},${file})
+	$$(call upload-${PUB_METHOD-$(1)},$(1))
 endef
 
-$(foreach site,${PUB_SITES},$(eval $(call publish_target,${site})))
+$(foreach site,${PUB_SITES},$(eval $(call upload_target,${site})))
 @
 
 \subsection{Publication methods}
@@ -269,7 +303,7 @@ Now to the first publication method, the one using copying over \ac{SSH}.
 We define the method as a make function which takes one argument, the name of 
 the site.
 <<ssh method>>=
-define publish-ssh
+define upload-ssh
 <<create directory on server>>; \
 <<pack the files and pipe them to the server>>; \
 $(call chown,$(1)) \
@@ -320,10 +354,10 @@ $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) ${UNPAX} \
 
 The next method is very similar to the first.
 The difference here is a middle step where we copy the files to a temporary 
-place on the server and an additional final step where we publish them in the 
+place on the server and an additional final step where we upload them in the 
 destination at some predefined time.
 <<at method>>=
-define publish-at
+define upload-at
 <<create directory on server>>; \
 <<create temporary directory>>; \
 <<generate file list>> | \
@@ -382,7 +416,7 @@ We simply use [[git archive]] and specify which branch to use.
 Then we pipe the archive to the server, unpack as before and finally run 
 [[chown]] and [[chmod]].
 <<git method>>=
-define publish-git
+define upload-git
 git archive ${PUB_BRANCH-$(1)} ${PUB_FILES-$(1)} \
   | $(if ${PUB_SERVER-$(1)},${SSH} ${PUB_SERVER-$(1)}) \
     ${UNPAX} -s ",^,$(strip ${PUB_DIR-$(1)}),"; \
@@ -391,13 +425,29 @@ $(call chmod,$(1))
 endef
 @
 
-\subsection{Automatically committing and tagging}
+
+\subsection{GitHub releases, [[gh-release]]}
+
+Now let's turn our attention to the [[gh-release]] target.
+It's important that we push any changes, since the tag and release are created 
+on the server.
+<<gh-release target>>=
+.PHONY: gh-release
+gh-release: ${PUB_FILES}
+	git push --all
+	git push --tags
+	gh release create -t ${PUB_TAG_NAME} ${PUB_TAG_NAME} ${PUB_FILES}
+@
+
+
+\subsection{Automatically committing and tagging,
+  [[autotag]] and [[autocommit]]}
 
 The last feature allows us to automatically commit and make a tag when we 
 publish.
 We accomplish this by two targets that we have already seen above.
 These targets use functions specific to the selected \ac{VCS}.
-<<targets for automatic tagging and committing>>=
+<<autotag and autocommit targets>>=
 <<commit and tag functions>>
 
 .PHONY: autocommit
