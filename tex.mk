@@ -34,8 +34,8 @@ MAKEINDEX?=   makeindex
 MAKEIDXFLAGS?=
 COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 TEX_PYTHONTEX?=
-PYTHONTEX?=   pythontex
-PYTHONTEXFLAGS?=
+PYTHONTEX?=       python3 $$(which pythontex)
+PYTHONTEXFLAGS?=  --interpreter python:python3
 BIBTOOL?=     bibtool
 BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
 ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \

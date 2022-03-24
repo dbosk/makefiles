@@ -82,8 +82,8 @@ TEX_PYTHONTEX?=
 @ Then the required command and flags are controlled with the following 
 variables.
 <<variables>>=
-PYTHONTEX?=   pythontex
-PYTHONTEXFLAGS?=
+PYTHONTEX?=       python3 $$(which pythontex)
+PYTHONTEXFLAGS?=  --interpreter python:python3
 @
 
 Finally, we provide targets to easily add external classes as dependencies.
