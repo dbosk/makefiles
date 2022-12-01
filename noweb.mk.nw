@@ -56,7 +56,7 @@ that rule first.
 Now, for the first case, we let
 <<variables>>=
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
-NOWEAVEFLAGS.tex?=  -x -n -delay -t2
+NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -x -n -delay -t2
 @ Now we need to specify all the suffixes to use and then construct suffix rules 
 for all of them.
 Fortunately we can use the same recipe for all, so we only need to write one 
@@ -101,7 +101,7 @@ $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
 NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
   latexmk -pdf ${@:.pdf=.tex}
-NOWEAVEFLAGS.pdf?=  -x -t2
+NOWEAVEFLAGS.pdf?=  ${NOWEAVEFLAGS} -x -t2
 @
 
 \subsection{Tangling code}
