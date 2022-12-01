@@ -2,11 +2,11 @@ ifndef NOWEB_MK
 NOWEB_MK = true
 
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
-NOWEAVEFLAGS.tex?=  -x -n -delay -t2
+NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -x -n -delay -t2
 NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
   latexmk -pdf ${@:.pdf=.tex}
-NOWEAVEFLAGS.pdf?=  -x -t2
+NOWEAVEFLAGS.pdf?=  ${NOWEAVEFLAGS} -x -t2
 NOTANGLEFLAGS?=
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $(filter %.nw,$^) | \
                   ${CPIF} $@
