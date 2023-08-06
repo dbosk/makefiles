@@ -271,3 +271,15 @@ endef
 
 $(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
 @
+
+However, we'd like to add an extra post-processing step for Python:
+we'd like to run a Python formatter (such as Black) on the generated source 
+code.
+<<defaults for remaining>>=
+NOTANGLE.py+=       && ${NOWEB_PYCODEFMT}
+@
+
+We'll add Black as the default Python code formatter.
+<<variables>>=
+NOWEB_PYCODEFMT?=   black $@
+@

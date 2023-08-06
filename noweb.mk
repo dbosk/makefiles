@@ -54,6 +54,8 @@ NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
 endef
 
 $(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
+NOTANGLE.py+=       && ${NOWEB_PYCODEFMT}
+NOWEB_PYCODEFMT?=   black $@
 
 INCLUDE_MAKEFILES?=.
 MAKEFILES_DIR?=${INCLUDE_MAKEFILES}
