@@ -165,6 +165,8 @@ We provide the following patterns:
 <<DIA to TeX>>
 <<XCF to PNG>>
 
+<<PDF to cropped PDF>>
+
 <<MD to TeX>>
 <<MD, TeX to HTML>>
 <<TeX to text>>
@@ -270,12 +272,26 @@ We can convert Gimps own format XCF to PNG using the ImageMagic library.
 XCF2PNGFLAGS?=    -flatten
 XCF2PNG?=         convert ${XCF2PNGFLAGS} $< $@
 TRIM?=            convert -trim $@ $@
-CONVERT.xcf.png?= ${XCF2PNG} && ${TRIM}
+CONVERT.xcf.png?= ${XCF2PNG}
 @ Then we can have the following rule:
 <<XCF to PNG>>=
 %.png: %.xcf
 	${CONVERT.xcf.png}
+	${TRIM}
 @
+
+\subsubsection{Cropping PDFs}
+
+Sometimes we want to crop PDFs, \eg to remove the margins of figures drawn on 
+the reMarkable.
+<<PDF to cropped PDF>>=
+%.cropped.pdf: %.pdf
+	${PDFCROP} ${PDFCROPFLAGS} $< $@
+<<variables>>=
+PDFCROP?=          pdfcrop
+PDFCROPFLAGS?=
+@
+
 
 \subsubsection{Text-based formats}
 

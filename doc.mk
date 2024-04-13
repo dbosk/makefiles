@@ -43,7 +43,9 @@ CONVERT.dia.tex?= ${DIA} ${DIAFLAGS} -e $@ -t pgf-tex $<
 XCF2PNGFLAGS?=    -flatten
 XCF2PNG?=         convert ${XCF2PNGFLAGS} $< $@
 TRIM?=            convert -trim $@ $@
-CONVERT.xcf.png?= ${XCF2PNG} && ${TRIM}
+CONVERT.xcf.png?= ${XCF2PNG}
+PDFCROP?=          pdfcrop
+PDFCROPFLAGS?=
 MD2TEX?=        pandoc
 MD2TEXFLAGS?=   -s
 CONVERT.md.tex?=${MD2TEX} ${MD2TEXFLAGS} -o $@ $<
@@ -98,6 +100,10 @@ $(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\
 	${CONVERT.dia.tex}
 %.png: %.xcf
 	${CONVERT.xcf.png}
+	${TRIM}
+
+%.cropped.pdf: %.pdf
+	${PDFCROP} ${PDFCROPFLAGS} $< $@
 
 %.md: %.tex
 	${CONVERT.tex.md}
