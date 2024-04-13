@@ -104,6 +104,8 @@ $(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\
 
 %.cropped.pdf: %.pdf
 	${PDFCROP} ${PDFCROPFLAGS} $< $@
+%.cropped.pdf_tex: %.pdf_tex %.cropped.pdf
+	sed "s/\.pdf/\.cropped\.pdf/g" $< > $@
 
 %.md: %.tex
 	${CONVERT.tex.md}

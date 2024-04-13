@@ -284,9 +284,13 @@ CONVERT.xcf.png?= ${XCF2PNG}
 
 Sometimes we want to crop PDFs, \eg to remove the margins of figures drawn on 
 the reMarkable.
+When we do this, we also want to create a corresponding [[.pdf_tex]] file.
+For this, we assume that the only [[.pdf]] in the file is the filename.
 <<PDF to cropped PDF>>=
 %.cropped.pdf: %.pdf
 	${PDFCROP} ${PDFCROPFLAGS} $< $@
+%.cropped.pdf_tex: %.pdf_tex %.cropped.pdf
+	sed "s/\.pdf/\.cropped\.pdf/g" $< > $@
 <<variables>>=
 PDFCROP?=          pdfcrop
 PDFCROPFLAGS?=
