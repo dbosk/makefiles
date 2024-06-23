@@ -20,8 +20,8 @@ in~\cite[Sect.\ 10.2]{GNUMake}.
 
 To do the main LaTeX compilation, we use the following set up:
 <<variables>>=
-LATEX?=           latexmk -dvi -use-make
-PDFLATEX?=        latexmk -pdf -use-make
+LATEX?=           latexmk -dvi -use-make -xelatex
+PDFLATEX?=        latexmk -pdf -use-make -xelatex
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
