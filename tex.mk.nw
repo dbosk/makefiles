@@ -18,10 +18,14 @@ second, for classes and packages, \ie to compile
 The suffix rules we provide here follows the conventions set out 
 in~\cite[Sect.\ 10.2]{GNUMake}.
 
-To do the main LaTeX compilation, we use the following set up:
+To do the main LaTeX compilation, we use the following set up.
+We note that [[xelatex]] requires the [[-8bit]] flag to be able to handle tabs 
+in [[minted]] output.
+We also want [[-halt-on-error]] to stop the compilation if an error occurs, so 
+that we don't miss it.
 <<variables>>=
-LATEX?=           latexmk -dvi -use-make -xelatex
-PDFLATEX?=        latexmk -pdf -use-make -xelatex
+LATEX?=           latexmk -dvi -use-make -xelatex -8bit -halt-on-error
+PDFLATEX?=        latexmk -pdf -use-make -xelatex -8bit -halt-on-error
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
