@@ -21,11 +21,16 @@ in~\cite[Sect.\ 10.2]{GNUMake}.
 To do the main LaTeX compilation, we use the following set up.
 We note that [[xelatex]] requires the [[-8bit]] flag to be able to handle tabs 
 in [[minted]] output.
-We also want [[-halt-on-error]] to stop the compilation if an error occurs, so 
-that we don't miss it.
+Although, the option [[-halt-on-error]] seems interesting to stop the 
+compilation if an error occurs, so that we don't miss it, it doesn't work.
+The reason is that [[latexmk]] doesn't stop on error, it just keeps on going.
+\TeX{} on the other hand stops that round of execution, but doesn't ask for 
+input---which it does otherwise.
+So the [[-halt-on-error]] option actually makes it more likely that we miss 
+that an error occurred.
 <<variables>>=
-LATEX?=           latexmk -dvi -use-make -xelatex -8bit -halt-on-error
-PDFLATEX?=        latexmk -pdf -use-make -xelatex -8bit -halt-on-error
+LATEX?=           latexmk -dvi -use-make -xelatex -8bit
+PDFLATEX?=        latexmk -pdf -use-make -xelatex -8bit
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
