@@ -266,7 +266,7 @@ NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 define default_tangling
 NOTANGLEFLAGS$(1)?=
 NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
-  $$(filter %.nw,$$^) > $$@ && noroots $$(filter %.nw,$$^)
+  $$(filter %.nw,$$^) | $${CPIF} $$@ && noroots $$(filter %.nw,$$^)
 endef
 
 $(foreach suffix,${NOWEB_SUFFIXES},$(eval $(call default_tangling,${suffix})))
