@@ -101,7 +101,9 @@ $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
 NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
   latexmk -pdf ${@:.pdf=.tex}
-NOWEAVEFLAGS.pdf?=  ${NOWEAVEFLAGS} -x -t2
+NOWEAVEFLAGS.pdf?=  \
+  ${NOWEAVEFLAGS} -x -t2 \
+  -option "shift,breakcode,longxref,longchunks"
 @
 
 \subsection{Tangling code}
