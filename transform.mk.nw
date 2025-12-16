@@ -13,7 +13,7 @@ This include file provides some tools to achieve this.
 The structure is similar to other include files.
 We want to prevent repeated inclusion, so we use a C-style technique to avoid 
 that.
-<<transform.mk>>=
+<<[[transform.mk]]>>=
 ifndef TRANSFORM_MK
 TRANSFORM_MK=true
 
@@ -250,7 +250,7 @@ package\footnote{%
   Install on Ubuntu by running [[sudo apt install git-crypt]].
 }~\cite{git-crypt}.
 The set up we must do for this to work is to set a Git attribute.
-<<gitattributes>>=
+<<[[gitattributes]]>>=
 *.asc     filter=git-crypt
 @ This will yield similar behaviour as with the makefile approach, except that 
 many things are automated further.

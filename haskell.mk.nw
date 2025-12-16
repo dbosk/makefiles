@@ -4,7 +4,7 @@ This is by far the shortest include file in this collection.
 What we provide here is a reasonable default set-up for make when working with 
 Haskell.
 In summary, we provide the following.
-<<haskell.mk>>=
+<<[[haskell.mk]]>>=
 <<default variables>>
 <<suffix rules for Haskell programs>>
 @

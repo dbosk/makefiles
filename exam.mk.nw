@@ -92,7 +92,7 @@ EXAM_TAGS-dbosk=  ILOn
 
 We want to create a makefile [[<<exam.mk>>]] for inclusion.
 The file will have the following outline:
-<<exam.mk>>=
+<<[[exam.mk]]>>=
 <<variables>>
 <<generate targets for exam TeX files>>
 <<generate targets for exam PDF files>>

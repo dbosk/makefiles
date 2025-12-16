@@ -19,7 +19,7 @@ This assumes that the file is independent, \ie no special LaTeX preamble.
 
 The overall structure is the same as for other include files.
 We will cover the suffix rules for documentation first and then those for code.
-<<noweb.mk>>=
+<<[[noweb.mk]]>>=
 ifndef NOWEB_MK
 NOWEB_MK = true
 
@@ -116,10 +116,72 @@ languages.
 @ We will first write some general pattern rules, then supply ways to adapt 
 this rule to the different languages.
 
+\subsubsection{Handling underscores in filenames}
+
+A critical design decision concerns how we reference chunk names in the 
+Makefile rules.
+Many programming languages (particularly Python) use underscores in filenames, 
+such as [[module_name.py]] or [[attachment_cache.py]].
+
+When these filenames appear in chunk definitions like 
+[[<<module_name.py>>=]], LaTeX interprets the underscores as subscript commands 
+during documentation generation (weaving), causing compilation errors.
+The error manifests as \enquote{Missing \$ inserted} because LaTeX expects 
+math mode for subscripts.
+
+\paragraph{The [[[[...]]]] notation solution}
+
+Noweb provides the [[[[...]]]] notation specifically to handle special 
+characters in code references.
+When we write [[<<[[module_name.py]]>>=]] in a [[.nw]] file, noweb 
+automatically escapes all LaTeX special characters (\_, \&, \%, etc.) when 
+weaving documentation.
+The brackets tell noweb: \enquote{treat this as code, not LaTeX}.
+
+\paragraph{Why we use it in Makefile rules}
+
+Since our Makefile rules must match the chunk names used in [[.nw]] files, and 
+we want all Python files to use [[[[...]]]] notation (to handle underscores), 
+we must specify [[-R"[[filename]]"]] in the notangle command.
+The double quotes protect the brackets from shell interpretation, and notangle 
+then looks for a chunk named [[[[filename]]]].
+
+This standardization means:
+\begin{enumerate}
+\item All Python chunk definitions use [[<<[[filename.py]]>>=]]
+\item All Makefile rules use [[-R"[[$(notdir $@)]]"]]
+\item Underscores work without escaping
+\item Consistent pattern across the project
+\end{enumerate}
+
+\paragraph{Alternative approaches rejected}
+
+We considered but rejected:
+\begin{description}
+\item[Escaping underscores] Writing [[\\_]] in chunk names requires escaping 
+everywhere the chunk is referenced, making the [[.nw]] file harder to read.
+\item[Using hyphens] Chunk names like [[module-name.py]] avoid LaTeX issues but 
+require Makefile renaming rules ([[-name.py]] to [[_name.py]]), adding 
+complexity.
+\item[No special characters] Restricting filenames to avoid underscores breaks 
+Python conventions where [[module_name]] is idiomatic.
+\end{description}
+
+The [[[[...]]]] notation approach handles all special characters uniformly and 
+keeps [[.nw]] files readable.
+
 We will use notangle(1).
+Note that we use the noweb [[[[...]]]] notation to quote the chunk name.
+This is critical for handling filenames with underscores (common in Python) or 
+other LaTeX special characters.
+Without the brackets, chunk names like [[<<module_name.py>>]] would cause LaTeX 
+to interpret the underscore as a subscript command, breaking documentation 
+generation.
+The [[[[...]]]] notation tells noweb to escape all special characters properly.
+
 <<variables>>=
 NOTANGLEFLAGS?=
-NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $(filter %.nw,$^) | \
+NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R"[[$(notdir $@)]]" $(filter %.nw,$^) | \
                   ${CPIF} $@ && noroots $(filter %.nw,$^)
 @ We will also use the command cpif(1).
 This command only updates the files if they have changed.
@@ -186,16 +248,16 @@ generated file.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
 NOTANGLEFLAGS.c?=   -L
-NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) \
+NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
-NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) \
+NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.cpp?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) \
+NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) \
+NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 @
 
@@ -219,16 +281,16 @@ However, for this we must add extra pattern rules.
 <<defaults for C and C++>>=
 NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
 NOTANGLEFLAGS.h?=   -L
-NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) \
+NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
-NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) \
+NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.hpp?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) \
+NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) \
+NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 @
 
@@ -237,7 +299,7 @@ Glasgow Haskell Compiler (GHC) being very close to the C and C++ compilers.
 <<defaults for Haskell>>=
 NOWEB_SUFFIXES+=    .hs
 NOTANGLEFLAGS.hs?=  -L
-NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) \
+NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 @ We also note that we do not need any suffix rule for [[.lhs]] files, for the 
 same reason as for the weaving, GHC automatically tangles Haskell's native 
@@ -249,7 +311,7 @@ indentation, not spaces.
 <<defaults for Make>>=
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  -t2
-NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) \
+NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) > $@ && noroots $(filter %.nw,$^)
 @
 
@@ -267,7 +329,7 @@ NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
 NOTANGLEFLAGS$(1)?=
-NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
+NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R"[[$$(notdir $$@)]]" \
   $$(filter %.nw,$$^) | $${CPIF} $$@ && noroots $$(filter %.nw,$$^)
 endef
 
