@@ -188,7 +188,7 @@ PUB_SERVER-mirror2 =  foo.bar.mirror2
 This is an include file, so we will first use the C-style technique to prevent 
 inclusion more than once.
 Thus the structure is as follows.
-<<pub.mk>>=
+<<[[pub.mk]]>>=
 ifndef PUB_MK
 PUB_MK=true
 

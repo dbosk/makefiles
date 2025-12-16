@@ -20,7 +20,7 @@ Probably the reader can skip this chapter on a first reading.
 The include file is structures similarly to a header file in C.
 We use the same technique to prevent multiple inclusions.
 The outline is as follows.
-<<portability.mk>>=
+<<[[portability.mk]]>>=
 ifndef PORTABILITY_MK
 PORTABILITY_MK=true
 

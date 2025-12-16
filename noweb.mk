@@ -10,48 +10,48 @@ NOWEAVEFLAGS.pdf?=  \
   ${NOWEAVEFLAGS} -x -t2 \
   -option "shift,breakcode,longxref,longchunks"
 NOTANGLEFLAGS?=
-NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R$(notdir $@) $(filter %.nw,$^) | \
+NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R"[[$(notdir $@)]]" $(filter %.nw,$^) | \
                   ${CPIF} $@ && noroots $(filter %.nw,$^)
 CPIF?=          cpif
 NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
 NOTANGLEFLAGS.c?=   -L
-NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R$(notdir $@) \
+NOTANGLE.c?=        notangle ${NOTANGLEFLAGS.c} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.cc?=  ${NOTANGLEFLAGS.c}
-NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R$(notdir $@) \
+NOTANGLE.cc?=       notangle ${NOTANGLEFLAGS.cc} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.cpp?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R$(notdir $@) \
+NOTANGLE.cpp?=      notangle ${NOTANGLEFLAGS.cpp} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.cxx?= ${NOTANGLEFLAGS.c}
-NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R$(notdir $@) \
+NOTANGLE.cxx?=      notangle ${NOTANGLEFLAGS.cxx} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
 NOTANGLEFLAGS.h?=   -L
-NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R$(notdir $@) \
+NOTANGLE.h?=        notangle ${NOTANGLEFLAGS.h} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.hh?=  ${NOTANGLEFLAGS.h}
-NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R$(notdir $@) \
+NOTANGLE.hh?=       notangle ${NOTANGLEFLAGS.hh} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.hpp?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R$(notdir $@) \
+NOTANGLE.hpp?=      notangle ${NOTANGLEFLAGS.hpp} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOTANGLEFLAGS.hxx?= ${NOTANGLEFLAGS.h}
-NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R$(notdir $@) \
+NOTANGLE.hxx?=      notangle ${NOTANGLEFLAGS.hxx} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOWEB_SUFFIXES+=    .hs
 NOTANGLEFLAGS.hs?=  -L
-NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R$(notdir $@) \
+NOTANGLE.hs?=       notangle ${NOTANGLEFLAGS.hs} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) | ${CPIF} $@ && noroots $(filter %.nw,$^)
 NOWEB_SUFFIXES+=    .mk
 NOTANGLEFLAGS.mk?=  -t2
-NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R$(notdir $@) \
+NOTANGLE.mk?=       notangle ${NOTANGLEFLAGS.mk} -R"[[$(notdir $@)]]" \
   $(filter %.nw,$^) > $@ && noroots $(filter %.nw,$^)
 NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
 
 define default_tangling
 NOTANGLEFLAGS$(1)?=
-NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R$$(notdir $$@) \
+NOTANGLE$(1)?=      notangle $${NOTANGLEFLAGS$(1)} -R"[[$$(notdir $$@)]]" \
   $$(filter %.nw,$$^) | $${CPIF} $$@ && noroots $$(filter %.nw,$$^)
 endef
 

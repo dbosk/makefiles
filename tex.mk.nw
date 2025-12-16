@@ -124,7 +124,7 @@ paper.pdf: full.bib(sub0.bib sub1.bib)
 
 The structure of the include file is similar to a header file in C or C++.
 The include file uses the old C-style technique to prevent multiple inclusions.
-<<tex.mk>>=
+<<[[tex.mk]]>>=
 ifndef TEX_MK
 TEX_MK=true
 
@@ -310,7 +310,7 @@ ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
 The code is fetched from the latexmk example-files on \ac{CTAN}\footnote{%
   URL: \url{http://mirrors.ctan.org/support/latexmk/example_rcfiles/nomenclature_latexmkrc}
 }.
-<<latexmkrc>>=
+<<[[latexmkrc]]>>=
 add_cus_dep( 'nlo', 'nls', 0, 'makenlo2nls' );
 sub makenlo2nls {
 	system( "makeindex -s nomencl.ist -o \"$_[0].nls\" \"$_[0].nlo\"" );
@@ -350,7 +350,7 @@ The following code is fetched from the latexmk example-files on
 \ac{CTAN}\footnote{%
   URL: \url{http://mirrors.ctan.org/support/latexmk/example_rcfiles/pythontex-latexmkrc}
 }.
-<<latexmkrc>>=
+<<[[latexmkrc]]>>=
 #  This version has a fudge on the latex and pdflatex commands that
 #  allows the pythontex custom dependency to work even when $out_dir
 #  is used to set the output directory.  Without the fudge (done by

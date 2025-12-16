@@ -5,7 +5,7 @@ guaranteed to work and can be used for, \eg, continuous integration.
 This image is built using a [[<<Dockerfile>>]].
 
 The [[<<Dockerfile>>]] will have the following structure:
-<<Dockerfile>>=
+<<[[Dockerfile]]>>=
 <<base image to use>>
 <<image info>>
 <<install packages>>

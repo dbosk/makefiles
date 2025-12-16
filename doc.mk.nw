@@ -36,7 +36,7 @@ The command run is designed to fit a rule of the form [[%.b: %.a]].
 Since the makefile is designed for inclusion, we want to ensure that it is not 
 included more than once --- like we do in C and C++.
 Then first comes our variables described above followed by the targets.
-<<doc.mk>>=
+<<[[doc.mk]]>>=
 ifndef DOC_MK
 DOC_MK=true
 
