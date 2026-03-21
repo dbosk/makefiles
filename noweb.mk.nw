@@ -123,7 +123,7 @@ Makefile rules.
 Many programming languages (particularly Python) use underscores in filenames, 
 such as [[module_name.py]] or [[attachment_cache.py]].
 
-When these filenames appear in chunk definitions like [[<<module\_name.py>>=]], 
+When these filenames appear in chunk definitions like [[<<module_name.py>>=]], 
 LaTeX interprets the underscores as subscript commands during documentation 
 generation (weaving), causing compilation errors.
 The error manifests as \enquote{Missing \$ inserted} because LaTeX expects 
@@ -158,7 +158,7 @@ This standardization means:
 
 We considered but rejected:
 \begin{description}
-\item[Escaping underscores] Writing [[\\_]] in chunk names requires escaping 
+\item[Escaping underscores] Writing [[_]] in chunk names requires escaping
 everywhere the chunk is referenced, making the [[.nw]] file harder to read.
 \item[Using hyphens] Chunk names like [[module-name.py]] avoid LaTeX issues but 
 require Makefile renaming rules ([[-name.py]] to [[_name.py]]), adding 
@@ -174,7 +174,7 @@ We will use notangle(1).
 Note that we use the noweb [[[[...]]]] notation to quote the chunk name.
 This is critical for handling filenames with underscores (common in Python) or 
 other LaTeX special characters.
-Without the brackets, chunk names like [[<<module\_name.py>>]] would cause 
+Without the brackets, chunk names like [[<<module_name.py>>]] would cause 
 LaTeX to interpret the underscore as a subscript command, breaking 
 documentation generation.
 The [[[[...]]]] notation tells noweb to escape all special characters properly.
