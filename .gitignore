@@ -17,3 +17,5 @@ transform.tex
 Dockerfile.tex
 intro.tex
 Makefile.tex
+tests.tex
+tests.mk
