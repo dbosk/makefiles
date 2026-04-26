@@ -303,7 +303,8 @@ The conversion of the text-based formats differ from the formats above.
 Most of these tools automatically write their output to stdout, which is 
 customary when working with text in the terminal.
 
-We use the [[pandoc]] program to convert between Markdown and TeX.
+We use [[pandoc]] to convert between Markdown and TeX.  In this file we
+provide the TeX-to-Markdown direction as a suffix rule.
 <<variables>>=
 MD2TEX?=        pandoc
 MD2TEXFLAGS?=   -s
@@ -312,8 +313,8 @@ CONVERT.md.tex?=${MD2TEX} ${MD2TEXFLAGS} -o $@ $<
 TEX2MD?=        pandoc
 TEX2MDFLAGS?=   -s
 CONVERT.tex.md?=${TEX2MD} ${TEX2MDFLAGS} -o $@ $<
-@ This gives the following suffix rules.
-<<MD to TeX>>=
+@ This gives the following suffix rule.
+<<TeX to Markdown>>=
 %.md: %.tex
 	${CONVERT.tex.md}
 @
@@ -349,4 +350,3 @@ CONVERT.tex.txt?= ${TEX2TEXT} ${TEX2TEXTFLAGS} -o $@ $<
 %.txt: %.tex
 	${CONVERT.tex.txt}
 @
-
