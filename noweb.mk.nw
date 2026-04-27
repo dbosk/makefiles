@@ -45,9 +45,7 @@ larger document, and
 \item when a source program is independent and should be converted to PDF.
 \end{enumerate}
 
-The order of the rules are important.
-To ensure make takes the \enquote{shortcut} of the second case, we must specify 
-that rule first.
+The order of the rules are not important here.
 <<suffix rules for weaving documentation>>=
 <<suffix rule for weaving to PDF>>
 <<suffix rule for weaving to TeX>>
@@ -77,13 +75,11 @@ endef
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 @
 
-To differentiate the second case from the first (in terms of suffix rules), we 
+To differentiate the second case from the first (in terms of suffix rules), we
 go from [[.nw]] directly to [[.pdf]]\footnote{%
-  Note, however, that these pattern rules will never be used by make.
-  The make algorithm performs a depth-first search, thus make will take the 
-  long way by first converting to TeX, then to PDF.
-  We can determine which of these two pattern rules should be used by moving 
-  the inclusion of the [[tex.mk]] include file above.
+  Even when [[tex.mk]] is included, [[make]] uses this direct rule.
+  The recipe itself still weaves to TeX and then invokes [[latexmk]] to
+  produce the PDF.
 }.
 <<suffix rule for weaving to PDF>>=
 %.pdf: %.nw
