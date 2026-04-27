@@ -138,7 +138,9 @@ So the code in this section changes the most.
 We will now create a temporary file [[${out}.diff]] based on [[${in}]].
 <<targets>>=
 ${out}.new: ${in}
-	<<new recipe>>
+	<<select exported result columns>>
+	<<remove appended usernames from surnames>>
+	<<apply configured result rewrites>>
 @ This means we should also add [[${out}.diff]] to the recipe of clean.
 <<clean recipe>>=
 ${RM} ${out}.new
@@ -147,12 +149,12 @@ ${RM} ${out}.new
 We are now going to process the data, we will do this by piping the data 
 through a series of commands.
 The columns we are interested in are 1--3 and 6 to the end.
-<<new recipe>>=
+<<select exported result columns>>=
 ${CUT} -f 1-3,6- ${in} | \
 @ For some reason the students' usernames are appended to their lastnames --- 
 in addition to having a separate column for usernames.
 Obviously we want to filter this away.
-<<new recipe>>=
+<<remove appended usernames from surnames>>=
 ${SED} "s/ (\([a-z]\{4\}[0-9]\{4\}\))//" \
 @
 
@@ -164,7 +166,7 @@ We store this list as a space separated list of regular expressions in
 [[${RESULTS_REWRITES}]].
 This means that we also must avoid spaces in the regular expressions, thus the 
 first thing we do is to remove all spaces in the data.
-<<new recipe>>=
+<<apply configured result rewrites>>=
 $(if ${RESULTS_REWRITES},| ${SED} "s/ //g", ) \
 $(foreach regex,${RESULTS_REWRITES},| ${SED} ${regex}) \
 > $@
@@ -184,12 +186,14 @@ For this we will create a file [[${out}.diff]] which contains only the changed
 rows.
 <<targets>>=
 ${out}.diff: ${out}.new
-	<<diff recipe>>
+	<<skip exported header row>>
+	<<filter failed grades from candidate changes>>
+	<<compare rewritten results with previous export>>
 @
 
 We are not interested in the headers of the table, so we skip that
 line.
-<<diff recipe>>=
+<<skip exported header row>>=
 ${GREP} -v "^.\?First \?name" ${out}.new | \
 @ We are not interested in reporting students' failed results, so we filter out 
 those.
@@ -200,7 +204,7 @@ We then use [[${RESULTS_FAILED_regex}]] to match against the data.
 RESULTS_FAILED?=      -\|Fx\?\|U
 RESULTS_FAILED_regex= "\( \|	\|,\)\"\?\(${RESULTS_FAILED}\)\"\?\(	.*\)*$$"
 @ The code to filter the data will thus be:
-<<diff recipe>>=
+<<filter failed grades from candidate changes>>=
 $(if ${RESULTS_FAILED},${GREP} -v ${RESULTS_FAILED_regex} |,) \
 @
 
@@ -208,7 +212,7 @@ Finally, we want to compare this result with the old result and keep only the
 modified lines.
 For the convenience of the secretaries we will also sort the data on the third 
 column (\ie family name).
-<<diff recipe>>=
+<<compare rewritten results with previous export>>=
 ${DIFF} ${@:.diff=} - | ${SED} -n "/^> /s/^> //p" | ${SORT} -k 3 > $@
 @ Due to the difference comparison we require that the new file depends on the 
 old file, and that the old file actually exists, so we add this as 
