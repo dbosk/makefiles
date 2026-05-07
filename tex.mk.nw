@@ -29,8 +29,8 @@ input---which it does otherwise.
 So the [[-halt-on-error]] option actually makes it more likely that we miss 
 that an error occurred.
 <<variables>>=
-LATEX?=           latexmk -dvi -use-make -xelatex -8bit
-PDFLATEX?=        latexmk -pdf -use-make -xelatex -8bit
+LATEX?=           latexmk -dvi -use-make -8bit
+PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
