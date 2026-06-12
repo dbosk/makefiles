@@ -123,17 +123,19 @@ Makefile rules.
 Many programming languages (particularly Python) use underscores in filenames, 
 such as [[module_name.py]] or [[attachment_cache.py]].
 
-When these filenames appear in chunk definitions like [[<<module_name.py>>=]], 
+When these filenames appear in chunk definitions like
+[[@<<module_name.py@>>=]],
 LaTeX interprets the underscores as subscript commands during documentation 
 generation (weaving), causing compilation errors.
 The error manifests as \enquote{Missing \$ inserted} because LaTeX expects 
 math mode for subscripts.
 
-\paragraph{The [[[[...]]]] notation solution}
+\paragraph{The \texttt{[{}[\ldots]{}]} notation solution}
 
-Noweb provides the [[[[...]]]] notation specifically to handle special 
+Noweb provides the \texttt{[{}[\ldots]{}]} notation specifically to handle special 
 characters in code references.
-When we write [[<<[[module_name.py]]>>=]] in a [[.nw]] file, noweb 
+When we write \texttt{<{}<[{}[module\_name.py]{}]>{}>=} in a [[.nw]] file,
+noweb
 automatically escapes all LaTeX special characters (\_, \&, \%, etc.) when 
 weaving documentation.
 The brackets tell noweb: \enquote{treat this as code, not LaTeX}.
@@ -141,15 +143,16 @@ The brackets tell noweb: \enquote{treat this as code, not LaTeX}.
 \paragraph{Why we use it in Makefile rules}
 
 Since our Makefile rules must match the chunk names used in [[.nw]] files, and 
-we want all Python files to use [[[[...]]]] notation (to handle underscores), 
-we must specify [[-R"[[filename]]"]] in the notangle command.
-The double quotes protect the brackets from shell interpretation, and notangle 
-then looks for a chunk named [[[[filename]]]].
+we want all Python files to use \texttt{[{}[\ldots]{}]} notation (to handle underscores), 
+we must specify \texttt{-R"[{}[filename]{}]"} in the notangle command.
+The double quotes protect the brackets from shell interpretation, and notangle
+then looks for a chunk named \texttt{[{}[filename]{}]}.
 
 This standardization means:
 \begin{enumerate}
-\item All Python chunk definitions use [[<<[[filename.py]]>>=]]
-\item All Makefile rules use [[-R"[[$(notdir $@)]]"]]
+\item All Python chunk definitions use
+\texttt{<{}<[{}[filename.py]{}]>{}>=}
+\item All Makefile rules use \texttt{-R"[{}[\$(notdir \$@)]{}]"}
 \item Underscores work without escaping
 \item Consistent pattern across the project
 \end{enumerate}
@@ -167,17 +170,17 @@ complexity.
 Python conventions where [[module_name]] is idiomatic.
 \end{description}
 
-The [[[[...]]]] notation approach handles all special characters uniformly and 
+The \texttt{[{}[\ldots]{}]} notation approach handles all special characters uniformly and 
 keeps [[.nw]] files readable.
 
 We will use notangle(1).
-Note that we use the noweb [[[[...]]]] notation to quote the chunk name.
+Note that we use the noweb \texttt{[{}[\ldots]{}]} notation to quote the chunk name.
 This is critical for handling filenames with underscores (common in Python) or 
 other LaTeX special characters.
-Without the brackets, chunk names like [[<<module_name.py>>]] would cause 
+Without the brackets, chunk names like [[@<<module_name.py@>>]] would cause
 LaTeX to interpret the underscore as a subscript command, breaking 
 documentation generation.
-The [[[[...]]]] notation tells noweb to escape all special characters properly.
+The \texttt{[{}[\ldots]{}]} notation tells noweb to escape all special characters properly.
 
 <<variables>>=
 NOTANGLEFLAGS?=
