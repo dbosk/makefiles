@@ -14,6 +14,16 @@ NOWEB file ([[.nw]]).
 There is also a [[NOWEAVE.pdf]] to weave directly to PDF.
 This assumes that the file is independent, \ie no special LaTeX preamble.
 
+By default, [[NOWEAVE.tex]] weaves syntax-highlighted chunks through
+noweb's [[tominted]] filter with a language-aware identifier index.
+This requires noweb with the [[autolang]] and [[tominted]] filters (the
+dbosk fork), a preamble that loads the minted package, LaTeX run with
+[[-shell-escape]], and the document depending on [[noweb_lexer.py]]
+(a rule for which this include provides).
+The implementation section motivates each flag; everything is set with
+[[?=]], so a project that lacks the fork falls back by setting
+[[NOWEAVEFLAGS.tex]] itself.
+
 
 \section{Implementation}
 
@@ -40,24 +50,63 @@ endif
 We will use the [[noweave]] command to weave the documentation.
 We are interested in two cases:
 \begin{enumerate}
-\item when a source program should be converted to TeX to be included in a 
+\item when a source program should be converted to TeX to be included in a
 larger document, and
 \item when a source program is independent and should be converted to PDF.
 \end{enumerate}
+The two cases weave differently.
+In the first case the including document controls the preamble, so it can
+load the minted package and we weave syntax-highlighted chunks through the
+[[tominted]] filter.
+In the second case [[noweave]] generates the preamble itself, which loads
+only the noweb package, so the highlighted rendering cannot compile and we
+keep noweb's classic rendering.
 
 The order of the rules are important.
-To ensure make takes the \enquote{shortcut} of the second case, we must specify 
+To ensure make takes the \enquote{shortcut} of the second case, we must specify
 that rule first.
 <<suffix rules for weaving documentation>>=
 <<suffix rule for weaving to PDF>>
 <<suffix rule for weaving to TeX>>
+<<rule providing the minted lexer>>
 @
 
 Now, for the first case, we let
 <<variables>>=
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
-NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -x -n -delay -t2
-@ Now we need to specify all the suffixes to use and then construct suffix rules 
+NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
+                    -autodefs python3 -index \
+                    -filter 'tominted -lexer ${NOWEB_LEXER}'
+@ These flags weave syntax-highlighted documentation with a language-aware
+identifier index; they require noweb with the [[autolang]] and [[tominted]]
+filters (the dbosk fork) and the Icon autodefs filters.
+
+The [[-autolang]] option annotates every chunk with its language, inferred
+from filename-like chunk names.
+Our tangling rules below already force that naming---[[NOTANGLE]] extracts
+the chunk named exactly after the target file---so the convention pays
+twice: it lets make find the chunk and it lets noweb identify the language.
+The annotations make the autodefs filters skip chunks in languages they do
+not understand, so [[-autodefs python3]] fills the identifier index without
+collecting make or shell assignments from a project's embedded [[Makefile]]
+chunks (their assignments match the Python assignment pattern).
+We use [[-index]] rather than the previous [[-x]] because the autodefs
+output feeds the identifier index, which [[-x]] does not build.
+Projects in other languages override the autodefs choice, \eg
+[[NOWEAVEFLAGS.tex]] with [[-autodefs c]]; the [[?=]] operator makes that a
+one-line change in the project Makefile.
+
+The [[tominted]] filter typesets each chunk with the minted package,
+choosing the lexer per chunk from the same language annotations.
+This places two demands on the including document: its preamble must load
+minted and LaTeX must run with [[-shell-escape]] (minted runs Pygments).
+The [[-lexer]] argument loads noweb's bundled Pygments lexer, which keeps
+chunk references hyperlinked even inside Python string literals, where
+stock Pygments refuses to escape to LaTeX; minted resolves the path
+relative to where LaTeX runs, which is why we provide a rule for copying
+the lexer file below.
+
+Now we need to specify all the suffixes to use and then construct suffix rules
 for all of them.
 Fortunately we can use the same recipe for all, so we only need to write one 
 recipe for multiple targets.
@@ -77,7 +126,29 @@ endef
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 @
 
-To differentiate the second case from the first (in terms of suffix rules), we 
+\paragraph{Providing the minted lexer}
+
+The woven TeX asks minted to load [[noweb_lexer.py]] from the directory
+where LaTeX runs, but the file ships with noweb, in its library directory.
+That directory is not on any standard search path; however, the
+[[noweave]] script carries it in its [[LIB=]] line, so we read it from
+there instead of hard-coding an installation prefix.
+<<rule providing the minted lexer>>=
+${NOWEB_LEXER}:
+	cp ${NOWEB_LIB}/noweb_lexer.py $@
+<<variables>>=
+NOWEB_LEXER?=       noweb_lexer.py
+NOWEB_LIB?=         $(shell sed -n 's/^LIB=//p' \
+                      $(shell command -v noweave) | head -1)
+@ This include cannot know the name of the document that needs the lexer,
+so it only provides the rule; the including Makefile declares the
+dependency, as in [[doc.pdf: noweb_lexer.py]].
+Remember to add [[noweb_lexer.py]] to the project's [[.gitignore]] and
+clean recipe, and that minted refuses custom lexers that are not
+whitelisted by SHA-256 hash in [[~/.config/latexminted/.latexminted_config]]
+(a one-time setup per machine).
+
+To differentiate the second case from the first (in terms of suffix rules), we
 go from [[.nw]] directly to [[.pdf]]\footnote{%
   Note, however, that these pattern rules will never be used by make.
   The make algorithm performs a depth-first search, thus make will take the 
@@ -95,8 +166,14 @@ define def_weave_to_pdf
 endef
 
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
-@ What differs [[NOWEAVE.pdf]] from [[NOWEAVE.tex]] is the options to 
+@ What differs [[NOWEAVE.pdf]] from [[NOWEAVE.tex]] is the options to
 [[noweave]] and the compilation step (instead of having that separately).
+Here the preamble is generated by [[noweave]] and loads only the noweb
+package, never minted, so the [[tominted]] output would not compile;
+this weave keeps noweb's classic rendering.
+That is not only a restriction: the classic rendering hyperlinks
+identifier \emph{uses} inside code, which the minted rendering gives up
+(minted owns the code body), so a standalone weave still has its place.
 <<variables>>=
 NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \

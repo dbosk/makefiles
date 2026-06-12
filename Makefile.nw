@@ -82,10 +82,17 @@ makefiles.pdf: exam.bib
 makefiles.pdf: transform.bib
 makefiles.pdf: tex.bib
 makefiles.pdf: Dockerfile.tex
+@ The default weave of [[noweb.mk]] highlights chunks with minted through
+a custom Pygments lexer, which minted loads from the directory where
+LaTeX runs; [[noweb.mk]] provides the rule that copies the lexer here,
+we only declare the dependency.
+<<makefiles.pdf target>>=
+makefiles.pdf: noweb_lexer.py
 @ We must add the generated files to the clean recipe.
 <<clean recipe>>=
 ${RM} makefiles.pdf
 ${RM} Dockerfile.tex
+${RM} noweb_lexer.py
 @
 
 We want to use the PythonTeX and Minted packages.
