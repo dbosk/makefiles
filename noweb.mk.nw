@@ -75,8 +75,8 @@ Now, for the first case, we let
 <<variables>>=
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
 NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
-                    -autodefs python3 -index \
-                    -filter 'tominted -lexer ${NOWEB_LEXER}'
+                    -autodefs python3 -autodefs sh -autodefs make \
+                    -index -filter 'tominted -lexer ${NOWEB_LEXER}'
 @ These flags weave syntax-highlighted documentation with a language-aware
 identifier index; they require noweb with the [[autolang]] and [[tominted]]
 filters (the dbosk fork) and the Icon autodefs filters.
@@ -86,15 +86,22 @@ from filename-like chunk names.
 Our tangling rules below already force that naming---[[NOTANGLE]] extracts
 the chunk named exactly after the target file---so the convention pays
 twice: it lets make find the chunk and it lets noweb identify the language.
-The annotations make the autodefs filters skip chunks in languages they do
-not understand, so [[-autodefs python3]] fills the identifier index without
-collecting make or shell assignments from a project's embedded [[Makefile]]
-chunks (their assignments match the Python assignment pattern).
+The annotations make each autodefs filter skip chunks in languages it does
+not understand, which is what allows \emph{stacking} the filters: a make
+variable, a shell variable and a Python constant all match each other's
+assignment patterns, but with the annotations each chunk is indexed by
+exactly the filter that understands it.
+The default stack---Python, shell, make---covers what our projects mix
+into one document: program modules, helper scripts and their build files.
 We use [[-index]] rather than the previous [[-x]] because the autodefs
 output feeds the identifier index, which [[-x]] does not build.
-Projects in other languages override the autodefs choice, \eg
-[[NOWEAVEFLAGS.tex]] with [[-autodefs c]]; the [[?=]] operator makes that a
-one-line change in the project Makefile.
+Projects in other languages override the choice, \eg
+[[NOWEAVEFLAGS.tex]] with [[-autodefs c]] or [[-autodefs rust]]; the
+[[?=]] operator makes that a one-line change in the project Makefile.
+One caution when extending the stack instead: [[noweave]] has seven
+filter slots, and [[-autolang]], every [[-autodefs]] and the
+[[tominted]] filter each occupy one, so the default leaves two slots
+free for the project's own filters.
 
 The [[tominted]] filter typesets each chunk with the minted package,
 choosing the lexer per chunk from the same language annotations.
