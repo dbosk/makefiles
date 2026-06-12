@@ -608,7 +608,7 @@ of just [[lncs]].
 llncs: lncs
 @
 
-\subsection{LNCS style for [[biblatex]]}
+\subsection{LNCS style for \texttt{biblatex}}
 
 There is also \iac{LNCS} style for the [[biblatex]] package available on 
 GitHub.

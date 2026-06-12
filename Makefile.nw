@@ -62,9 +62,14 @@ MAKEFILES_INCLUDE=${INCLUDE_MAKEFILES}
 <<include files>>
 @
 
-\subsection{This [[Makefile]]'s target}
+\subsection{This \texttt{Makefile}'s target}
 
 We also must add a target for this [[Makefile]] itself.
+(The heading says \verb|\texttt{Makefile}| where the prose says
+\texttt{[{}[Makefile]{}]}: the autodefs filters index the
+[[Makefile]] target below, which turns every quoted [[Makefile]]
+into a hyperlinked identifier use, and hyperref cannot survive a
+link inside a sectioning command's moving argument.)
 <<Makefile target>>=
 Makefile: Makefile.nw
 	${NOTANGLE.mk}
