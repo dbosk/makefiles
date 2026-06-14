@@ -12,10 +12,14 @@ LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
+# The rerun loop is bounded: latexmk already reruns internally and gives
+# up when the document does not converge, leaving "Rerun to get cross"
+# in the log.  An unbounded loop would then relaunch latexmk forever.
 COMPILE.tex?=     \
   ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  while (grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log}); \
-    do ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  for i in 1 2 3 4 5; do \
+    grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
+    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
   done
 COMPILE.dtx?=     ${COMPILE.tex}
 TEX_BBL?=
@@ -81,7 +85,8 @@ ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 
 %.dvi ${TEX_OUTDIR}/%.dvi: %.tex
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+	for i in 1 2 3 4 5; do \
+	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
 	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
@@ -96,7 +101,8 @@ latexmkrc:
 
 %.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-	while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+	for i in 1 2 3 4 5; do \
+	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
 	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
