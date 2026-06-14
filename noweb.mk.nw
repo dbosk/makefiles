@@ -99,9 +99,12 @@ Projects in other languages override the choice, \eg
 [[NOWEAVEFLAGS.tex]] with [[-autodefs c]] or [[-autodefs rust]]; the
 [[?=]] operator makes that a one-line change in the project Makefile.
 One caution when extending the stack instead: [[noweave]] has seven
-filter slots, and [[-autolang]], every [[-autodefs]] and the
-[[tominted]] filter each occupy one, so the default leaves two slots
-free for the project's own filters.
+filter slots, and they are scarcer than they look.  [[-index]] alone
+inserts two filters ([[finduses]] and [[noidx]]); [[-autolang]] adds
+one and [[tominted]] one.  The default---three [[-autodefs]] on top of
+those---therefore fills all seven, so adding a fourth [[-autodefs]] or
+a project [[-filter]] overflows the pipeline unless something else is
+dropped.
 
 The [[tominted]] filter typesets each chunk with the minted package,
 choosing the lexer per chunk from the same language annotations.
