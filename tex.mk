@@ -12,9 +12,6 @@ LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
-# The rerun loop is bounded: latexmk already reruns internally and gives
-# up when the document does not converge, leaving "Rerun to get cross"
-# in the log.  An unbounded loop would then relaunch latexmk forever.
 COMPILE.tex?=     \
   ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
   for i in 1 2 3 4 5; do \

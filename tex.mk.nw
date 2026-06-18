@@ -37,11 +37,22 @@ PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 COMPILE.tex?=     \
   ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  while (grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log}); \
-    do ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  for i in 1 2 3 4 5; do \
+    grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
+    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
   done
 COMPILE.dtx?=     ${COMPILE.tex}
-@ Thus one would have to change the [[COMPILE.tex]] variable to change format 
+@ The [[COMPILE.tex]] command compiles once and then reruns for as long as the
+log still asks us to \enquote{Rerun to get cross}---but at most five extra
+passes.
+We need the cap because latexmk already reruns internally and gives up on a
+document that never converges, leaving that message in the final log; without
+the bound the loop above would relaunch latexmk forever.
+This happens for documents whose layout has no fixed point, such as a noweb
+[[longxref]] continuation list whose line count feeds back into the pagination
+it describes.
+
+Thus one would have to change the [[COMPILE.tex]] variable to change format
 from PDF to DVI unless a suffix rule is used.
 
 %We note that we add this output directory to the search path for 
@@ -419,10 +430,13 @@ the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
 @
 
 The compilation step for DVI is the usual.
-We compile once, then we recompile as long as the log file tells us.
+We compile once, then we recompile as long as the log file tells us to---but,
+as for [[COMPILE.tex]] above, at most five extra passes so that a document
+that never converges ends the build instead of looping latexmk forever.
 <<compile DVI>>=
 ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
+for i in 1 2 3 4 5; do \
+  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
   ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 done
 @
