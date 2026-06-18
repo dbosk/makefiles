@@ -6,8 +6,8 @@ TEX_MK=true
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
-LATEX?=           latexmk -dvi -use-make -8bit
-PDFLATEX?=        latexmk -pdf -use-make -8bit
+LATEX?=           latexmk -dvi -use-make -8bit -interaction=nonstopmode
+PDFLATEX?=        latexmk -pdf -use-make -8bit -interaction=nonstopmode
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
@@ -17,7 +17,8 @@ COMPILE.tex?=     \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
     ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  done
+  done; \
+  test -f ${TEX_OUTDIR}/${<:.tex=.pdf}
 COMPILE.dtx?=     ${COMPILE.tex}
 TEX_BBL?=
 BIBTEX?=            bibtexu
@@ -37,6 +38,7 @@ COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 TEX_PYTHONTEX?=
 PYTHONTEX?=       python3 $$(which pythontex)
 PYTHONTEXFLAGS?=  --interpreter python:python3
+TEX_BIB?=           biber
 BIBTOOL?=     bibtool
 BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
 ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
@@ -44,14 +46,17 @@ ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
 ${TEX_OUTDIR}/%.aux: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.tex}
+ifeq (${TEX_BIB},bibtex)
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
 	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
+else
 ${TEX_OUTDIR}/%.bcf: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.tex}
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
 	${BIBLIOGRAPHY.bcf}
+endif
 ifneq (${TEX_BBL},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif

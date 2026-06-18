@@ -26,21 +26,54 @@ compilation if an error occurs, so that we don't miss it, it doesn't work.
 The reason is that [[latexmk]] doesn't stop on error, it just keeps on going.
 \TeX{} on the other hand stops that round of execution, but doesn't ask for 
 input---which it does otherwise.
-So the [[-halt-on-error]] option actually makes it more likely that we miss 
+So the [[-halt-on-error]] option actually makes it more likely that we miss
 that an error occurred.
+
+For a related reason we run \TeX{} in non-stop mode with
+[[-interaction=nonstopmode]].
+By default \TeX{} halts at the first error and waits for input from the
+terminal; under [[latexmk]] that input never arrives, so the run dies in the
+middle without writing the auxiliary files that later steps depend on---most
+importantly the [[.bcf]] file that biber(1) reads to resolve citations.
+That turns a recoverable warning into a build that can never make progress: no
+[[.bcf]] means no bibliography, which keeps the citations undefined, which keeps
+the error coming back.
+In non-stop mode \TeX{} instead logs the error and runs the round to the end,
+producing those files so the build can proceed, while the error itself is still
+recorded in the log where we can see it.
 <<variables>>=
-LATEX?=           latexmk -dvi -use-make -8bit
-PDFLATEX?=        latexmk -pdf -use-make -8bit
+LATEX?=           latexmk -dvi -use-make -8bit -interaction=nonstopmode
+PDFLATEX?=        latexmk -pdf -use-make -8bit -interaction=nonstopmode
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
+@ The actual compilation reruns \TeX{} until the cross-references stop changing,
+but we bound the number of reruns rather than looping unconditionally.
+[[latexmk]] already reruns internally and converges on its own; the loop here is
+only a safety net for the cases where it cannot.
+A document that keeps reporting \enquote{Rerun to get cross}---one that never
+converges---would make an unconditional loop relaunch [[latexmk]] forever, so we
+stop after a fixed number of attempts and break as soon as the message is gone.
+
+Finally, [[COMPILE.tex]] ends by checking that the PDF was actually produced,
+and it is this check---not [[latexmk]]'s exit status---that decides whether the
+recipe succeeds.
+The reason is the same philosophy as above: [[latexmk]] returns a non-zero exit
+status for \emph{any} \TeX{} error, including recoverable ones such as a lost
+margin float, so a build that produced a perfectly usable PDF would still abort
+make(1) and, worse, never reach the step that updates the output symlink.
+Tying success to the existence of the output file instead means such warnings no
+longer stop the build---they remain visible in the log, where we look for
+them---while a genuine error that leaves no PDF behind still fails the recipe.
+<<variables>>=
 COMPILE.tex?=     \
   ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
     ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  done
+  done; \
+  test -f ${TEX_OUTDIR}/${<:.tex=.pdf}
 COMPILE.dtx?=     ${COMPILE.tex}
 @ The [[COMPILE.tex]] command compiles once and then reruns for as long as the
 log still asks us to \enquote{Rerun to get cross}---but at most five extra
@@ -234,11 +267,27 @@ ${PREPROCESS.tex}
 
 One file that is commonly needed is the one used to create the bibliography, 
 the [[.bbl]] file.
-There are two ways to create this file, either using classical bibtex(1) or 
+There are two ways to create this file, either using classical bibtex(1) or
 using the [[biblatex]] package and biber(1).
+We must pick exactly one of them.
+Both approaches define a rule for the same [[%.bbl]] target, and the classical
+one can always be satisfied---every document produces an [[.aux]] file---so if
+both rules are active make(1) always chooses bibtex(1) and never reaches
+biber(1).
+For a [[biblatex]] document that is wrong: bibtex(1) then writes a [[.bbl]] in
+the wrong format, which breaks the build.
+The variable [[TEX_BIB]] therefore selects the backend.
+It defaults to biber(1), since [[biblatex]] is the common case, and can be set
+to [[bibtex]] for documents that use classical bibtex(1).
+<<variables>>=
+TEX_BIB?=           biber
+@ With the backend chosen, we include only the matching [[.bbl]] rule.
 <<bibliography files>>=
+ifeq (${TEX_BIB},bibtex)
 <<bbl target for bibtex>>
+else
 <<bbl target for biber>>
+endif
 @
 
 The first approach, using bibtex(1), depends on the [[.aux]] file.
