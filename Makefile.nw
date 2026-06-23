@@ -62,9 +62,14 @@ MAKEFILES_INCLUDE=${INCLUDE_MAKEFILES}
 <<include files>>
 @
 
-\subsection{This [[Makefile]]'s target}
+\subsection{This \texttt{Makefile}'s target}
 
 We also must add a target for this [[Makefile]] itself.
+(The heading says \verb|\texttt{Makefile}| where the prose says
+\texttt{[{}[Makefile]{}]}: the autodefs filters index the
+[[Makefile]] target below, which turns every quoted [[Makefile]]
+into a hyperlinked identifier use, and hyperref cannot survive a
+link inside a sectioning command's moving argument.)
 <<Makefile target>>=
 Makefile: Makefile.nw
 	${NOTANGLE.mk}
@@ -82,10 +87,17 @@ makefiles.pdf: exam.bib
 makefiles.pdf: transform.bib
 makefiles.pdf: tex.bib
 makefiles.pdf: Dockerfile.tex
+@ The default weave of [[noweb.mk]] highlights chunks with minted through
+a custom Pygments lexer, which minted loads from the directory where
+LaTeX runs; [[noweb.mk]] provides the rule that copies the lexer here,
+we only declare the dependency.
+<<makefiles.pdf target>>=
+makefiles.pdf: noweb_lexer.py
 @ We must add the generated files to the clean recipe.
 <<clean recipe>>=
 ${RM} makefiles.pdf
 ${RM} Dockerfile.tex
+${RM} noweb_lexer.py
 @
 
 We want to use the PythonTeX and Minted packages.

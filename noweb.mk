@@ -2,7 +2,14 @@ ifndef NOWEB_MK
 NOWEB_MK = true
 
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
-NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -x -n -delay -t2
+NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
+                    -langrule '^test \[\[.*\.py\]\]=python' \
+                    -langrule '^test \[\[.*\.sh\]\]=bash' \
+                    -langrule '^test \[\[Makefile\]\]=make' \
+                    -index -filter 'tominted -lexer ${NOWEB_LEXER}'
+NOWEB_LEXER?=       noweb_lexer.py
+NOWEB_LIB?=         $(shell sed -n 's/^LIB=//p' \
+                      $(shell command -v noweave) | head -1)
 NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
   latexmk -pdf ${@:.pdf=.tex}
@@ -81,6 +88,8 @@ define def_weave_to_tex
 endef
 
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
+${NOWEB_LEXER}:
+	cp ${NOWEB_LIB}/noweb_lexer.py $@
 define with_suffix_target
 %$(1): %$(1).nw
 	$${NOTANGLE$$(suffix $$@)}

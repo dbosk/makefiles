@@ -14,6 +14,16 @@ NOWEB file ([[.nw]]).
 There is also a [[NOWEAVE.pdf]] to weave directly to PDF.
 This assumes that the file is independent, \ie no special LaTeX preamble.
 
+By default, [[NOWEAVE.tex]] weaves syntax-highlighted chunks through
+noweb's [[tominted]] filter with a language-aware identifier index.
+This requires noweb with the [[autolang]] and [[tominted]] filters (the
+dbosk fork), a preamble that loads the minted package, LaTeX run with
+[[-shell-escape]], and the document depending on [[noweb_lexer.py]]
+(a rule for which this include provides).
+The implementation section motivates each flag; everything is set with
+[[?=]], so a project that lacks the fork falls back by setting
+[[NOWEAVEFLAGS.tex]] itself.
+
 
 \section{Implementation}
 
@@ -40,24 +50,104 @@ endif
 We will use the [[noweave]] command to weave the documentation.
 We are interested in two cases:
 \begin{enumerate}
-\item when a source program should be converted to TeX to be included in a 
+\item when a source program should be converted to TeX to be included in a
 larger document, and
 \item when a source program is independent and should be converted to PDF.
 \end{enumerate}
+The two cases weave differently.
+In the first case the including document controls the preamble, so it can
+load the minted package and we weave syntax-highlighted chunks through the
+[[tominted]] filter.
+In the second case [[noweave]] generates the preamble itself, which loads
+only the noweb package, so the highlighted rendering cannot compile and we
+keep noweb's classic rendering.
 
 The order of the rules are important.
-To ensure make takes the \enquote{shortcut} of the second case, we must specify 
+To ensure make takes the \enquote{shortcut} of the second case, we must specify
 that rule first.
 <<suffix rules for weaving documentation>>=
 <<suffix rule for weaving to PDF>>
 <<suffix rule for weaving to TeX>>
+<<rule providing the minted lexer>>
 @
 
 Now, for the first case, we let
 <<variables>>=
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
-NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -x -n -delay -t2
-@ Now we need to specify all the suffixes to use and then construct suffix rules 
+NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
+                    -langrule '^test \[\[.*\.py\]\]=python' \
+                    -langrule '^test \[\[.*\.sh\]\]=bash' \
+                    -langrule '^test \[\[Makefile\]\]=make' \
+                    -index -filter 'tominted -lexer ${NOWEB_LEXER}'
+@ These flags weave syntax-highlighted documentation with a language-aware
+identifier index; they require noweb with the [[autolang]] and [[tominted]]
+filters (the dbosk fork) and the Icon autodefs filters.
+
+The [[-autolang]] option annotates every chunk with its language, inferred
+from filename-like chunk names.
+Our tangling rules below already force that naming---[[NOTANGLE]] extracts
+the chunk named exactly after the target file---so the convention pays
+twice: it lets make find the chunk and it lets noweb identify the language.
+The annotations make each autodefs filter skip chunks in languages it does
+not understand, which is what allows \emph{stacking} the filters: a make
+variable, a shell variable and a Python constant all match each other's
+assignment patterns, but with the annotations each chunk is indexed by
+exactly the filter that understands it.
+
+We no longer list the autodefs filters at all.  With [[-index]], the dbosk
+fork's [[-autolang]] discovers which languages a document contains and
+stacks the matching autodefs filter for each, so the defaults index
+whatever a project mixes into its documents---program modules, helper
+scripts and their build files---without naming Python, shell or make
+explicitly.
+We use [[-index]] rather than the previous [[-x]] because the autodefs
+output feeds the identifier index, which [[-x]] does not build (and it is
+also what switches discovery on).
+
+Discovery rests on a chunk's name revealing its language, which the
+tangling convention guarantees for modules but not for their tests: a
+module's tests live in a sibling chunk that \emph{labels} the file rather
+than being it, such as @<<test [[greet.py]]>> for the module [[greet.py]].
+[[autolang]] leaves such a labeled name unclassified by design---a test
+chunk could be a shell script that drives the Python module rather than
+Python itself---so without help it would carry no language, and an
+unclassified chunk is scanned by \emph{every} autodefs filter, salting the
+index with cross-language false matches (Python keywords read as make
+rules, say).
+The three [[-langrule]] options supply that help for the languages we use:
+each matches a name that \emph{opens} with the [[test]] label---the [[^]]
+anchor keeps a word that merely ends in \emph{test}, or a [[test]] in
+mid-name, from matching---and ends in one file extension, mapping it to
+that extension's language, so a test chunk is indexed by the same filter as
+the module it exercises.
+A project that labels its chunks differently---a [[check]] prefix, another
+extension---overrides [[NOWEAVEFLAGS.tex]] through the [[?=]] operator;
+likewise a project in another language adds its own [[-autodefs c]], which
+is merged with the discovered set without duplication.
+The pipeline has no fixed size: the dbosk fork's [[noweave]] accumulates
+filters in a single variable and joins them with [[|]], so any number of
+autodefs filters stack alongside [[-autolang]], [[-index]] (which inserts
+two filters, [[finduses]] and [[noidx]]) and [[tominted]] in one weave.
+Older, pre-fork [[noweave]] enumerated only seven filter slots---a
+portability artifact of the array-less [[/bin/sh]] pipeline builder---and
+also lacked discovery, so against such a [[noweave]] one would both list
+the [[-autodefs]] filters by hand and keep their number within the slot
+budget; the fork removes both constraints.
+
+The [[tominted]] filter typesets each chunk with the minted package,
+choosing the lexer per chunk from the same language annotations.
+This places two demands on the including document: its preamble must load
+minted and LaTeX must run with [[-shell-escape]] (minted runs Pygments).
+The preamble loads minted through the noweb package, with
+[[\usepackage[minted]{noweb}]], rather than a separate
+[[\usepackage{minted}]]; see [[preamble.tex]].
+The [[-lexer]] argument loads noweb's bundled Pygments lexer, which keeps
+chunk references hyperlinked even inside Python string literals, where
+stock Pygments refuses to escape to LaTeX; minted resolves the path
+relative to where LaTeX runs, which is why we provide a rule for copying
+the lexer file below.
+
+Now we need to specify all the suffixes to use and then construct suffix rules
 for all of them.
 Fortunately we can use the same recipe for all, so we only need to write one 
 recipe for multiple targets.
@@ -77,7 +167,29 @@ endef
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 @
 
-To differentiate the second case from the first (in terms of suffix rules), we 
+\paragraph{Providing the minted lexer}
+
+The woven TeX asks minted to load [[noweb_lexer.py]] from the directory
+where LaTeX runs, but the file ships with noweb, in its library directory.
+That directory is not on any standard search path; however, the
+[[noweave]] script carries it in its [[LIB=]] line, so we read it from
+there instead of hard-coding an installation prefix.
+<<rule providing the minted lexer>>=
+${NOWEB_LEXER}:
+	cp ${NOWEB_LIB}/noweb_lexer.py $@
+<<variables>>=
+NOWEB_LEXER?=       noweb_lexer.py
+NOWEB_LIB?=         $(shell sed -n 's/^LIB=//p' \
+                      $(shell command -v noweave) | head -1)
+@ This include cannot know the name of the document that needs the lexer,
+so it only provides the rule; the including Makefile declares the
+dependency, as in [[doc.pdf: noweb_lexer.py]].
+Remember to add [[noweb_lexer.py]] to the project's [[.gitignore]] and
+clean recipe, and that minted refuses custom lexers that are not
+whitelisted by SHA-256 hash in [[~/.config/latexminted/.latexminted_config]]
+(a one-time setup per machine).
+
+To differentiate the second case from the first (in terms of suffix rules), we
 go from [[.nw]] directly to [[.pdf]]\footnote{%
   Note, however, that these pattern rules will never be used by make.
   The make algorithm performs a depth-first search, thus make will take the 
@@ -95,8 +207,17 @@ define def_weave_to_pdf
 endef
 
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
-@ What differs [[NOWEAVE.pdf]] from [[NOWEAVE.tex]] is the options to 
+@ What differs [[NOWEAVE.pdf]] from [[NOWEAVE.tex]] is the options to
 [[noweave]] and the compilation step (instead of having that separately).
+Here the preamble is generated by [[noweave]], and this weave keeps
+noweb's classic rendering rather than the [[tominted]] highlighting.
+That is a deliberate choice, not a limitation of the generated preamble:
+[[noweave -minted]] would make the generated preamble load minted (it
+adds [[\noweboptions{minted}]] before [[\begin{document}]]) and switch
+on [[tominted]], so a highlighted standalone weave is available if
+wanted.  We keep the classic rendering because it hyperlinks identifier
+\emph{uses} inside code, which the minted rendering gives up (minted
+owns the code body), so a standalone weave still has its place.
 <<variables>>=
 NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
@@ -123,17 +244,19 @@ Makefile rules.
 Many programming languages (particularly Python) use underscores in filenames, 
 such as [[module_name.py]] or [[attachment_cache.py]].
 
-When these filenames appear in chunk definitions like [[<<module\_name.py>>=]], 
+When these filenames appear in chunk definitions like
+[[@<<module_name.py@>>=]],
 LaTeX interprets the underscores as subscript commands during documentation 
 generation (weaving), causing compilation errors.
 The error manifests as \enquote{Missing \$ inserted} because LaTeX expects 
 math mode for subscripts.
 
-\paragraph{The [[[[...]]]] notation solution}
+\paragraph{The \texttt{[{}[\ldots]{}]} notation solution}
 
-Noweb provides the [[[[...]]]] notation specifically to handle special 
+Noweb provides the \texttt{[{}[\ldots]{}]} notation specifically to handle special 
 characters in code references.
-When we write [[<<[[module_name.py]]>>=]] in a [[.nw]] file, noweb 
+When we write \texttt{<{}<[{}[module\_name.py]{}]>{}>=} in a [[.nw]] file,
+noweb
 automatically escapes all LaTeX special characters (\_, \&, \%, etc.) when 
 weaving documentation.
 The brackets tell noweb: \enquote{treat this as code, not LaTeX}.
@@ -141,15 +264,16 @@ The brackets tell noweb: \enquote{treat this as code, not LaTeX}.
 \paragraph{Why we use it in Makefile rules}
 
 Since our Makefile rules must match the chunk names used in [[.nw]] files, and 
-we want all Python files to use [[[[...]]]] notation (to handle underscores), 
-we must specify [[-R"[[filename]]"]] in the notangle command.
-The double quotes protect the brackets from shell interpretation, and notangle 
-then looks for a chunk named [[[[filename]]]].
+we want all Python files to use \texttt{[{}[\ldots]{}]} notation (to handle underscores), 
+we must specify \texttt{-R"[{}[filename]{}]"} in the notangle command.
+The double quotes protect the brackets from shell interpretation, and notangle
+then looks for a chunk named \texttt{[{}[filename]{}]}.
 
 This standardization means:
 \begin{enumerate}
-\item All Python chunk definitions use [[<<[[filename.py]]>>=]]
-\item All Makefile rules use [[-R"[[$(notdir $@)]]"]]
+\item All Python chunk definitions use
+\texttt{<{}<[{}[filename.py]{}]>{}>=}
+\item All Makefile rules use \texttt{-R"[{}[\$(notdir \$@)]{}]"}
 \item Underscores work without escaping
 \item Consistent pattern across the project
 \end{enumerate}
@@ -167,17 +291,17 @@ complexity.
 Python conventions where [[module_name]] is idiomatic.
 \end{description}
 
-The [[[[...]]]] notation approach handles all special characters uniformly and 
+The \texttt{[{}[\ldots]{}]} notation approach handles all special characters uniformly and 
 keeps [[.nw]] files readable.
 
 We will use notangle(1).
-Note that we use the noweb [[[[...]]]] notation to quote the chunk name.
+Note that we use the noweb \texttt{[{}[\ldots]{}]} notation to quote the chunk name.
 This is critical for handling filenames with underscores (common in Python) or 
 other LaTeX special characters.
-Without the brackets, chunk names like [[<<module\_name.py>>]] would cause 
+Without the brackets, chunk names like [[@<<module_name.py@>>]] would cause
 LaTeX to interpret the underscore as a subscript command, breaking 
 documentation generation.
-The [[[[...]]]] notation tells noweb to escape all special characters properly.
+The \texttt{[{}[\ldots]{}]} notation tells noweb to escape all special characters properly.
 
 <<variables>>=
 NOTANGLEFLAGS?=
