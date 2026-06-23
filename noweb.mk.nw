@@ -75,6 +75,9 @@ Now, for the first case, we let
 <<variables>>=
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
 NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
+                    -langrule '^test \[\[.*\.py\]\]=python' \
+                    -langrule '^test \[\[.*\.sh\]\]=bash' \
+                    -langrule '^test \[\[Makefile\]\]=make' \
                     -index -filter 'tominted -lexer ${NOWEB_LEXER}'
 @ These flags weave syntax-highlighted documentation with a language-aware
 identifier index; they require noweb with the [[autolang]] and [[tominted]]
@@ -100,9 +103,26 @@ explicitly.
 We use [[-index]] rather than the previous [[-x]] because the autodefs
 output feeds the identifier index, which [[-x]] does not build (and it is
 also what switches discovery on).
-A project whose chunk names do not reveal their language can still name it:
-adding [[-autodefs c]] or [[-langrule]] to [[NOWEAVEFLAGS.tex]] is a
-one-line change through the [[?=]] operator, and an explicit [[-autodefs]]
+
+Discovery rests on a chunk's name revealing its language, which the
+tangling convention guarantees for modules but not for their tests: a
+module's tests live in a sibling chunk that \emph{labels} the file rather
+than being it, such as @<<test [[greet.py]]>> for the module [[greet.py]].
+[[autolang]] leaves such a labeled name unclassified by design---a test
+chunk could be a shell script that drives the Python module rather than
+Python itself---so without help it would carry no language, and an
+unclassified chunk is scanned by \emph{every} autodefs filter, salting the
+index with cross-language false matches (Python keywords read as make
+rules, say).
+The three [[-langrule]] options supply that help for the languages we use:
+each matches a name that \emph{opens} with the [[test]] label---the [[^]]
+anchor keeps a word that merely ends in \emph{test}, or a [[test]] in
+mid-name, from matching---and ends in one file extension, mapping it to
+that extension's language, so a test chunk is indexed by the same filter as
+the module it exercises.
+A project that labels its chunks differently---a [[check]] prefix, another
+extension---overrides [[NOWEAVEFLAGS.tex]] through the [[?=]] operator;
+likewise a project in another language adds its own [[-autodefs c]], which
 is merged with the discovered set without duplication.
 The pipeline has no fixed size: the dbosk fork's [[noweave]] accumulates
 filters in a single variable and joins them with [[|]], so any number of

@@ -3,6 +3,9 @@ NOWEB_MK = true
 
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
 NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
+                    -langrule '^test \[\[.*\.py\]\]=python' \
+                    -langrule '^test \[\[.*\.sh\]\]=bash' \
+                    -langrule '^test \[\[Makefile\]\]=make' \
                     -index -filter 'tominted -lexer ${NOWEB_LEXER}'
 NOWEB_LEXER?=       noweb_lexer.py
 NOWEB_LIB?=         $(shell sed -n 's/^LIB=//p' \
