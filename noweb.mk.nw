@@ -75,7 +75,6 @@ Now, for the first case, we let
 <<variables>>=
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
 NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
-                    -autodefs python3 -autodefs sh -autodefs make \
                     -index -filter 'tominted -lexer ${NOWEB_LEXER}'
 @ These flags weave syntax-highlighted documentation with a language-aware
 identifier index; they require noweb with the [[autolang]] and [[tominted]]
@@ -91,23 +90,29 @@ not understand, which is what allows \emph{stacking} the filters: a make
 variable, a shell variable and a Python constant all match each other's
 assignment patterns, but with the annotations each chunk is indexed by
 exactly the filter that understands it.
-The default stack---Python, shell, make---covers what our projects mix
-into one document: program modules, helper scripts and their build files.
+
+We no longer list the autodefs filters at all.  With [[-index]], the dbosk
+fork's [[-autolang]] discovers which languages a document contains and
+stacks the matching autodefs filter for each, so the defaults index
+whatever a project mixes into its documents---program modules, helper
+scripts and their build files---without naming Python, shell or make
+explicitly.
 We use [[-index]] rather than the previous [[-x]] because the autodefs
-output feeds the identifier index, which [[-x]] does not build.
-Projects in other languages override the choice, \eg
-[[NOWEAVEFLAGS.tex]] with [[-autodefs c]] or [[-autodefs rust]]; the
-[[?=]] operator makes that a one-line change in the project Makefile.
-Extending the stack is unconstrained: the dbosk fork's [[noweave]]
-accumulates filters in a single variable and joins them with [[|]], so
-any number of [[-autodefs]] filters stack alongside [[-autolang]],
-[[-index]] (which inserts two filters, [[finduses]] and [[noidx]]) and
-[[tominted]] in one weave.  Older, pre-fork [[noweave]] enumerated only
-seven filter slots---a portability artifact of the array-less
-[[/bin/sh]] pipeline builder---so against such a [[noweave]] the
-default three [[-autodefs]] plus [[-autolang]] and [[tominted]] fill all
-seven, and a fourth [[-autodefs]] or a project [[-filter]] would
-overflow; the fork removes that ceiling.
+output feeds the identifier index, which [[-x]] does not build (and it is
+also what switches discovery on).
+A project whose chunk names do not reveal their language can still name it:
+adding [[-autodefs c]] or [[-langrule]] to [[NOWEAVEFLAGS.tex]] is a
+one-line change through the [[?=]] operator, and an explicit [[-autodefs]]
+is merged with the discovered set without duplication.
+The pipeline has no fixed size: the dbosk fork's [[noweave]] accumulates
+filters in a single variable and joins them with [[|]], so any number of
+autodefs filters stack alongside [[-autolang]], [[-index]] (which inserts
+two filters, [[finduses]] and [[noidx]]) and [[tominted]] in one weave.
+Older, pre-fork [[noweave]] enumerated only seven filter slots---a
+portability artifact of the array-less [[/bin/sh]] pipeline builder---and
+also lacked discovery, so against such a [[noweave]] one would both list
+the [[-autodefs]] filters by hand and keep their number within the slot
+budget; the fork removes both constraints.
 
 The [[tominted]] filter typesets each chunk with the minted package,
 choosing the lexer per chunk from the same language annotations.
