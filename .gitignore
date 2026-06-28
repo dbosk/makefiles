@@ -3,7 +3,6 @@ exam.tex
 gitattributes
 haskell.tex
 ltxobj
-latexmkrc
 makefiles.pdf
 makefiles.pytxcode
 noweb.tex
