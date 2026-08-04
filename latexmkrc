@@ -1,6 +1,6 @@
 add_cus_dep( 'nlo', 'nls', 0, 'makenlo2nls' );
 sub makenlo2nls {
-	system( "makeindex -s nomencl.ist -o \"$_[0].nls\" \"$_[0].nlo\"" );
+        system( "makeindex -s nomencl.ist -o \"$_[0].nls\" \"$_[0].nlo\"" );
 }
 #  This version has a fudge on the latex and pdflatex commands that
 #  allows the pythontex custom dependency to work even when $out_dir
@@ -16,7 +16,7 @@ sub pythontex {
     # side effects in creating other files.  The dependence is a way
     # of triggering the rule to be run whenever the .pytxcode file
     # changes, and to do this before running latex/pdflatex again.
-    return system("pythontex3 --verbose \"$_[0]\"");
+    return system("python3 \$(which pythontex) --interpreter python:python3 --verbose \"$_[0]\"");
 }
 
 $pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
