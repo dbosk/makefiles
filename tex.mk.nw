@@ -104,6 +104,23 @@ variables.
 <<variables>>=
 PYTHONTEX?=       python3 $$(which pythontex)
 PYTHONTEXFLAGS?=  --interpreter python:python3
+@ A document that executes its own package in [[pycode]] blocks must run
+PythonTeX under an interpreter that can import that package, which is rarely
+the bare [[python3]] on the path.
+Such a project overrides the flags in its own makefile, for instance
+\begin{lstlisting}
+PYTHONTEXFLAGS= --interpreter "python:poetry run python3"
+\end{lstlisting}
+to reach a virtualenv-managed interpreter instead.
+
+That override must also reach latexmk(1), which runs PythonTeX through a
+custom dependency of its own (\cref{tex:PythonTeX}) rather than through the
+make rules above.
+A latexmkrc is Perl read by a separate process, so it cannot see make's
+variables; exporting them turns them into environment variables, which is the
+one channel that does cross that boundary.
+<<variables>>=
+export PYTHONTEX PYTHONTEXFLAGS
 @
 
 Finally, we provide targets to easily add external classes as dependencies.
@@ -329,6 +346,7 @@ sub makenlo2nls {
 @
 
 \subsection{PythonTeX}
+\label{tex:PythonTeX}
 
 Occasionally we use PythonTeX.
 We also provide a target for the required files.
@@ -376,8 +394,40 @@ sub pythontex {
     # side effects in creating other files.  The dependence is a way
     # of triggering the rule to be run whenever the .pytxcode file
     # changes, and to do this before running latex/pdflatex again.
-    return system("python3 \$(which pythontex) --interpreter python:python3 --verbose \"$_[0]\"");
+    <<run PythonTeX with the configured interpreter>>
 }
+@
+
+Here we depart from the \ac{CTAN} original, which hardcodes its own PythonTeX
+invocation.
+Hardcoding leaves two independent paths to the same work---the make rule above
+and this custom dependency---that agree only by coincidence, and the coincidence
+breaks precisely for the projects that need PythonTeX most: the ones whose
+document imports a package that only a virtualenv interpreter can find.
+Worse, the two paths disagree silently.
+LaTeX still succeeds, latexmk still reports the custom dependency as run, and
+the only symptom is a Python traceback about a missing module, several build
+stages away from the setting that caused it.
+
+Reading the two variables back out of the environment collapses the pair into a
+single configuration point: whatever the project set in its makefile is what
+runs, on both paths.
+The literal defaults survive as Perl fallbacks so that running latexmk(1) by
+hand, with no make in the picture and hence an empty environment, behaves
+exactly as it did before.
+We distinguish unset from empty, so that a project can deliberately pass no
+flags at all without silently getting the defaults back.
+
+<<run PythonTeX with the configured interpreter>>=
+my $pythontex = $ENV{PYTHONTEX} || 'python3 $(which pythontex)';
+my $pythontexflags = $ENV{PYTHONTEXFLAGS} // '--interpreter python:python3';
+return system("$pythontex $pythontexflags --verbose \"$_[0]\"");
+@
+
+Returning to the \ac{CTAN} code, the remaining fudge is the symbolic-link
+trickery that lets the custom dependency be detected at all when [[$out_dir]]
+is in use.
+<<[[latexmkrc]]>>=
 
 $pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
 $latex = 'internal mylatex %R %Z latex %O %S';
