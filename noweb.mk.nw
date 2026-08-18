@@ -17,9 +17,8 @@ This assumes that the file is independent, \ie no special LaTeX preamble.
 By default, [[NOWEAVE.tex]] weaves syntax-highlighted chunks through
 noweb's [[tominted]] filter with a language-aware identifier index.
 This requires noweb with the [[autolang]] and [[tominted]] filters (the
-dbosk fork), a preamble that loads the minted package, LaTeX run with
-[[-shell-escape]], and the document depending on [[noweb_lexer.py]]
-(a rule for which this include provides).
+dbosk fork), a preamble that loads the minted package, and LaTeX run with
+[[-shell-escape]].
 The implementation section motivates each flag; everything is set with
 [[?=]], so a project that lacks the fork falls back by setting
 [[NOWEAVEFLAGS.tex]] itself.
@@ -68,7 +67,6 @@ that rule first.
 <<suffix rules for weaving documentation>>=
 <<suffix rule for weaving to PDF>>
 <<suffix rule for weaving to TeX>>
-<<rule providing the minted lexer>>
 @
 
 Now, for the first case, we let
@@ -78,7 +76,7 @@ NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
                     -langrule '^test \[\[.*\.py\]\]=python' \
                     -langrule '^test \[\[.*\.sh\]\]=bash' \
                     -langrule '^test \[\[Makefile\]\]=make' \
-                    -index -filter 'tominted -lexer ${NOWEB_LEXER}'
+                    -index -filter tominted
 @ These flags weave syntax-highlighted documentation with a language-aware
 identifier index; they require noweb with the [[autolang]] and [[tominted]]
 filters (the dbosk fork) and the Icon autodefs filters.
@@ -141,11 +139,24 @@ minted and LaTeX must run with [[-shell-escape]] (minted runs Pygments).
 The preamble loads minted through the noweb package, with
 [[\usepackage[minted]{noweb}]], rather than a separate
 [[\usepackage{minted}]]; see [[preamble.tex]].
-The [[-lexer]] argument loads noweb's bundled Pygments lexer, which keeps
-chunk references hyperlinked even inside Python string literals, where
-stock Pygments refuses to escape to LaTeX; minted resolves the path
-relative to where LaTeX runs, which is why we provide a rule for copying
-the lexer file below.
+The filter also loads noweb's bundled Pygments lexer, which keeps chunk
+references hyperlinked even inside Python string literals, where stock
+Pygments refuses to escape to LaTeX.
+We pass no [[-lexer]] argument for it: [[tominted]] finds the lexer next
+to its own script and writes that absolute path into the woven TeX, so
+the file never has to be copied next to the LaTeX sources.
+An explicit [[-lexer]] would name the file relative to where LaTeX runs
+instead, and minted would fail to find it.
+
+What cannot be automated is minted's security policy---loading a custom
+lexer is arbitrary code execution, so latexminted refuses any lexer whose
+SHA-256 hash is not whitelisted in
+[[~/.config/latexminted/.latexminted_config]].
+That is a one-time setup per machine, repeated whenever the lexer changes,
+as after a noweb upgrade; without it LaTeX aborts with a custom lexer
+error.
+A project that would rather whitelist nothing can weave with
+[[-filter 'tominted -nolexer']], losing only the in-string references.
 
 Now we need to specify all the suffixes to use and then construct suffix rules
 for all of them.
@@ -166,28 +177,6 @@ endef
 
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 @
-
-\paragraph{Providing the minted lexer}
-
-The woven TeX asks minted to load [[noweb_lexer.py]] from the directory
-where LaTeX runs, but the file ships with noweb, in its library directory.
-That directory is not on any standard search path; however, the
-[[noweave]] script carries it in its [[LIB=]] line, so we read it from
-there instead of hard-coding an installation prefix.
-<<rule providing the minted lexer>>=
-${NOWEB_LEXER}:
-	cp ${NOWEB_LIB}/noweb_lexer.py $@
-<<variables>>=
-NOWEB_LEXER?=       noweb_lexer.py
-NOWEB_LIB?=         $(shell sed -n 's/^LIB=//p' \
-                      $(shell command -v noweave) | head -1)
-@ This include cannot know the name of the document that needs the lexer,
-so it only provides the rule; the including Makefile declares the
-dependency, as in [[doc.pdf: noweb_lexer.py]].
-Remember to add [[noweb_lexer.py]] to the project's [[.gitignore]] and
-clean recipe, and that minted refuses custom lexers that are not
-whitelisted by SHA-256 hash in [[~/.config/latexminted/.latexminted_config]]
-(a one-time setup per machine).
 
 To differentiate the second case from the first (in terms of suffix rules), we
 go from [[.nw]] directly to [[.pdf]]\footnote{%

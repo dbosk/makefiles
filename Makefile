@@ -25,7 +25,6 @@ makefiles.pdf: exam.bib
 makefiles.pdf: transform.bib
 makefiles.pdf: tex.bib
 makefiles.pdf: Dockerfile.tex
-makefiles.pdf: noweb_lexer.py
 define makefiles_depends
 makefiles.pdf: $(1:.mk=.tex)
 $(1) $(1:.mk=.tex): $(1).nw
@@ -61,7 +60,6 @@ all: makefiles.tar.gz
 clean:
 	${RM} makefiles.pdf
 	${RM} Dockerfile.tex
-	${RM} noweb_lexer.py
 	${RM} ${MKFILES:.mk=.tex}
 	${RM} gitattributes
 	${RM} makefiles.tar.gz
