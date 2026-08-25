@@ -28,22 +28,12 @@ The reason is that [[latexmk]] doesn't stop on error, it just keeps on going.
 input---which it does otherwise.
 So the [[-halt-on-error]] option actually makes it more likely that we miss
 that an error occurred.
-
-For a related reason we run \TeX{} in non-stop mode with
-[[-interaction=nonstopmode]].
-By default \TeX{} halts at the first error and waits for input from the
-terminal; under [[latexmk]] that input never arrives, so the run dies in the
-middle without writing the auxiliary files that later steps depend on---most
-importantly the [[.bcf]] file that biber(1) reads to resolve citations.
-That turns a recoverable warning into a build that can never make progress: no
-[[.bcf]] means no bibliography, which keeps the citations undefined, which keeps
-the error coming back.
-In non-stop mode \TeX{} instead logs the error and runs the round to the end,
-producing those files so the build can proceed, while the error itself is still
-recorded in the log where we can see it.
+For the same reason we leave \TeX{} in its default interactive mode rather
+than passing [[-interaction=nonstopmode]]: when \TeX{} stops at an error we
+want to see it, not have the run plough on and bury the error in the log.
 <<variables>>=
-LATEX?=           latexmk -dvi -use-make -8bit -interaction=nonstopmode
-PDFLATEX?=        latexmk -pdf -use-make -8bit -interaction=nonstopmode
+LATEX?=           latexmk -dvi -use-make -8bit
+PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}

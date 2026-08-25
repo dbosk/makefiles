@@ -6,8 +6,8 @@ TEX_MK=true
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
-LATEX?=           latexmk -dvi -use-make -8bit -interaction=nonstopmode
-PDFLATEX?=        latexmk -pdf -use-make -8bit -interaction=nonstopmode
+LATEX?=           latexmk -dvi -use-make -8bit
+PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
