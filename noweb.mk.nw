@@ -333,9 +333,30 @@ In this rule, we have a file with a supported suffix [[.suf]] depend on the
 NOWEB source file with suffix [[.nw]].
 Then we let the recipe be set by the variable [[NOTANGLE.suf]], which is the 
 convention followed by make(1)~\cite[Sect.\ 10.2]{GNUMake}.
+
+We must spell this out as one rule per suffix, rather than listing every
+supported suffix as targets of a single pattern rule.
+A pattern rule with several targets does not stand for several
+independent rules: make takes it to mean that one run of the recipe
+produces \emph{all} of them~\cite[Sect.\ 10.5.1]{GNUMake}.
+Since GNU Make 4.4 that reading is stated out loud, as a
+\enquote{pattern recipe did not update peer target} warning for every
+target the recipe did not happen to write.
+A source file that tangles one [[.py]] module would thus report the
+[[.c]], [[.hs]], [[.sty]] and every other supported file it was never
+going to create --- a dozen or more warnings per file built.
+
+What we mean is the opposite: each suffix is an independent way to
+tangle the same source.
+Generating one single-target rule per suffix says that, using the same
+[[define]]--[[foreach]]--[[eval]] idiom as the rules with the suffix in
+the source name below.
 <<tangle source files without suffix>>=
-$(addprefix %,${NOWEB_SUFFIXES}): %.nw
-	${NOTANGLE$(suffix $@)}
+define without_suffix_target
+%$(1): %.nw
+	$${NOTANGLE$$(suffix $$@)}
+endef
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call without_suffix_target,${suf})))
 @
 
 For the other case, we add rules using the suffix prefixed to [[.nw]].

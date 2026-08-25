@@ -95,8 +95,11 @@ define with_suffix_target
 	$${NOTANGLE$$(suffix $$@)}
 endef
 $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call with_suffix_target,${suf})))
-$(addprefix %,${NOWEB_SUFFIXES}): %.nw
-	${NOTANGLE$(suffix $@)}
+define without_suffix_target
+%$(1): %.nw
+	$${NOTANGLE$$(suffix $$@)}
+endef
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call without_suffix_target,${suf})))
 %.h: %.c.nw
 	${NOTANGLE.h}
 
