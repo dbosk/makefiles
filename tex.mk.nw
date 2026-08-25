@@ -346,11 +346,33 @@ However, this construction requires that we load PythonTeX as follows.
 \end{minted}
 
 The code is as follows.
+As with the document files of \cref{tex:DocumentFiles}, we let the [[.pytxmcr]]
+file be asked for under both its plain name and its name inside
+[[TEX_OUTDIR]]; and for the reason explained there, that has to be written as
+one rule per name instead of one rule listing both.
 <<PythonTeX files>>=
 ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
-%.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
-	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
+%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	<<run PythonTeX in the output directory>>
+${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	<<run PythonTeX in the output directory>>
+@
+
+Both rules keep the double colon they had as a pair.
+On a pattern rule the double colon does not mean what it means on an ordinary
+one: it marks the rule \emph{terminal}, so make(1) will not build the
+[[.pytxcode]] prerequisite through another implicit rule but requires it to
+exist already~\cite[Sect.\ 10.5.5]{GNUMake}.
+That is deliberate here---latexmk(1) writes the [[.pytxcode]] as a side effect
+of running LaTeX---so splitting the targets must not quietly drop it.
+
+PythonTeX writes its output next to the [[.pytxcode]] file, that is inside
+[[TEX_OUTDIR]], whichever of the two names make(1) was asked for.
+Naming the recipe once and referring to it from both rules keeps them
+identical, so there is no second copy to drift.
+<<run PythonTeX in the output directory>>=
+cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 @
 
 As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
@@ -414,25 +436,66 @@ sub mylatex {
 @
 
 \subsection{Document files}
+\label{tex:DocumentFiles}
 
 Now that we have all prerequisite files, we can actually compile the document.
-For simplicity we add file in both the current working directory and the 
+For simplicity we add file in both the current working directory and the
 [[TEX_OUTDIR]] as targets.
-The reason for this is that it makes the makefile easier to write, usually we 
-prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in 
+The reason for this is that it makes the makefile easier to write, usually we
+prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in
 the [[TEX_OUTDIR]] directory.
-And for the same reason, we create a symbolic link between them after 
+And for the same reason, we create a symbolic link between them after
 compilation --- this allows make(1) to track modification times correctly.
-(We need a symbolic link, rather than a hard link, because upon recompilation, 
+(We need a symbolic link, rather than a hard link, because upon recompilation,
 the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
-<<document files>>=
-%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
-	${COMPILE.tex}
-	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
-	<<compile DVI>>
-	-${LN} ${TEX_OUTDIR}/$@ $@
+These two names are \emph{alternatives}: each is a way of asking for the same
+document, and one compilation satisfies whichever one was asked for.
+That is not what a pattern rule with two targets means to make(1).
+Unlike an ordinary rule, a pattern rule listing several targets does not stand
+for several independent rules; make(1) reads it as a single recipe that
+produces \emph{all} of them~\cite[Sect.\ 10.5.1]{GNUMake}.
+Since GNU Make 4.4 that reading is said out loud, as a \enquote{pattern recipe
+did not update peer target} warning for every listed target the recipe did not
+happen to write---and our recipe writes one of the two names and links the
+other, so the claim was wrong to begin with.
+
+We therefore give each name its own single-target rule.
+The rules make(1) ends up with are the same; only the false claim that one run
+produces both goes away.
+The split leaves the two patterns distinct whenever [[TEX_OUTDIR]] names a
+separate directory, which is the default ([[ltxobj]]): asking for [[doc.pdf]]
+selects the first rule, asking for [[ltxobj/doc.pdf]] the second, and both run
+the same recipe.
+Setting [[TEX_OUTDIR]] to [[.]] makes the two patterns coincide instead; since
+their recipes are identical, that changes nothing---just as it changed nothing
+before, when make(1) saw the same pattern listed twice inside one rule.
+And [[TEX_OUTDIR]] is never simply unset, because the [[?=]] assignment above
+gives it a default; were it set to the empty string, the second target would
+read [[/%.pdf]], an absolute pattern matching nothing we build, both before
+and after this change.
+<<document files>>=
+%.pdf: %.tex
+	<<compile and link the PDF>>
+${TEX_OUTDIR}/%.pdf: %.tex
+	<<compile and link the PDF>>
+
+%.dvi: %.tex
+	<<compile and link the DVI>>
+${TEX_OUTDIR}/%.dvi: %.tex
+	<<compile and link the DVI>>
+@
+
+Writing each recipe once and referring to it from both rules of a pair keeps
+them honestly identical.
+<<compile and link the PDF>>=
+${COMPILE.tex}
+-${LN} ${TEX_OUTDIR}/$@ $@
+@
+
+<<compile and link the DVI>>=
+<<compile DVI>>
+-${LN} ${TEX_OUTDIR}/$@ $@
 @
 
 The compilation step for DVI is the usual.

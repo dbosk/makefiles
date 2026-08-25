@@ -77,13 +77,25 @@ ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
 	${COMPILE.nlo}
 ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
-%.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
 	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
-%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
+${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
+%.pdf: %.tex
+	${COMPILE.tex}
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.pdf: %.tex
 	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
+%.dvi: %.tex
+	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	for i in 1 2 3 4 5; do \
+	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	done
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.dvi: %.tex
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
