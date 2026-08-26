@@ -13,10 +13,10 @@ PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< || exit $$?; \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< || exit $$?; \
   done
 COMPILE.dtx?=     ${COMPILE.tex}
 TEX_BBL?=
@@ -84,7 +84,7 @@ ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
 latexmkrc:
@@ -100,7 +100,7 @@ latexmkrc:
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx

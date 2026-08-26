@@ -36,10 +36,10 @@ PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< || exit $$?; \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< || exit $$?; \
   done
 COMPILE.dtx?=     ${COMPILE.tex}
 @ The [[COMPILE.tex]] command compiles once and then reruns for as long as the
@@ -51,6 +51,18 @@ the bound the loop above would relaunch latexmk forever.
 This happens for documents whose layout has no fixed point, such as a noweb
 [[longxref]] continuation list whose line count feeds back into the pagination
 it describes.
+
+Every latexmk(1) invocation above ends in [[|| exit $$?]], and that trailing
+clause is what makes a failed compilation a failed build.
+A recipe reports the exit status of its \emph{last} command, and the last
+command here is the [[for]] loop; the loop ends by running [[break]], which
+succeeds.
+Without the explicit exits, a document that latexmk(1) could not compile
+therefore left make(1) reporting success---the build went green while the PDF
+was broken or missing, which is the worst way for a build system to fail.
+Propagating the status at each call site rather than once after the loop has
+the further merit of not spending four more passes on a document we already
+know is broken.
 
 Thus one would have to change the [[COMPILE.tex]] variable to change format
 from PDF to DVI unless a suffix rule is used.
@@ -441,11 +453,15 @@ The compilation step for DVI is the usual.
 We compile once, then we recompile as long as the log file tells us to---but,
 as for [[COMPILE.tex]] above, at most five extra passes so that a document
 that never converges ends the build instead of looping latexmk forever.
+The reruns need the same [[|| exit $$?]] as the PDF path.
+The first pass is a recipe line of its own, so make(1) already checks it, but
+everything inside the loop would otherwise have its status swallowed by the
+terminating [[break]].
 <<compile DVI>>=
 ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 for i in 1 2 3 4 5; do \
   grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
 done
 @
 
