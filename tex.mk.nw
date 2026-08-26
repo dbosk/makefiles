@@ -110,7 +110,7 @@ Anything else is still a failure, with latexmk(1)'s status.
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
-PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 # The rerun loop is bounded: latexmk already reruns internally and gives
@@ -129,6 +129,14 @@ COMPILE.tex?=     \
 COMPILE.dtx?=     ${COMPILE.tex}
 @ Thus one would have to change the [[COMPILE.tex]] variable to change format
 from PDF to DVI unless a suffix rule is used.
+
+The two compilation variables belong to different rules.
+[[COMPILE.tex]] builds the document itself, whereas [[PREPROCESS.tex]] builds
+the files LaTeX writes on the way---the [[.aux]], the [[.bcf]], the [[.idx]],
+the [[.nlo]]---for the rules of \cref{tex:AuxFiles}.
+Both name the output directory explicitly, and for [[PREPROCESS.tex]] that is
+not a matter of tidiness but of whether its rules work at all;
+\cref{tex:AuxFiles} is where that argument belongs.
 
 Each run is wrapped so that its output reaches both the terminal and a file
 we can read afterwards.
@@ -355,6 +363,7 @@ tool, \eg bibtex(1), to be run, these files just requires another run of
 latex(1).
 
 \subsection{Auxillary files}
+\label{tex:AuxFiles}
 
 Many steps in compiling a LaTeX document needs the [[.aux]] file.
 Thus we will first introduce a rule for creating the [[.aux]] file.
@@ -368,7 +377,41 @@ ${MKDIR} ${TEX_OUTDIR}
 ${PREPROCESS.tex}
 @
 
+Making the directory and writing into it are two separate things, and the
+recipe long did only the first.
+[[PREPROCESS.tex]] was a bare latexmk(1) run, and a bare latexmk(1) run puts
+its files beside the [[.tex]] source; the rule therefore created an empty
+[[TEX_OUTDIR]], left the [[.aux]] in the working directory, and returned zero.
+Nothing contradicted it.
+make(1) judges a recipe by its exit status and not by what appeared on disk,
+so a rule that ends successfully is a rule that has done its job.
+So the rule reported success and its own target did not exist---which is the
+worst of the two ways to be wrong, because the report is what the rest of the
+build goes by.
+
+Who noticed was whoever asked for the file next, one step removed from the
+rule at fault.
+bibtex(1) is handed [[${TEX_OUTDIR}/%.aux]] by the rule of
+\cref{tex:Bibliographies} and answers \enquote{I couldn't open file name};
+texindy(1) and makeindex(1) say as much of the [[.idx]] and the [[.nlo]].
+The [[.bcf]] has no such downstream complaint to make, so there the file
+simply stayed missing and the build went on as if it were not.
+
+Telling latexmk(1) where to write is the whole fix, and it is the same
+[[-output-directory]] the compilation commands of \cref{tex:Intro} already
+carry.
+Each of these rules then produces the target it names, which is also what
+lets the rules below rely on it.
+
+The degenerate configurations ask for nothing further.
+Set [[TEX_OUTDIR]] to [[.]] and the option names the working directory, which
+is where these files went anyway.
+Set it to the empty string and the rules are unreachable to begin with: their
+targets read [[/%.aux]] and so on, absolute patterns matching nothing we
+build, just as \cref{tex:DocumentFiles} observes of [[/%.pdf]].
+
 \subsection{Bibliographies}
+\label{tex:Bibliographies}
 
 One file that is commonly needed is the one used to create the bibliography, 
 the [[.bbl]] file.
@@ -594,8 +637,8 @@ For simplicity we add file in both the current working directory and the
 The reason for this is that it makes the makefile easier to write, usually we
 prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in
 the [[TEX_OUTDIR]] directory.
-And for the same reason, we create a symbolic link between them after
-compilation --- this allows make(1) to track modification times correctly.
+And for the same reason, the rule for the plain name links it to the compiled
+file afterwards --- this allows make(1) to track modification times correctly.
 (We need a symbolic link, rather than a hard link, because upon recompilation,
 the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
 
@@ -615,38 +658,87 @@ The rules make(1) ends up with are the same; only the false claim that one run
 produces both goes away.
 The split leaves the two patterns distinct whenever [[TEX_OUTDIR]] names a
 separate directory, which is the default ([[ltxobj]]): asking for [[doc.pdf]]
-selects the first rule, asking for [[ltxobj/doc.pdf]] the second, and both run
-the same recipe.
-Setting [[TEX_OUTDIR]] to [[.]] makes the two patterns coincide instead; since
-their recipes are identical, that changes nothing---just as it changed nothing
-before, when make(1) saw the same pattern listed twice inside one rule.
+selects the first rule, asking for [[ltxobj/doc.pdf]] the second, and both
+compile the document the same way.
+Setting [[TEX_OUTDIR]] to [[.]] makes the two patterns coincide instead, since
+make(1) reads [[./%.pdf]] and [[%.pdf]] as one name; of two pattern rules with
+the same target and prerequisite patterns it keeps the later, and [[make -p]]
+duly reports a single [[%.pdf: %.tex]] carrying the second rule's recipe.
+That is the one to keep.
+When the output directory is the working directory, the compilation has
+already written the file under the plain name, and the rule that links
+nothing is exactly the rule such a build wants.
+The order within each pair is thus load-bearing in that one configuration,
+where before the split it was not.
 And [[TEX_OUTDIR]] is never simply unset, because the [[?=]] assignment above
 gives it a default; were it set to the empty string, the second target would
 read [[/%.pdf]], an absolute pattern matching nothing we build, both before
 and after this change.
 <<document files>>=
 %.pdf: %.tex
-	<<compile and link the PDF>>
+	<<compile PDF>>
+	<<link the plain name to the output directory>>
 ${TEX_OUTDIR}/%.pdf: %.tex
-	<<compile and link the PDF>>
+	<<compile PDF>>
 
 %.dvi: %.tex
-	<<compile and link the DVI>>
+	<<compile DVI>>
+	<<link the plain name to the output directory>>
 ${TEX_OUTDIR}/%.dvi: %.tex
-	<<compile and link the DVI>>
+	<<compile DVI>>
 @
 
-Writing each recipe once and referring to it from both rules of a pair keeps
-them honestly identical.
-<<compile and link the PDF>>=
+The compilation is written once and referred to from both rules of a pair, so
+the work they genuinely have in common cannot drift apart.
+<<compile PDF>>=
 ${COMPILE.tex}
--${LN} ${TEX_OUTDIR}/$@ $@
 @
 
-<<compile and link the DVI>>=
-<<compile DVI>>
--${LN} ${TEX_OUTDIR}/$@ $@
+What the two rules do \emph{not} share is the link, and that is the whole
+point of it.
+The link exists to give the plain name to a file the compilation wrote inside
+[[TEX_OUTDIR]]; a rule whose target already carries that prefix has been
+handed the file under the name it was asked for, and has nothing left to
+link.
+Both rules used to run [[-${LN} ${TEX_OUTDIR}/$@ $@]] all the same, which is
+right for [[doc.pdf]] and nonsense for [[ltxobj/doc.pdf]]: with the prefix
+already in [[$@]] it expands to
+\begin{lstlisting}
+ln -sf ltxobj/ltxobj/doc.pdf ltxobj/doc.pdf
+\end{lstlisting}
+and replaces the PDF that had just been compiled with a symbolic link to
+a path that does not exist.
+The leading [[-]] then swallowed whatever ln(1) had to say, so make(1)
+reported success over a document that was no longer there.
+The [[.dtx]] rules of \cref{tex:ClassFiles} did the same.
+
+The plain name has a version of the same accident, in the configuration where
+[[TEX_OUTDIR]] is the empty string: there [[${TEX_OUTDIR}/$@]] reads
+[[/doc.pdf]], and linking the one real file away to it is destructive in
+exactly the same way.
+Setting [[TEX_OUTDIR]] to [[.]] gets no further either, but there ln(1) saves
+us---it declines to link a file to itself, calling the two \enquote{the same
+file}---at the price of an error message on every build.
+
+Both are the same question asked too late: whether the two names are two
+files at all.
+We ask it first instead, and of the directories rather than the names, since
+that is where the answer comes from.
+<<link the plain name to the output directory>>=
+-[ "$(or ${TEX_OUTDIR},.)" -ef . ] || ${LN} ${TEX_OUTDIR}/$@ $@
 @
+
+The test is the one [[clean-tex]] already uses to decide whether
+[[TEX_OUTDIR]] is a directory of its own.
+[[-ef]] compares the files behind the names instead of the names themselves,
+so a [[TEX_OUTDIR]] of [[./ltxobj]], or an absolute path naming the working
+directory, is recognised as well as a plain [[.]]; and the [[$(or ...)]]
+covers the empty string, where the directory latexmk(1) writes into is the
+working directory.
+When the two do name one directory, the compilation has already written the
+file under the plain name and the recipe is done.
+The [[-]] stays: a link that cannot be made is a nuisance, not a reason to
+throw away a document that compiled.
 
 The compilation step for DVI is the usual.
 We compile once, then we recompile as long as the log file tells us to---and,
@@ -680,6 +772,7 @@ ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
 
 
 \section{Targets for class and package files}
+\label{tex:ClassFiles}
 
 There are two parts concerning class and package files.
 <<targets for class and package files>>=
@@ -716,25 +809,53 @@ package to DVI is the same work as compiling a document---so it reuses the one
 named in \cref{tex:DocumentFiles}.
 <<compile class and package documentation>>=
 %.pdf: %.dtx
-	<<compile and link the package PDF>>
+	<<compile package PDF>>
+	<<link the plain name to the output directory>>
 ${TEX_OUTDIR}/%.pdf: %.dtx
-	<<compile and link the package PDF>>
+	<<compile package PDF>>
 
 %.dvi: %.dtx
-	<<compile and link the DVI>>
+	<<compile DVI>>
+	<<link the plain name to the output directory>>
 ${TEX_OUTDIR}/%.dvi: %.dtx
-	<<compile and link the DVI>>
+	<<compile DVI>>
 @
 
 Only the PDF recipe is genuinely its own, and only because DocTeX gets
 compiled through [[COMPILE.dtx]] rather than [[COMPILE.tex]].
-<<compile and link the package PDF>>=
+The link follows the same division as in \cref{tex:DocumentFiles}, for the
+same reason: only the rule whose target lacks the [[TEX_OUTDIR]] prefix has
+a name left to give the file.
+<<compile package PDF>>=
 ${COMPILE.dtx}
--${LN} ${TEX_OUTDIR}/$@ $@
 @ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
+These three files are alternatives in much the same sense as the two names of
+\cref{tex:DocumentFiles}: which of them a build wants follows from what the
+class loads, and one preprocessing run writes whichever of them that
+particular document has.
+Listed as the targets of a single pattern rule they instead claim that every
+run writes all three, and GNU Make 4.4 answers with a \enquote{pattern recipe
+did not update peer target} for each one it did not.
+The rule was quiet about that for as long as its recipe wrote none of the
+three; now that the run goes where the targets are, it writes one, and make(1)
+starts pointing at the other two.
+So here too we give each name a rule of its own.
 <<compile class and package documentation>>=
-${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
-	${PREPROCESS.dtx}
+${TEX_OUTDIR}/%.aux: %.dtx
+	<<create output directory and preprocess DocTeX>>
+${TEX_OUTDIR}/%.bcf: %.dtx
+	<<create output directory and preprocess DocTeX>>
+${TEX_OUTDIR}/%.idx: %.dtx
+	<<create output directory and preprocess DocTeX>>
+@
+
+The recipe is the one of \cref{tex:AuxFiles} with [[PREPROCESS.dtx]] in the
+place of [[PREPROCESS.tex]], so that a project compiling its DocTeX sources
+with something of its own keeps that choice in these rules as well.
+Naming it once is what keeps the three copies from drifting apart.
+<<create output directory and preprocess DocTeX>>=
+${MKDIR} ${TEX_OUTDIR}
+${PREPROCESS.dtx}
 @
 
 

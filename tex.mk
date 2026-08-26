@@ -9,7 +9,7 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
-PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 # The rerun loop is bounded: latexmk already reruns internally and gives
@@ -108,10 +108,9 @@ ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
 	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 %.pdf: %.tex
 	${COMPILE.tex}
-	-${LN} ${TEX_OUTDIR}/$@ $@
+	-[ "$(or ${TEX_OUTDIR},.)" -ef . ] || ${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.pdf: %.tex
 	${COMPILE.tex}
-	-${LN} ${TEX_OUTDIR}/$@ $@
 
 %.dvi: %.tex
 	${RUN_LATEX}; ${CHECK_LATEXMK}; \
@@ -120,7 +119,7 @@ ${TEX_OUTDIR}/%.pdf: %.tex
 	  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
 	done; \
 	exit 0
-	-${LN} ${TEX_OUTDIR}/$@ $@
+	-[ "$(or ${TEX_OUTDIR},.)" -ef . ] || ${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.dvi: %.tex
 	${RUN_LATEX}; ${CHECK_LATEXMK}; \
 	for i in 1 2 3 4 5; do \
@@ -128,7 +127,6 @@ ${TEX_OUTDIR}/%.dvi: %.tex
 	  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
 	done; \
 	exit 0
-	-${LN} ${TEX_OUTDIR}/$@ $@
 latexmkrc:
 	[ -e $@ -o "${INCLUDE_MAKEFILES}" = "." ] || \
 	${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
@@ -136,10 +134,9 @@ latexmkrc:
 	${LATEX} $<
 %.pdf: %.dtx
 	${COMPILE.dtx}
-	-${LN} ${TEX_OUTDIR}/$@ $@
+	-[ "$(or ${TEX_OUTDIR},.)" -ef . ] || ${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.pdf: %.dtx
 	${COMPILE.dtx}
-	-${LN} ${TEX_OUTDIR}/$@ $@
 
 %.dvi: %.dtx
 	${RUN_LATEX}; ${CHECK_LATEXMK}; \
@@ -148,7 +145,7 @@ ${TEX_OUTDIR}/%.pdf: %.dtx
 	  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
 	done; \
 	exit 0
-	-${LN} ${TEX_OUTDIR}/$@ $@
+	-[ "$(or ${TEX_OUTDIR},.)" -ef . ] || ${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.dvi: %.dtx
 	${RUN_LATEX}; ${CHECK_LATEXMK}; \
 	for i in 1 2 3 4 5; do \
@@ -156,8 +153,14 @@ ${TEX_OUTDIR}/%.dvi: %.dtx
 	  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
 	done; \
 	exit 0
-	-${LN} ${TEX_OUTDIR}/$@ $@
-${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
+${TEX_OUTDIR}/%.aux: %.dtx
+	${MKDIR} ${TEX_OUTDIR}
+	${PREPROCESS.dtx}
+${TEX_OUTDIR}/%.bcf: %.dtx
+	${MKDIR} ${TEX_OUTDIR}
+	${PREPROCESS.dtx}
+${TEX_OUTDIR}/%.idx: %.dtx
+	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.dtx}
 define download_archive
 $(foreach file,${TEX_EXT_FILES-$(1)},\
