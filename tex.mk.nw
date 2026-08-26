@@ -37,6 +37,7 @@ PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 COMPILE.tex?=     \
   ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< || exit $$?; \
+  ${PYTHONTEX_PASS} \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
     ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< || exit $$?; \
@@ -51,6 +52,8 @@ the bound the loop above would relaunch latexmk forever.
 This happens for documents whose layout has no fixed point, such as a noweb
 [[longxref]] continuation list whose line count feeds back into the pagination
 it describes.
+The [[PYTHONTEX_PASS]] between the first pass and the loop is empty unless the
+document uses PythonTeX; we return to it in \cref{tex:PythonTeX}.
 
 Every latexmk(1) invocation above ends in [[|| exit $$?]], and that trailing
 clause is what makes a failed compilation a failed build.
@@ -341,6 +344,7 @@ sub makenlo2nls {
 @
 
 \subsection{PythonTeX}
+\label{tex:PythonTeX}
 
 Occasionally we use PythonTeX.
 We also provide a target for the required files.
@@ -357,15 +361,79 @@ ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 %.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
 	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
-@
+@ These targets exist for latexmk(1) rather than for us.
+We run latexmk(1) with [[-use-make]], so when latex(1) reports the
+[[.pytxmcr]] file as \emph{missing}---which happens on the very first
+compilation of a document---latexmk(1) asks make(1) to produce it and the
+rules above answer.
 
-As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
-file as a prerequisite if the variable [[TEX_PYTHONTEX]] is set.
-<<bibliography files>>=
+\paragraph{Why a prerequisite is not enough}
+
+That leaves the harder half of the problem: keeping the executed code
+\emph{up to date}.
+A PythonTeX document is compiled in three phases.
+Latex(1) writes the [[.pytxcode]] file listing the code to run, pythontex(1)
+executes it and writes the results into the [[.pytxmcr]] file, and latex(1)
+must run once more to typeset those results.
+The [[.pytxmcr]] file that satisfied the first phase is exactly the one that
+has to be regenerated whenever the code in the document changes.
+
+The obvious way to say so is to make the PDF depend on the [[.pytxmcr]] file,
+which is what we used to write:
+\begin{lstlisting}
 ifneq (${TEX_PYTHONTEX},)
 ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.pytxmcr
 endif
-@
+\end{lstlisting}
+That line has no effect whatsoever.
+Adding prerequisites with a recipe-less rule works for ordinary targets, but a
+recipe-less \emph{pattern} rule cannot build anything, so make(1) never
+selects it and its prerequisites are never attached to the pattern rule that
+does have a recipe.
+PythonTeX was thus never in the dependency graph at all, and the missing-file
+path above was the only thing that ever ran it: edit a [[pycode]] block and
+the build happily reprinted the previous run's output until someone deleted
+the [[.pytxmcr]] file by hand.
+
+Moving the prerequisite into the rule that does have a recipe would fix the
+plumbing but not the staleness.
+The prerequisite chain from the [[.pytxmcr]] file bottoms out in the master
+[[.tex]] file, whereas the code PythonTeX executes normally lives in a chapter
+that the master file inputs.
+Only the project's own makefile knows about those inputs, and it declares them
+as prerequisites of the \emph{PDF}\@.
+So the PDF is out of date while the [[.aux]] file it is derived from is not,
+and the chain never fires.
+
+\paragraph{A phase, not a prerequisite}
+
+We therefore stop treating PythonTeX as a dependency and make it a phase of
+the compilation instead, slotted into [[COMPILE.tex]] between the pass that
+writes the [[.pytxcode]] file and the pass that reads the results back.
+Whenever the PDF is rebuilt---for whatever reason the project's makefile knows
+about---PythonTeX is consulted.
+
+Consulting it unconditionally is affordable because both tools memoize.
+Pythontex(1) hashes each session in the [[.pytxcode]] file and re-executes
+only the sessions that changed, and latexmk(1) tracks the [[.pytxmcr]] file
+among the document's inputs, so the extra pass costs one \enquote{nothing to
+do} unless PythonTeX really produced something new.
+<<variables>>=
+ifneq (${TEX_PYTHONTEX},)
+PYTHONTEX_PASS?=  \
+  ( cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} \
+    $(basename $(notdir $<)) ) || exit $$?; \
+  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< || exit $$?;
+else
+PYTHONTEX_PASS?=
+endif
+@ The pass ends with a latex(1) run of its own rather than leaving that to the
+rerun loop in [[COMPILE.tex]], because the loop is driven by the
+\enquote{Rerun to get cross} message and nothing in the log says so after
+pythontex(1) has written new macros.
+Note also that a failing pythontex(1) now fails the build: it exits nonzero
+when the code it executed does, which is how a document can assert that its
+own examples still work.
 
 If we use latexmk(1), then we must also add instructions for this in
 [[<<latexmkrc>>]].
