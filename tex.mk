@@ -9,7 +9,7 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
-PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 # The rerun loop is bounded: latexmk already reruns internally and gives
@@ -157,7 +157,14 @@ ${TEX_OUTDIR}/%.dvi: %.dtx
 	done; \
 	exit 0
 	-${LN} ${TEX_OUTDIR}/$@ $@
-${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
+${TEX_OUTDIR}/%.aux: %.dtx
+	${MKDIR} ${TEX_OUTDIR}
+	${PREPROCESS.dtx}
+${TEX_OUTDIR}/%.bcf: %.dtx
+	${MKDIR} ${TEX_OUTDIR}
+	${PREPROCESS.dtx}
+${TEX_OUTDIR}/%.idx: %.dtx
+	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.dtx}
 define download_archive
 $(foreach file,${TEX_EXT_FILES-$(1)},\

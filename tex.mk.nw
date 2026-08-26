@@ -110,7 +110,7 @@ Anything else is still a failure, with latexmk(1)'s status.
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
-PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 # The rerun loop is bounded: latexmk already reruns internally and gives
@@ -129,6 +129,14 @@ COMPILE.tex?=     \
 COMPILE.dtx?=     ${COMPILE.tex}
 @ Thus one would have to change the [[COMPILE.tex]] variable to change format
 from PDF to DVI unless a suffix rule is used.
+
+The two compilation variables belong to different rules.
+[[COMPILE.tex]] builds the document itself, whereas [[PREPROCESS.tex]] builds
+the files LaTeX writes on the way---the [[.aux]], the [[.bcf]], the [[.idx]],
+the [[.nlo]]---for the rules of \cref{tex:AuxFiles}.
+Both name the output directory explicitly, and for [[PREPROCESS.tex]] that is
+not a matter of tidiness but of whether its rules work at all;
+\cref{tex:AuxFiles} is where that argument belongs.
 
 Each run is wrapped so that its output reaches both the terminal and a file
 we can read afterwards.
@@ -355,6 +363,7 @@ tool, \eg bibtex(1), to be run, these files just requires another run of
 latex(1).
 
 \subsection{Auxillary files}
+\label{tex:AuxFiles}
 
 Many steps in compiling a LaTeX document needs the [[.aux]] file.
 Thus we will first introduce a rule for creating the [[.aux]] file.
@@ -368,7 +377,41 @@ ${MKDIR} ${TEX_OUTDIR}
 ${PREPROCESS.tex}
 @
 
+Making the directory and writing into it are two separate things, and the
+recipe long did only the first.
+[[PREPROCESS.tex]] was a bare latexmk(1) run, and a bare latexmk(1) run puts
+its files beside the [[.tex]] source; the rule therefore created an empty
+[[TEX_OUTDIR]], left the [[.aux]] in the working directory, and returned zero.
+Nothing contradicted it.
+make(1) judges a recipe by its exit status and not by what appeared on disk,
+so a rule that ends successfully is a rule that has done its job.
+So the rule reported success and its own target did not exist---which is the
+worst of the two ways to be wrong, because the report is what the rest of the
+build goes by.
+
+Who noticed was whoever asked for the file next, one step removed from the
+rule at fault.
+bibtex(1) is handed [[${TEX_OUTDIR}/%.aux]] by the rule of
+\cref{tex:Bibliographies} and answers \enquote{I couldn't open file name};
+texindy(1) and makeindex(1) say as much of the [[.idx]] and the [[.nlo]].
+The [[.bcf]] has no such downstream complaint to make, so there the file
+simply stayed missing and the build went on as if it were not.
+
+Telling latexmk(1) where to write is the whole fix, and it is the same
+[[-output-directory]] the compilation commands of \cref{tex:Intro} already
+carry.
+Each of these rules then produces the target it names, which is also what
+lets the rules below rely on it.
+
+The degenerate configurations ask for nothing further.
+Set [[TEX_OUTDIR]] to [[.]] and the option names the working directory, which
+is where these files went anyway.
+Set it to the empty string and the rules are unreachable to begin with: their
+targets read [[/%.aux]] and so on, absolute patterns matching nothing we
+build, just as \cref{tex:DocumentFiles} observes of [[/%.pdf]].
+
 \subsection{Bibliographies}
+\label{tex:Bibliographies}
 
 One file that is commonly needed is the one used to create the bibliography, 
 the [[.bbl]] file.
@@ -732,9 +775,33 @@ compiled through [[COMPILE.dtx]] rather than [[COMPILE.tex]].
 ${COMPILE.dtx}
 -${LN} ${TEX_OUTDIR}/$@ $@
 @ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
+These three files are alternatives in much the same sense as the two names of
+\cref{tex:DocumentFiles}: which of them a build wants follows from what the
+class loads, and one preprocessing run writes whichever of them that
+particular document has.
+Listed as the targets of a single pattern rule they instead claim that every
+run writes all three, and GNU Make 4.4 answers with a \enquote{pattern recipe
+did not update peer target} for each one it did not.
+The rule was quiet about that for as long as its recipe wrote none of the
+three; now that the run goes where the targets are, it writes one, and make(1)
+starts pointing at the other two.
+So here too we give each name a rule of its own.
 <<compile class and package documentation>>=
-${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
-	${PREPROCESS.dtx}
+${TEX_OUTDIR}/%.aux: %.dtx
+	<<create output directory and preprocess DocTeX>>
+${TEX_OUTDIR}/%.bcf: %.dtx
+	<<create output directory and preprocess DocTeX>>
+${TEX_OUTDIR}/%.idx: %.dtx
+	<<create output directory and preprocess DocTeX>>
+@
+
+The recipe is the one of \cref{tex:AuxFiles} with [[PREPROCESS.dtx]] in the
+place of [[PREPROCESS.tex]], so that a project compiling its DocTeX sources
+with something of its own keeps that choice in these rules as well.
+Naming it once is what keeps the three copies from drifting apart.
+<<create output directory and preprocess DocTeX>>=
+${MKDIR} ${TEX_OUTDIR}
+${PREPROCESS.dtx}
 @
 
 
