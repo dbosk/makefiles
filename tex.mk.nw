@@ -26,8 +26,86 @@ compilation if an error occurs, so that we don't miss it, it doesn't work.
 The reason is that [[latexmk]] doesn't stop on error, it just keeps on going.
 \TeX{} on the other hand stops that round of execution, but doesn't ask for 
 input---which it does otherwise.
-So the [[-halt-on-error]] option actually makes it more likely that we miss 
+So the [[-halt-on-error]] option actually makes it more likely that we miss
 that an error occurred.
+
+After compiling we rerun LaTeX while the log still asks us to, but only up to
+five extra times.
+The bound is what makes the loop terminate at all.
+latexmk(1) already reruns LaTeX internally, and when a document does not
+converge it gives up and leaves \enquote{Rerun to get cross} in the log it
+hands back to us.
+Grepping for that string and relaunching latexmk(1) whenever it is present is
+therefore an unbounded loop for exactly those documents---the noweb
+[[longxref]] continuation lists are one, since their own line count feeds back
+into the pagination they describe.
+Capping the reruns ends such a build with the warning left visible in the log,
+rather than hanging make(1) forever.
+
+Whether the compilation succeeded at all is something make(1) has to be told,
+and here it is not told by itself.
+A recipe's exit status is the status of its \emph{last} command, and the last
+command of this sequence is the rerun loop---which ends in a [[break]] as soon
+as the log stops asking for another run, and [[break]] succeeds.
+Separating the compilation from the loop with a [[;]], as we used to, thus
+discarded latexmk(1)'s status altogether: the recipe reported success however
+the compilation had gone.
+
+That is worth more than a footnote, because a build that cannot fail cannot be
+observed to have failed.
+The documentation build of nytid\footnote{%
+  URL: \url{https://github.com/dbosk/nytid}
+} exited zero for a long time with an \enquote{Emergency stop} and a bibtex(1)
+\enquote{Error 2} standing in its log, so neither its author nor its continuous
+integration ever learnt that the document had stopped building.
+Every kind of LaTeX breakage short of one that removes an already-built file
+was hidden from make(1) the same way; a whole class of errors simply could not
+be reported.
+
+So the recipe has to look at what latexmk(1) returns.
+It cannot simply fail whenever that is non-zero, though, because latexmk(1)
+spends a single status---12---on two quite different situations.
+One is a document with something wrong in it: LaTeX stops, and latexmk(1) ends
+with \enquote{Errors, so I did not complete making targets} and gathers the
+offending command's return code into a \enquote{Collected error summary}.
+The other is a document that never settles: each run lays it out differently
+from the one before, latexmk(1) exhausts its own rerun budget and reports
+\enquote{Maximum runs of \ldots{} reached without getting stable files}.
+That document is not broken.
+Its last run wrote a complete file; the document merely disagrees with itself
+about where a page ends.
+
+The two deserve opposite answers, so we sort the outcomes into three.
+\begin{description}
+\item[The document compiled] There is nothing to say, and the recipe succeeds
+  silently.
+\item[The document is broken] Fail, with latexmk(1)'s own status, so that
+  make(1) and whatever runs it can see it.  This is the case the paragraphs
+  above are about.
+\item[The document will not settle] Say so loudly, and succeed anyway.
+  Whether a page break oscillates is a property of the document's layout, not
+  a fault in the build: no build system can fix it, the output is complete,
+  and refusing to hand it over helps nobody.
+\end{description}
+
+The motivating case is again nytid, whose documentation contains a genuine
+two-cycle oscillation.
+A page break moves one table-of-contents entry between two pages and drags
+some thirty noweb sublabels after it, so a run from layout $A$ produces layout
+$B$ and a run from $B$ produces $A$ again; latexmk(1) was once given nine runs
+and still gave up.
+Under a rule that failed on any non-zero status that correct document could
+never be built at all---and the bounded loop above, whose whole purpose is to
+carry a build past exactly this, would never get to run.
+
+Since the status cannot tell the two apart, we ask latexmk(1) what it thinks.
+We keep a copy of its output---while still letting it through to the terminal,
+because these runs are long and silence during them is unhelpful---and treat
+a failure as mere non-convergence only when latexmk(1) says it ran out of runs
+\emph{and} reports nothing else wrong: no error summary of its own, and no
+rule that its [[-use-make]] delegation ran and that then failed---which is how
+a broken bibliography reaches us.
+Anything else is still a failure, with latexmk(1)'s status.
 <<variables>>=
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
@@ -35,14 +113,79 @@ LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
+# The rerun loop is bounded: latexmk already reruns internally and gives
+# up when the document does not converge, leaving "Rerun to get cross"
+# in the log.  An unbounded loop would then relaunch latexmk forever.
+# CHECK_LATEXMK decides what each run's exit status means: silence,
+# a warning, or failure.  See tex.mk.nw for why a status of its own is
+# not enough to tell a broken document from an unsettled one.
 COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  while (grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log}); \
-    do ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  done
+  ${RUN_PDFLATEX}; ${CHECK_LATEXMK}; \
+  for i in 1 2 3 4 5; do \
+    grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
+    ${RUN_PDFLATEX}; ${CHECK_LATEXMK}; \
+  done; \
+  exit 0
 COMPILE.dtx?=     ${COMPILE.tex}
-@ Thus one would have to change the [[COMPILE.tex]] variable to change format 
+@ Thus one would have to change the [[COMPILE.tex]] variable to change format
 from PDF to DVI unless a suffix rule is used.
+
+Each run is wrapped so that its output reaches both the terminal and a file
+we can read afterwards.
+The exit status has to be put aside explicitly: a pipeline reports the status
+of its \emph{last} command, which here is tee(1), so latexmk(1)'s own would
+otherwise be lost the moment we started keeping its output.
+We also create [[TEX_OUTDIR]] first, because tee(1) opens its file before
+latexmk(1) has had a chance to make the directory to put it in.
+The [[$(or ...)]] around it is for the degenerate configuration where
+[[TEX_OUTDIR]] has been set to nothing at all: everything else in this file
+then addresses [[/]], and these two files should not be what first notices.
+Falling back on the working directory leaves that configuration exactly as
+broken as it was, rather than differently broken.
+<<variables>>=
+TEX_LATEXMKDIR?=    $(or ${TEX_OUTDIR},.)
+TEX_LATEXMKLOG?=    ${TEX_LATEXMKDIR}/$(basename $(notdir $<)).latexmklog
+TEX_LATEXMKSTATUS?= ${TEX_LATEXMKDIR}/$(basename $(notdir $<)).latexmkstatus
+RUN_PDFLATEX?=      ${MKDIR} ${TEX_LATEXMKDIR}; \
+  { ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+    echo $$? > ${TEX_LATEXMKSTATUS}; } 2>&1 | tee ${TEX_LATEXMKLOG}
+RUN_LATEX?=         ${MKDIR} ${TEX_LATEXMKDIR}; \
+  { ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+    echo $$? > ${TEX_LATEXMKSTATUS}; } 2>&1 | tee ${TEX_LATEXMKLOG}
+@
+
+Then the verdict, which is the three-way policy above written out.
+The two [[grep]]s spelling out \enquote{nothing else went wrong} are what
+keeps this from becoming the old masking in a new disguise: a run whose
+bibliography failed reports the first, and one whose [[-use-make]] delegation
+ran a rule that failed reports the second.
+Either fails the rule, as it should, even when latexmk(1) also ran out of
+reruns---and that combination is not hypothetical, it is what a missing
+prerequisite looked like when this was written.
+
+The second [[grep]] asks for a \emph{recipe} that failed, rather than for
+make(1) merely having been unhappy, because on a first pass make(1) is
+routinely unhappy and rightly so.
+latexmk(1) hands it the name of every file LaTeX reported missing, including
+the ones LaTeX is itself about to write, and make(1) replies \enquote{No rule
+to make target [[nytid.toc]]} without anything at all being wrong.
+A rule that ran and came back non-zero is a different matter, and
+[[*** [...] Error]] is how make(1) writes that one down.
+<<variables>>=
+CHECK_LATEXMK?= \
+  rc=$$(cat ${TEX_LATEXMKSTATUS} 2>/dev/null); [ -n "$$rc" ] || rc=1; \
+  if [ "$$rc" = 0 ]; then :; \
+  elif grep -q 'without getting stable files' ${TEX_LATEXMKLOG} && \
+       ! grep -q 'Collected error summary' ${TEX_LATEXMKLOG} && \
+       ! grep -qE '^make(\[[0-9]+\])?: \*\*\* \[.*\] Error ' \
+           ${TEX_LATEXMKLOG}; \
+  then \
+    echo "tex.mk: WARNING: document did not stabilize (latexmk exit $$rc);" \
+      "continuing -- the output is complete, but a page break oscillates" >&2; \
+  else \
+    exit $$rc; \
+  fi
+@
 
 %We note that we add this output directory to the search path for 
 %prerequisites~\cite[see][Sect.\ 4.5.1]{GNUMake}.
@@ -170,9 +313,15 @@ already add the following line to the cleaning recipe.
 -latexmk -C -output-directory=${TEX_OUTDIR}
 [ "${TEX_OUTDIR}" -ef "$$(pwd)" ] || \
   ${RM} -R ${TEX_OUTDIR}
+${RM} ${TEX_LATEXMKDIR}/*.latexmklog ${TEX_LATEXMKDIR}/*.latexmkstatus
 ${RM} *.pytxcode
 ${RM} -R pythontex-files-*
-@
+@ The two [[.latexmk]] files are the copies of latexmk(1)'s output and status
+kept by \cref{tex:Intro}; latexmk(1) does not know about them, so its own
+[[-C]] leaves them behind.
+Removing the whole of [[TEX_OUTDIR]] takes care of them wherever that is
+a directory of its own, and the extra line is what catches the case where it
+is the working directory instead.
 
 
 \section{Targets for documents}
@@ -236,8 +385,26 @@ the [[.aux]] file.
 <<bbl target for bibtex>>=
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
-	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 @
+
+That is the whole recipe, and why it needs no second line is worth recording,
+because the rule used to have one.
+bibtex(1) has no output-directory option; what it has instead is the habit of
+writing its [[.bbl]] and its [[.blg]] beside the [[.aux]] file it was handed.
+The file we hand it is [[${TEX_OUTDIR}/%.aux]], so both outputs land in
+[[TEX_OUTDIR]] by themselves, the [[.bbl]] under exactly the name this rule
+promises.
+
+The line that used to follow, [[${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}]], was
+meant to carry them in from the working directory, which is where bibtex(1)
+leaves them when the [[.aux]] it is given lives there.
+It never could: [[$@]] is the target, and the target carries the
+[[${TEX_OUTDIR}/]] prefix, so what it asked mv(1) for was to move each file
+onto itself---which mv(1) declines, calling the two \enquote{the same file}.
+Being the recipe's last command, that refusal failed the rule and took the
+document down with it.
+Repairing the names with [[$(notdir ...)]] would not help either; it would
+name files that are no longer anywhere to be moved from.
 
 The second approach uses the [[biblatex]] package~\cite{biblatex} and 
 biber(1)~\cite{biber}.
@@ -329,11 +496,33 @@ However, this construction requires that we load PythonTeX as follows.
 \end{minted}
 
 The code is as follows.
+As with the document files of \cref{tex:DocumentFiles}, we let the [[.pytxmcr]]
+file be asked for under both its plain name and its name inside
+[[TEX_OUTDIR]]; and for the reason explained there, that has to be written as
+one rule per name instead of one rule listing both.
 <<PythonTeX files>>=
 ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
-%.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
-	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
+%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	<<run PythonTeX in the output directory>>
+${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	<<run PythonTeX in the output directory>>
+@
+
+Both rules keep the double colon they had as a pair.
+On a pattern rule the double colon does not mean what it means on an ordinary
+one: it marks the rule \emph{terminal}, so make(1) will not build the
+[[.pytxcode]] prerequisite through another implicit rule but requires it to
+exist already~\cite[Sect.\ 10.5.5]{GNUMake}.
+That is deliberate here---latexmk(1) writes the [[.pytxcode]] as a side effect
+of running LaTeX---so splitting the targets must not quietly drop it.
+
+PythonTeX writes its output next to the [[.pytxcode]] file, that is inside
+[[TEX_OUTDIR]], whichever of the two names make(1) was asked for.
+Naming the recipe once and referring to it from both rules keeps them
+identical, so there is no second copy to drift.
+<<run PythonTeX in the output directory>>=
+cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 @
 
 As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
@@ -397,34 +586,84 @@ sub mylatex {
 @
 
 \subsection{Document files}
+\label{tex:DocumentFiles}
 
 Now that we have all prerequisite files, we can actually compile the document.
-For simplicity we add file in both the current working directory and the 
+For simplicity we add file in both the current working directory and the
 [[TEX_OUTDIR]] as targets.
-The reason for this is that it makes the makefile easier to write, usually we 
-prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in 
+The reason for this is that it makes the makefile easier to write, usually we
+prefer writing just the [[.pdf]] file --- and not the path to the [[.pdf]] in
 the [[TEX_OUTDIR]] directory.
-And for the same reason, we create a symbolic link between them after 
+And for the same reason, we create a symbolic link between them after
 compilation --- this allows make(1) to track modification times correctly.
-(We need a symbolic link, rather than a hard link, because upon recompilation, 
+(We need a symbolic link, rather than a hard link, because upon recompilation,
 the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
-<<document files>>=
-%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
-	${COMPILE.tex}
-	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
-	<<compile DVI>>
-	-${LN} ${TEX_OUTDIR}/$@ $@
+These two names are \emph{alternatives}: each is a way of asking for the same
+document, and one compilation satisfies whichever one was asked for.
+That is not what a pattern rule with two targets means to make(1).
+Unlike an ordinary rule, a pattern rule listing several targets does not stand
+for several independent rules; make(1) reads it as a single recipe that
+produces \emph{all} of them~\cite[Sect.\ 10.5.1]{GNUMake}.
+Since GNU Make 4.4 that reading is said out loud, as a \enquote{pattern recipe
+did not update peer target} warning for every listed target the recipe did not
+happen to write---and our recipe writes one of the two names and links the
+other, so the claim was wrong to begin with.
+
+We therefore give each name its own single-target rule.
+The rules make(1) ends up with are the same; only the false claim that one run
+produces both goes away.
+The split leaves the two patterns distinct whenever [[TEX_OUTDIR]] names a
+separate directory, which is the default ([[ltxobj]]): asking for [[doc.pdf]]
+selects the first rule, asking for [[ltxobj/doc.pdf]] the second, and both run
+the same recipe.
+Setting [[TEX_OUTDIR]] to [[.]] makes the two patterns coincide instead; since
+their recipes are identical, that changes nothing---just as it changed nothing
+before, when make(1) saw the same pattern listed twice inside one rule.
+And [[TEX_OUTDIR]] is never simply unset, because the [[?=]] assignment above
+gives it a default; were it set to the empty string, the second target would
+read [[/%.pdf]], an absolute pattern matching nothing we build, both before
+and after this change.
+<<document files>>=
+%.pdf: %.tex
+	<<compile and link the PDF>>
+${TEX_OUTDIR}/%.pdf: %.tex
+	<<compile and link the PDF>>
+
+%.dvi: %.tex
+	<<compile and link the DVI>>
+${TEX_OUTDIR}/%.dvi: %.tex
+	<<compile and link the DVI>>
+@
+
+Writing each recipe once and referring to it from both rules of a pair keeps
+them honestly identical.
+<<compile and link the PDF>>=
+${COMPILE.tex}
+-${LN} ${TEX_OUTDIR}/$@ $@
+@
+
+<<compile and link the DVI>>=
+<<compile DVI>>
+-${LN} ${TEX_OUTDIR}/$@ $@
 @
 
 The compilation step for DVI is the usual.
-We compile once, then we recompile as long as the log file tells us.
+We compile once, then we recompile as long as the log file tells us to---and,
+for the reason given in \cref{tex:Intro}, at most five times.
+A DVI document can fail to settle exactly as a PDF one can, so this is the
+same shape as [[COMPILE.tex]], down to the same verdict after every run; only
+the engine differs.
+The whole thing is one recipe line rather than several because [[exit]] ends
+the shell make(1) started for the line it appears in, and the verdict has to
+be able to end the run wherever it is reached.
 <<compile DVI>>=
-${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-while ( grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} ); do \
-  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-done
+${RUN_LATEX}; ${CHECK_LATEXMK}; \
+for i in 1 2 3 4 5; do \
+  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
+  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
+done; \
+exit 0
 @
 
 
@@ -458,16 +697,40 @@ the [[.ins]] file.
 	${LATEX} $<
 @
 
-We can then compile the documentation similarly to how we compile normal 
-documents.
-<<compile class and package documentation>>=
-%.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
-	${COMPILE.dtx}
-	-${LN} ${TEX_OUTDIR}/$@ $@
+We can then compile the documentation similarly to how we compile normal
+documents---similarly enough that these rules inherited the flaw of
+\cref{tex:DocumentFiles} along with the shape.
+Here too each output answers to two names, the plain one and the one inside
+[[TEX_OUTDIR]], and listing both as targets of one pattern rule again claims
+that a single run produces both.
+It does not: the run writes the name inside [[TEX_OUTDIR]] and links the
+other, so make(1) is left to complain about whichever of the two that
+particular invocation did not touch.
+We therefore give each name its own rule here as well.
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
-	<<compile DVI>>
-	-${LN} ${TEX_OUTDIR}/$@ $@
+Unlike the [[.pytxmcr]] rules earlier, these carry a single colon, so there is
+no terminal-rule property that the split has to preserve; the targets are all
+that come apart.
+The [[.dvi]] pair needs no recipe of its own either---compiling a class or
+package to DVI is the same work as compiling a document---so it reuses the one
+named in \cref{tex:DocumentFiles}.
+<<compile class and package documentation>>=
+%.pdf: %.dtx
+	<<compile and link the package PDF>>
+${TEX_OUTDIR}/%.pdf: %.dtx
+	<<compile and link the package PDF>>
+
+%.dvi: %.dtx
+	<<compile and link the DVI>>
+${TEX_OUTDIR}/%.dvi: %.dtx
+	<<compile and link the DVI>>
+@
+
+Only the PDF recipe is genuinely its own, and only because DocTeX gets
+compiled through [[COMPILE.dtx]] rather than [[COMPILE.tex]].
+<<compile and link the package PDF>>=
+${COMPILE.dtx}
+-${LN} ${TEX_OUTDIR}/$@ $@
 @ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
 <<compile class and package documentation>>=
 ${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx

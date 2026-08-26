@@ -15,13 +15,39 @@ TEX_OUTDIR?=      ltxobj
 # The rerun loop is bounded: latexmk already reruns internally and gives
 # up when the document does not converge, leaving "Rerun to get cross"
 # in the log.  An unbounded loop would then relaunch latexmk forever.
+# CHECK_LATEXMK decides what each run's exit status means: silence,
+# a warning, or failure.  See tex.mk.nw for why a status of its own is
+# not enough to tell a broken document from an unsettled one.
 COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  ${RUN_PDFLATEX}; ${CHECK_LATEXMK}; \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  done
+    ${RUN_PDFLATEX}; ${CHECK_LATEXMK}; \
+  done; \
+  exit 0
 COMPILE.dtx?=     ${COMPILE.tex}
+TEX_LATEXMKDIR?=    $(or ${TEX_OUTDIR},.)
+TEX_LATEXMKLOG?=    ${TEX_LATEXMKDIR}/$(basename $(notdir $<)).latexmklog
+TEX_LATEXMKSTATUS?= ${TEX_LATEXMKDIR}/$(basename $(notdir $<)).latexmkstatus
+RUN_PDFLATEX?=      ${MKDIR} ${TEX_LATEXMKDIR}; \
+  { ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+    echo $$? > ${TEX_LATEXMKSTATUS}; } 2>&1 | tee ${TEX_LATEXMKLOG}
+RUN_LATEX?=         ${MKDIR} ${TEX_LATEXMKDIR}; \
+  { ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+    echo $$? > ${TEX_LATEXMKSTATUS}; } 2>&1 | tee ${TEX_LATEXMKLOG}
+CHECK_LATEXMK?= \
+  rc=$$(cat ${TEX_LATEXMKSTATUS} 2>/dev/null); [ -n "$$rc" ] || rc=1; \
+  if [ "$$rc" = 0 ]; then :; \
+  elif grep -q 'without getting stable files' ${TEX_LATEXMKLOG} && \
+       ! grep -q 'Collected error summary' ${TEX_LATEXMKLOG} && \
+       ! grep -qE '^make(\[[0-9]+\])?: \*\*\* \[.*\] Error ' \
+           ${TEX_LATEXMKLOG}; \
+  then \
+    echo "tex.mk: WARNING: document did not stabilize (latexmk exit $$rc);" \
+      "continuing -- the output is complete, but a page break oscillates" >&2; \
+  else \
+    exit $$rc; \
+  fi
 TEX_BBL?=
 BIBTEX?=            bibtexu
 BIBTEXFLAGS?=
@@ -49,7 +75,6 @@ ${TEX_OUTDIR}/%.aux: %.tex
 	${PREPROCESS.tex}
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
-	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 ${TEX_OUTDIR}/%.bcf: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.tex}
@@ -77,34 +102,60 @@ ${TEX_OUTDIR}/%.nls: ${TEX_OUTDIR}/%.nlo
 	${COMPILE.nlo}
 ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
-%.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
 	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
-%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
+${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
+	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
+%.pdf: %.tex
+	${COMPILE.tex}
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.pdf: %.tex
 	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
-	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+%.dvi: %.tex
+	${RUN_LATEX}; ${CHECK_LATEXMK}; \
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-	done
+	  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
+	done; \
+	exit 0
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.dvi: %.tex
+	${RUN_LATEX}; ${CHECK_LATEXMK}; \
+	for i in 1 2 3 4 5; do \
+	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
+	  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
+	done; \
+	exit 0
 	-${LN} ${TEX_OUTDIR}/$@ $@
 latexmkrc:
 	[ -e $@ -o "${INCLUDE_MAKEFILES}" = "." ] || \
 	${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
 %.cls %.sty: %.ins
 	${LATEX} $<
-%.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
+%.pdf: %.dtx
+	${COMPILE.dtx}
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.pdf: %.dtx
 	${COMPILE.dtx}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
-	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+%.dvi: %.dtx
+	${RUN_LATEX}; ${CHECK_LATEXMK}; \
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-	done
+	  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
+	done; \
+	exit 0
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.dvi: %.dtx
+	${RUN_LATEX}; ${CHECK_LATEXMK}; \
+	for i in 1 2 3 4 5; do \
+	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
+	  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
+	done; \
+	exit 0
 	-${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
 	${PREPROCESS.dtx}
@@ -194,6 +245,7 @@ clean-tex:
 	-latexmk -C -output-directory=${TEX_OUTDIR}
 	[ "${TEX_OUTDIR}" -ef "$$(pwd)" ] || \
 	  ${RM} -R ${TEX_OUTDIR}
+	${RM} ${TEX_LATEXMKDIR}/*.latexmklog ${TEX_LATEXMKDIR}/*.latexmkstatus
 	${RM} *.pytxcode
 	${RM} -R pythontex-files-*
 
