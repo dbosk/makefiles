@@ -287,8 +287,26 @@ the [[.aux]] file.
 <<bbl target for bibtex>>=
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
-	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 @
+
+That is the whole recipe, and why it needs no second line is worth recording,
+because the rule used to have one.
+bibtex(1) has no output-directory option; what it has instead is the habit of
+writing its [[.bbl]] and its [[.blg]] beside the [[.aux]] file it was handed.
+The file we hand it is [[${TEX_OUTDIR}/%.aux]], so both outputs land in
+[[TEX_OUTDIR]] by themselves, the [[.bbl]] under exactly the name this rule
+promises.
+
+The line that used to follow, [[${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}]], was
+meant to carry them in from the working directory, which is where bibtex(1)
+leaves them when the [[.aux]] it is given lives there.
+It never could: [[$@]] is the target, and the target carries the
+[[${TEX_OUTDIR}/]] prefix, so what it asked mv(1) for was to move each file
+onto itself---which mv(1) declines, calling the two \enquote{the same file}.
+Being the recipe's last command, that refusal failed the rule and took the
+document down with it.
+Repairing the names with [[$(notdir ...)]] would not help either; it would
+name files that are no longer anywhere to be moved from.
 
 The second approach uses the [[biblatex]] package~\cite{biblatex} and 
 biber(1)~\cite{biber}.
@@ -577,16 +595,40 @@ the [[.ins]] file.
 	${LATEX} $<
 @
 
-We can then compile the documentation similarly to how we compile normal 
-documents.
-<<compile class and package documentation>>=
-%.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
-	${COMPILE.dtx}
-	-${LN} ${TEX_OUTDIR}/$@ $@
+We can then compile the documentation similarly to how we compile normal
+documents---similarly enough that these rules inherited the flaw of
+\cref{tex:DocumentFiles} along with the shape.
+Here too each output answers to two names, the plain one and the one inside
+[[TEX_OUTDIR]], and listing both as targets of one pattern rule again claims
+that a single run produces both.
+It does not: the run writes the name inside [[TEX_OUTDIR]] and links the
+other, so make(1) is left to complain about whichever of the two that
+particular invocation did not touch.
+We therefore give each name its own rule here as well.
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
-	<<compile DVI>>
-	-${LN} ${TEX_OUTDIR}/$@ $@
+Unlike the [[.pytxmcr]] rules earlier, these carry a single colon, so there is
+no terminal-rule property that the split has to preserve; the targets are all
+that come apart.
+The [[.dvi]] pair needs no recipe of its own either---compiling a class or
+package to DVI is the same work as compiling a document---so it reuses the one
+named in \cref{tex:DocumentFiles}.
+<<compile class and package documentation>>=
+%.pdf: %.dtx
+	<<compile and link the package PDF>>
+${TEX_OUTDIR}/%.pdf: %.dtx
+	<<compile and link the package PDF>>
+
+%.dvi: %.dtx
+	<<compile and link the DVI>>
+${TEX_OUTDIR}/%.dvi: %.dtx
+	<<compile and link the DVI>>
+@
+
+Only the PDF recipe is genuinely its own, and only because DocTeX gets
+compiled through [[COMPILE.dtx]] rather than [[COMPILE.tex]].
+<<compile and link the package PDF>>=
+${COMPILE.dtx}
+-${LN} ${TEX_OUTDIR}/$@ $@
 @ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
 <<compile class and package documentation>>=
 ${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx

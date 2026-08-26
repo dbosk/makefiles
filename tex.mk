@@ -53,7 +53,6 @@ ${TEX_OUTDIR}/%.aux: %.tex
 	${PREPROCESS.tex}
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
-	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 ${TEX_OUTDIR}/%.bcf: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.tex}
@@ -111,11 +110,21 @@ latexmkrc:
 	${LN} -s ${INCLUDE_MAKEFILES}/latexmkrc $@
 %.cls %.sty: %.ins
 	${LATEX} $<
-%.pdf ${TEX_OUTDIR}/%.pdf: %.dtx
+%.pdf: %.dtx
+	${COMPILE.dtx}
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.pdf: %.dtx
 	${COMPILE.dtx}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
+%.dvi: %.dtx
+	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+	for i in 1 2 3 4 5; do \
+	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
+	done
+	-${LN} ${TEX_OUTDIR}/$@ $@
+${TEX_OUTDIR}/%.dvi: %.dtx
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
