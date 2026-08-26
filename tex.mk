@@ -15,11 +15,15 @@ TEX_OUTDIR?=      ltxobj
 # The rerun loop is bounded: latexmk already reruns internally and gives
 # up when the document does not converge, leaving "Rerun to get cross"
 # in the log.  An unbounded loop would then relaunch latexmk forever.
+# The && and the "|| exit $$?" keep latexmk's exit status: with a plain
+# ";" the recipe's status is the loop's, which ends in a successful
+# break, so make(1) called every failed build a success.
 COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< && \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< \
+      || exit $$?; \
   done
 COMPILE.dtx?=     ${COMPILE.tex}
 TEX_BBL?=
@@ -92,14 +96,14 @@ ${TEX_OUTDIR}/%.pdf: %.tex
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.dvi: %.tex
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
 latexmkrc:
@@ -115,7 +119,7 @@ latexmkrc:
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx

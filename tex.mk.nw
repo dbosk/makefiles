@@ -41,6 +41,36 @@ therefore an unbounded loop for exactly those documents---the noweb
 into the pagination they describe.
 Capping the reruns ends such a build with the warning left visible in the log,
 rather than hanging make(1) forever.
+
+Whether the compilation succeeded at all is something make(1) has to be told,
+and here it is not told by itself.
+A recipe's exit status is the status of its \emph{last} command, and the last
+command of this sequence is the rerun loop---which ends in a [[break]] as soon
+as the log stops asking for another run, and [[break]] succeeds.
+Separating the compilation from the loop with a [[;]], as we used to, thus
+discarded latexmk(1)'s status altogether: the recipe reported success however
+the compilation had gone.
+
+That is worth more than a footnote, because a build that cannot fail cannot be
+observed to have failed.
+The documentation build of nytid\footnote{%
+  URL: \url{https://github.com/dbosk/nytid}
+} exited zero for a long time with an \enquote{Emergency stop} and a bibtex(1)
+\enquote{Error 2} standing in its log, so neither its author nor its continuous
+integration ever learnt that the document had stopped building.
+Every kind of LaTeX breakage short of one that removes an already-built file
+was hidden from make(1) the same way; a whole class of errors simply could not
+be reported.
+
+We therefore join the compilation to the loop with [[&&]] instead.
+The loop's [[grep]] only has a log to read when the run got far enough to
+write one, so there is nothing to enter the loop for when the run failed, and
+the run's own status is then what the recipe exits with.
+Each rerun inside the loop ends with [[|| exit $$?]] for the same reason---the
+doubled dollar is how make(1) hands a single one to the shell.
+A [[for]] loop runs its body to the end no matter what fails inside it, so
+without that, a rerun that died would still be followed by a [[break]] on the
+next pass and the recipe would end successfully.
 <<variables>>=
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
@@ -51,11 +81,15 @@ TEX_OUTDIR?=      ltxobj
 # The rerun loop is bounded: latexmk already reruns internally and gives
 # up when the document does not converge, leaving "Rerun to get cross"
 # in the log.  An unbounded loop would then relaunch latexmk forever.
+# The && and the "|| exit $$?" keep latexmk's exit status: with a plain
+# ";" the recipe's status is the loop's, which ends in a successful
+# break, so make(1) called every failed build a success.
 COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< && \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< \
+      || exit $$?; \
   done
 COMPILE.dtx?=     ${COMPILE.tex}
 @ Thus one would have to change the [[COMPILE.tex]] variable to change format 
@@ -501,11 +535,14 @@ ${COMPILE.tex}
 The compilation step for DVI is the usual.
 We compile once, then we recompile as long as the log file tells us to---and,
 for the reason given in \cref{tex:Intro}, at most five times.
+The first run is a recipe line of its own, so make(1) already stops on it when
+it fails; only the reruns need the [[|| exit $$?]] that \cref{tex:Intro}
+explains, and for exactly the same reason.
 <<compile DVI>>=
 ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 for i in 1 2 3 4 5; do \
   grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
 done
 @
 
