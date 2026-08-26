@@ -62,15 +62,50 @@ Every kind of LaTeX breakage short of one that removes an already-built file
 was hidden from make(1) the same way; a whole class of errors simply could not
 be reported.
 
-We therefore join the compilation to the loop with [[&&]] instead.
-The loop's [[grep]] only has a log to read when the run got far enough to
-write one, so there is nothing to enter the loop for when the run failed, and
-the run's own status is then what the recipe exits with.
-Each rerun inside the loop ends with [[|| exit $$?]] for the same reason---the
-doubled dollar is how make(1) hands a single one to the shell.
-A [[for]] loop runs its body to the end no matter what fails inside it, so
-without that, a rerun that died would still be followed by a [[break]] on the
-next pass and the recipe would end successfully.
+So the recipe has to look at what latexmk(1) returns.
+It cannot simply fail whenever that is non-zero, though, because latexmk(1)
+spends a single status---12---on two quite different situations.
+One is a document with something wrong in it: LaTeX stops, and latexmk(1) ends
+with \enquote{Errors, so I did not complete making targets} and gathers the
+offending command's return code into a \enquote{Collected error summary}.
+The other is a document that never settles: each run lays it out differently
+from the one before, latexmk(1) exhausts its own rerun budget and reports
+\enquote{Maximum runs of \ldots{} reached without getting stable files}.
+That document is not broken.
+Its last run wrote a complete file; the document merely disagrees with itself
+about where a page ends.
+
+The two deserve opposite answers, so we sort the outcomes into three.
+\begin{description}
+\item[The document compiled] There is nothing to say, and the recipe succeeds
+  silently.
+\item[The document is broken] Fail, with latexmk(1)'s own status, so that
+  make(1) and whatever runs it can see it.  This is the case the paragraphs
+  above are about.
+\item[The document will not settle] Say so loudly, and succeed anyway.
+  Whether a page break oscillates is a property of the document's layout, not
+  a fault in the build: no build system can fix it, the output is complete,
+  and refusing to hand it over helps nobody.
+\end{description}
+
+The motivating case is again nytid, whose documentation contains a genuine
+two-cycle oscillation.
+A page break moves one table-of-contents entry between two pages and drags
+some thirty noweb sublabels after it, so a run from layout $A$ produces layout
+$B$ and a run from $B$ produces $A$ again; latexmk(1) was once given nine runs
+and still gave up.
+Under a rule that failed on any non-zero status that correct document could
+never be built at all---and the bounded loop above, whose whole purpose is to
+carry a build past exactly this, would never get to run.
+
+Since the status cannot tell the two apart, we ask latexmk(1) what it thinks.
+We keep a copy of its output---while still letting it through to the terminal,
+because these runs are long and silence during them is unhelpful---and treat
+a failure as mere non-convergence only when latexmk(1) says it ran out of runs
+\emph{and} reports nothing else wrong: no error summary of its own, and no
+rule that its [[-use-make]] delegation ran and that then failed---which is how
+a broken bibliography reaches us.
+Anything else is still a failure, with latexmk(1)'s status.
 <<variables>>=
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
@@ -81,19 +116,76 @@ TEX_OUTDIR?=      ltxobj
 # The rerun loop is bounded: latexmk already reruns internally and gives
 # up when the document does not converge, leaving "Rerun to get cross"
 # in the log.  An unbounded loop would then relaunch latexmk forever.
-# The && and the "|| exit $$?" keep latexmk's exit status: with a plain
-# ";" the recipe's status is the loop's, which ends in a successful
-# break, so make(1) called every failed build a success.
+# CHECK_LATEXMK decides what each run's exit status means: silence,
+# a warning, or failure.  See tex.mk.nw for why a status of its own is
+# not enough to tell a broken document from an unsettled one.
 COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< && \
+  ${RUN_PDFLATEX}; ${CHECK_LATEXMK}; \
   for i in 1 2 3 4 5; do \
     grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $< \
-      || exit $$?; \
-  done
+    ${RUN_PDFLATEX}; ${CHECK_LATEXMK}; \
+  done; \
+  exit 0
 COMPILE.dtx?=     ${COMPILE.tex}
-@ Thus one would have to change the [[COMPILE.tex]] variable to change format 
+@ Thus one would have to change the [[COMPILE.tex]] variable to change format
 from PDF to DVI unless a suffix rule is used.
+
+Each run is wrapped so that its output reaches both the terminal and a file
+we can read afterwards.
+The exit status has to be put aside explicitly: a pipeline reports the status
+of its \emph{last} command, which here is tee(1), so latexmk(1)'s own would
+otherwise be lost the moment we started keeping its output.
+We also create [[TEX_OUTDIR]] first, because tee(1) opens its file before
+latexmk(1) has had a chance to make the directory to put it in.
+The [[$(or ...)]] around it is for the degenerate configuration where
+[[TEX_OUTDIR]] has been set to nothing at all: everything else in this file
+then addresses [[/]], and these two files should not be what first notices.
+Falling back on the working directory leaves that configuration exactly as
+broken as it was, rather than differently broken.
+<<variables>>=
+TEX_LATEXMKDIR?=    $(or ${TEX_OUTDIR},.)
+TEX_LATEXMKLOG?=    ${TEX_LATEXMKDIR}/$(basename $(notdir $<)).latexmklog
+TEX_LATEXMKSTATUS?= ${TEX_LATEXMKDIR}/$(basename $(notdir $<)).latexmkstatus
+RUN_PDFLATEX?=      ${MKDIR} ${TEX_LATEXMKDIR}; \
+  { ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+    echo $$? > ${TEX_LATEXMKSTATUS}; } 2>&1 | tee ${TEX_LATEXMKLOG}
+RUN_LATEX?=         ${MKDIR} ${TEX_LATEXMKDIR}; \
+  { ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
+    echo $$? > ${TEX_LATEXMKSTATUS}; } 2>&1 | tee ${TEX_LATEXMKLOG}
+@
+
+Then the verdict, which is the three-way policy above written out.
+The two [[grep]]s spelling out \enquote{nothing else went wrong} are what
+keeps this from becoming the old masking in a new disguise: a run whose
+bibliography failed reports the first, and one whose [[-use-make]] delegation
+ran a rule that failed reports the second.
+Either fails the rule, as it should, even when latexmk(1) also ran out of
+reruns---and that combination is not hypothetical, it is what a missing
+prerequisite looked like when this was written.
+
+The second [[grep]] asks for a \emph{recipe} that failed, rather than for
+make(1) merely having been unhappy, because on a first pass make(1) is
+routinely unhappy and rightly so.
+latexmk(1) hands it the name of every file LaTeX reported missing, including
+the ones LaTeX is itself about to write, and make(1) replies \enquote{No rule
+to make target [[nytid.toc]]} without anything at all being wrong.
+A rule that ran and came back non-zero is a different matter, and
+[[*** [...] Error]] is how make(1) writes that one down.
+<<variables>>=
+CHECK_LATEXMK?= \
+  rc=$$(cat ${TEX_LATEXMKSTATUS} 2>/dev/null); [ -n "$$rc" ] || rc=1; \
+  if [ "$$rc" = 0 ]; then :; \
+  elif grep -q 'without getting stable files' ${TEX_LATEXMKLOG} && \
+       ! grep -q 'Collected error summary' ${TEX_LATEXMKLOG} && \
+       ! grep -qE '^make(\[[0-9]+\])?: \*\*\* \[.*\] Error ' \
+           ${TEX_LATEXMKLOG}; \
+  then \
+    echo "tex.mk: WARNING: document did not stabilize (latexmk exit $$rc);" \
+      "continuing -- the output is complete, but a page break oscillates" >&2; \
+  else \
+    exit $$rc; \
+  fi
+@
 
 %We note that we add this output directory to the search path for 
 %prerequisites~\cite[see][Sect.\ 4.5.1]{GNUMake}.
@@ -221,9 +313,15 @@ already add the following line to the cleaning recipe.
 -latexmk -C -output-directory=${TEX_OUTDIR}
 [ "${TEX_OUTDIR}" -ef "$$(pwd)" ] || \
   ${RM} -R ${TEX_OUTDIR}
+${RM} ${TEX_LATEXMKDIR}/*.latexmklog ${TEX_LATEXMKDIR}/*.latexmkstatus
 ${RM} *.pytxcode
 ${RM} -R pythontex-files-*
-@
+@ The two [[.latexmk]] files are the copies of latexmk(1)'s output and status
+kept by \cref{tex:Intro}; latexmk(1) does not know about them, so its own
+[[-C]] leaves them behind.
+Removing the whole of [[TEX_OUTDIR]] takes care of them wherever that is
+a directory of its own, and the extra line is what catches the case where it
+is the working directory instead.
 
 
 \section{Targets for documents}
@@ -553,15 +651,19 @@ ${COMPILE.tex}
 The compilation step for DVI is the usual.
 We compile once, then we recompile as long as the log file tells us to---and,
 for the reason given in \cref{tex:Intro}, at most five times.
-The first run is a recipe line of its own, so make(1) already stops on it when
-it fails; only the reruns need the [[|| exit $$?]] that \cref{tex:Intro}
-explains, and for exactly the same reason.
+A DVI document can fail to settle exactly as a PDF one can, so this is the
+same shape as [[COMPILE.tex]], down to the same verdict after every run; only
+the engine differs.
+The whole thing is one recipe line rather than several because [[exit]] ends
+the shell make(1) started for the line it appears in, and the verdict has to
+be able to end the run wherever it is reached.
 <<compile DVI>>=
-${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
+${RUN_LATEX}; ${CHECK_LATEXMK}; \
 for i in 1 2 3 4 5; do \
   grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $< || exit $$?; \
-done
+  ${RUN_LATEX}; ${CHECK_LATEXMK}; \
+done; \
+exit 0
 @
 
 
