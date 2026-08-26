@@ -329,14 +329,45 @@ file with suffix [[.suf.nw]] and in the second a source file with suffix
 [[.nw]].
 
 We can start with the second.
-In this rule, we have a file with a supported suffix [[.suf]] depend on the 
+In this rule, we have a file with a supported suffix [[.suf]] depend on the
 NOWEB source file with suffix [[.nw]].
-Then we let the recipe be set by the variable [[NOTANGLE.suf]], which is the 
+Then we let the recipe be set by the variable [[NOTANGLE.suf]], which is the
 convention followed by make(1)~\cite[Sect.\ 10.2]{GNUMake}.
-<<tangle source files without suffix>>=
+
+The tempting way to write this is to name every supported suffix as a target
+of one pattern rule:
+\begin{lstlisting}
 $(addprefix %,${NOWEB_SUFFIXES}): %.nw
 	${NOTANGLE$(suffix $@)}
-@
+\end{lstlisting}
+That is not the rule we mean, however.
+A pattern rule with several targets is not shorthand for several rules the way
+an ordinary rule with several targets is; make(1) reads it as \emph{one} rule
+whose recipe is responsible for producing \emph{all} of the
+targets~\cite[Sect.\ 10.5.1]{GNUMake}.
+Our recipe cannot honour that promise: notangle(1) extracts the single chunk
+named by [[$@]], so tangling [[foo.py]] leaves [[foo.c]], [[foo.hs]] and the
+rest of the peers untouched.
+Since version~4.3, make(1) says so, once per unmade peer:
+\begin{lstlisting}
+noweb.mk:99: warning: pattern recipe did not update peer target 'foo.c'.
+\end{lstlisting}
+A project with a dozen modules therefore emits hundreds of these warnings per
+build, and genuine warnings and errors drown among them.
+
+What we want instead is one \emph{independent} pattern rule per suffix, each
+promising only its own target.
+We get that by generating the rules one at a time --- the same technique the
+suffixed sources below already use.
+<<tangle source files without suffix>>=
+define without_suffix_target
+%$(1): %.nw
+	$${NOTANGLE$$(suffix $$@)}
+endef
+$(foreach suf,${NOWEB_SUFFIXES},$(eval $(call without_suffix_target,${suf})))
+@ The double dollars keep [[eval]] from expanding the recipe: it is
+[[NOTANGLE.suf]] that must be looked up when the rule fires, not when it is
+defined.
 
 For the other case, we add rules using the suffix prefixed to [[.nw]].
 <<tangle source files with suffix>>=
