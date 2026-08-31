@@ -23,11 +23,11 @@
   basicstyle=\small
 }
 
-%\usepackage[outputdir=ltxobj]{minted}
-\usepackage{minted}
+% noweb loads minted for us via its package option; to pass minted
+% options (e.g. outputdir) load it directly with \usepackage[...]{minted}
+% before \usepackage{noweb} instead.
+\usepackage[minted]{noweb}
 \setminted{autogobble}
-
-\usepackage{noweb}
 % Needed to relax penalty for breaking code chunks across pages, otherwise 
 % there might be a lot of space following a code chunk.
 \def\nwendcode{\endtrivlist \endgroup}

@@ -2,13 +2,21 @@ ifndef NOWEB_MK
 NOWEB_MK = true
 
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
-NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -x -n -delay -t2
+NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
+                    -langrule '^test \[\[.*\.py\]\]=python' \
+                    -langrule '^test \[\[.*\.sh\]\]=bash' \
+                    -langrule '^test \[\[Makefile\]\]=make' \
+                    -index -filter tominted
 NOWEAVE.pdf?=       \
   noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
   latexmk -pdf ${@:.pdf=.tex}
 NOWEAVEFLAGS.pdf?=  \
-  ${NOWEAVEFLAGS} -x -t2 \
-  -option "shift,breakcode,longxref,longchunks"
+  ${NOWEAVEFLAGS} -t2 -autolang \
+  -langrule '^test \[\[.*\.py\]\]=python' \
+  -langrule '^test \[\[.*\.sh\]\]=bash' \
+  -langrule '^test \[\[Makefile\]\]=make' \
+  -option "shift,breakcode,longxref,longchunks" \
+  -index -minted
 NOTANGLEFLAGS?=
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R"[[$(notdir $@)]]" $(filter %.nw,$^) | \
                   ${CPIF} $@ && noroots $(filter %.nw,$^)
