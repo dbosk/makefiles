@@ -119,7 +119,9 @@ COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 @
 
 We also provide support for PythonTeX.
-This is enabled by the following variable.
+Setting the following variable to a non-empty string makes pythontex(1) run 
+automatically whenever the document's PythonTeX code changes 
+(\cref{tex:PythonTeX}).
 <<variables>>=
 TEX_PYTHONTEX?=
 @ Then the required command and flags are controlled with the following 
@@ -328,7 +330,11 @@ a prerequisite if the variable [[TEX_BBL]] is set.
 ifneq (${TEX_BBL},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
-@
+@ Note that this rule has no effect as written: it is a recipe-less pattern 
+rule, which GNU make reads as a cancellation rather than an added prerequisite 
+(\cref{tex:DocPrereqs}).
+We leave it, since latexmk(1) runs the backend selected by [[TEX_BIB]] by 
+itself.
 
 \subsection{Indices}
 
@@ -363,7 +369,8 @@ a prerequisite if the variable [[TEX_IND]] is set.
 ifneq (${TEX_IND},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.ind
 endif
-@
+@ As for [[TEX_BBL]], this rule has no effect as written 
+(\cref{tex:DocPrereqs}); latexmk(1) runs the index programs by itself.
 
 For backwards compatibility, we provide the following code for the 
 [[nomenclature]] package.
@@ -388,15 +395,18 @@ sub makenlo2nls {
 \label{tex:PythonTeX}
 
 Occasionally we use PythonTeX.
-We also provide a target for the required files.
-However, this construction requires that we load PythonTeX as follows.
+Both the make(1) targets below and latexmk(1)'s custom dependency further 
+down run pythontex(1) on the [[.pytxcode]] file in [[TEX_OUTDIR]].
+PythonTeX must therefore be told to put its output files next to that file 
+and to run the embedded code from the project directory, where the document's 
+other files are:
 \begin{minted}{LaTeX}
 \usepackage{pythontex}
 \setpythontexoutputdir{.}
 \setpythontexworkingdir{..}
 \end{minted}
 
-The code is as follows.
+The make(1) targets are as follows.
 <<PythonTeX files>>=
 ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
@@ -404,41 +414,67 @@ ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 @
 
-As mentioned in \cref{tex:Intro}, we can automatically add the [[.pytxmcr]] 
-file as a prerequisite if the variable [[TEX_PYTHONTEX]] is set.
-<<bibliography files>>=
+As mentioned in \cref{tex:Intro}, setting [[TEX_PYTHONTEX]] makes PythonTeX 
+run automatically.
+The mechanism is latexmk(1)'s custom dependency in [[<<latexmkrc>>]] below, 
+which reruns pythontex(1) whenever the [[.pytxcode]] file changes and then 
+reruns latex(1) as needed.
+All make(1) has to guarantee is that the [[latexmkrc]] file exists when the 
+document is compiled, so that is what we add as a prerequisite of every 
+document.
+<<PythonTeX files>>=
 ifneq (${TEX_PYTHONTEX},)
-${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.pytxmcr
+TEX_DOC_PREREQS+= latexmkrc
 endif
-@
+@ Earlier versions instead wrote
+\begin{minted}{make}
+${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.pytxmcr
+\end{minted}
+here, intending to add the [[.pytxmcr]] file as a prerequisite.
+That never worked (\cref{tex:DocPrereqs}):
+a pattern rule without a recipe does not add prerequisites to another pattern 
+rule the way an explicit rule does, it merely cancels a rule with the same 
+target and prerequisite patterns~\cite[Sect.\ 10.5.6]{GNUMake}.
+The only reason PythonTeX output ever appeared was that [[latexmk -use-make]] 
+asked make(1) for a \emph{missing} [[.pytxmcr]] on the first build; every later 
+edit left the output stale.
 
 If we use latexmk(1), then we must also add instructions for this in 
 [[<<latexmkrc>>]].
-The following code is fetched from the latexmk example-files on 
+The custom dependency below is adapted from the latexmk example files on 
 \ac{CTAN}\footnote{%
   URL: \url{http://mirrors.ctan.org/support/latexmk/example_rcfiles/pythontex-latexmkrc}
 }.
+The example wraps latex(1) in a subroutine that plants symbolic links to the 
+[[.pytxcode]] file in the current directory, so that old versions of 
+latexmk(1) notice the dependency when an output directory is used.
+Recent versions (we tested 4.87) find the file in the output directory by 
+themselves, and the links then do harm:
+latexmk(1) registers a \emph{second} rule for the linked copy, which runs 
+pythontex(1) in the current directory, so that [[\setpythontexworkingdir{..}]] 
+points outside the project and the run fails---taking the whole build with 
+it---while leaving PythonTeX's output files in the project root.
+So we keep only the custom dependency.
 <<[[latexmkrc]]>>=
-#  This version has a fudge on the latex and pdflatex commands that
-#  allows the pythontex custom dependency to work even when $out_dir
-#  is used to set the output directory.  Without the fudge (done by
-#  trickery symbolic links) the custom dependency for using pythontex
-#  will not be detected.
-
+# Run pythontex(1) whenever the .pytxcode file changes, before the next
+# latex(1) run.  Adapted from the pythontex-latexmkrc example on CTAN,
+# without its symlink "fudge" for $out_dir: recent latexmk finds custom
+# dependencies in the output directory by itself, and the fudge made it
+# register a second, root-anchored rule that ran pythontex in the wrong
+# directory.
 add_cus_dep('pytxcode', 'pytxmcr', 0, 'pythontex');
 sub pythontex {
-    # This subroutine is a fudge, because it from latexmk's point of
-    # view, it makes the main .tex file depend on the .pytxcode file.
-    # But it doesn't actually make the .tex file, but is used for its
-    # side effects in creating other files.  The dependence is a way
-    # of triggering the rule to be run whenever the .pytxcode file
-    # changes, and to do this before running latex/pdflatex again.
+    # From latexmk's point of view this makes the document depend on the
+    # .pytxcode file; the rule is used for its side effect of creating
+    # the .pytxmcr file and PythonTeX's other output files.
     <<run PythonTeX with the configured interpreter>>
 }
 @
 
-Here we depart from the \ac{CTAN} original, which hardcodes its own PythonTeX
-invocation.
+Here we depart from the \ac{CTAN} original in two ways: the invocation is
+configurable, and the original's symbolic-link \enquote{fudge} is gone.
+
+The \ac{CTAN} code hardcodes its own PythonTeX invocation.
 Hardcoding leaves two independent paths to the same work---the make rule above
 and this custom dependency---that agree only by coincidence, and the coincidence
 breaks precisely for the projects that need PythonTeX most: the ones whose
@@ -463,39 +499,6 @@ my $pythontexflags = $ENV{PYTHONTEXFLAGS} // '--interpreter python:python3';
 return system("$pythontex $pythontexflags --verbose \"$_[0]\"");
 @
 
-Returning to the \ac{CTAN} code, the remaining fudge is the symbolic-link
-trickery that lets the custom dependency be detected at all when [[$out_dir]]
-is in use.
-<<[[latexmkrc]]>>=
-
-$pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
-$latex = 'internal mylatex %R %Z latex %O %S';
-sub mylatex {
-   my $root = shift;
-   my $dir_string = shift;
-   my $code = "$root.pytxcode";
-   my $result = "pythontex-files-$root";
-   if ($dir_string) {
-      warn "mylatex: Making symlinks to fool cus_dep creation\n";
-      unlink $code;
-      if (-l $result) {
-          unlink $result;
-      }
-      elsif (-d $result) {
-         unlink glob "$result/*";
-         rmdir $result;
-      }
-      symlink $dir_string.$code, $code;
-      if ( ! -e $dir_string.$result ) { mkdir $dir_string.$result; }
-      symlink $dir_string.$result, $result;
-   }
-   else {
-      foreach ($code, $result) { if (-l) { unlink; } }
-   }
-   return system @_;
-}
-@
-
 \subsection{Document files}
 
 Now that we have all prerequisite files, we can actually compile the document.
@@ -509,13 +512,24 @@ compilation --- this allows make(1) to track modification times correctly.
 (We need a symbolic link, rather than a hard link, because upon recompilation, 
 the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
 <<document files>>=
-%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
+%.pdf ${TEX_OUTDIR}/%.pdf: %.tex ${TEX_DOC_PREREQS}
 	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
+%.dvi ${TEX_OUTDIR}/%.dvi: %.tex ${TEX_DOC_PREREQS}
 	<<compile DVI>>
 	-${LN} ${TEX_OUTDIR}/$@ $@
+@ \label{tex:DocPrereqs}
+The variable [[TEX_DOC_PREREQS]] collects the prerequisites that the switches 
+in \cref{tex:Intro} ([[TEX_PYTHONTEX]] and friends) add to every document.
+It must be a variable \emph{inside} the pattern rule rather than a separate 
+rule, because GNU make only merges prerequisites from several rules for 
+explicit targets; for pattern rules, a second rule with no recipe is read as 
+cancelling a rule, not as extending one~\cite[Sect.\ 10.5.6]{GNUMake}.
+Since make(1) expands the rule line when it reads it, the switches' chunks 
+must appear before this one in [[<<targets for documents>>]]---which they do.
+<<variables>>=
+TEX_DOC_PREREQS?=
 @
 
 The compilation step for DVI is the usual.
