@@ -103,9 +103,11 @@ done when it gives up and records the state of the files it generated; so it goe
 straight to the remaining steps, and where the output is direct, as with plain
 [[-pdf]], it answers \enquote{Nothing to do}.
 More runs would be pointless.
-Two things do make it start over: a document that rewrites one of its own input
-files on every pass, since that record covers only generated files, and a [[-g]]
-in the command, which asks for it.
+It does start over if one of the document's own input files has changed since,
+since that record covers only generated files: the document may rewrite it
+itself, or someone may save an edit during the build.
+Go mode, [[-g]] or [[$go_mode]], also makes it start over, since that is what it
+asks for.
 It then gives up again before the same step, which is why the finishing run is
 followed by a check that there is any output at all.
 We look for \enquote{Rerun to get} rather than for the cross-references alone,
@@ -190,8 +192,9 @@ invocation before and fails again, this time without saying it ran out of runs,
 and then the status counts.
 That depends on the finishing run not starting over.
 If it does, latexmk(1) just runs out of runs again and a broken document passes
-for an unsettled one: with [[-f -g]] at once, and for a document that rewrites its
-own input on the [[make]] after the one that failed.
+for an unsettled one: with [[-f -g]] at once, and with direct output for a document
+that rewrites its own input, on the [[make]] after the one that failed.
+Under [[-xelatex]] the latter has no output, so the check for that catches it.
 
 We accept that rather than search the log for \TeX's errors, which would be the
 obvious way to catch these.
