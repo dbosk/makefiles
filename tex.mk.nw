@@ -236,9 +236,35 @@ One file that is commonly needed is the one used to create the bibliography,
 the [[.bbl]] file.
 There are two ways to create this file, either using classical bibtex(1) or 
 using the [[biblatex]] package and biber(1).
+We must pick exactly one of them.
+Both approaches define a rule for the same [[%.bbl]] target, and the classical
+one can always be satisfied---every document produces an [[.aux]] file---so if
+both rules are active make(1) always chooses bibtex(1) and never reaches
+biber(1).
+For a [[biblatex]] document that is wrong: latexmk(1) asks make(1) for the
+missing [[.bbl]], bibtex(1) finds nothing to do in the [[.aux]] file and fails,
+and only then does latexmk(1) run biber(1) by itself.
+The document comes out right, but every build carries a failed sub-make in its
+log.
+
+The variable [[TEX_BIB]] therefore selects the backend.
+It defaults to biber(1), since [[biblatex]] is the common case.
+A document that uses classical bibtex(1) must set it to [[bibtex]].
+With the default it would still come out right, since latexmk(1) runs bibtex(1)
+by itself in the end, but first make(1) tries to create the missing [[.bcf]]
+file with [[PREPROCESS.tex]], which leaves \TeX{}'s output files in the current
+directory, and then biber(1) fails on the [[.bcf]] file that never appeared.
+Since make(1) evaluates the conditional below when it reads this file, a project
+must set [[TEX_BIB]] before it includes [[tex.mk]], or on the command line.
+<<variables>>=
+TEX_BIB?=           biber
+@ With the backend chosen, we include only the matching [[.bbl]] rule.
 <<bibliography files>>=
+ifeq (${TEX_BIB},bibtex)
 <<bbl target for bibtex>>
+else
 <<bbl target for biber>>
+endif
 @
 
 The first approach, using bibtex(1), depends on the [[.aux]] file.
