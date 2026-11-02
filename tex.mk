@@ -6,23 +6,54 @@ TEX_MK=true
 INCLUDE_MAKEFILES?=.
 include ${INCLUDE_MAKEFILES}/portability.mk
 
-LATEX?=           latexmk -dvi -use-make -8bit
-PDFLATEX?=        latexmk -pdf -use-make -8bit
+TEX_MAX_PASSES?=  7
+LATEX?=           latexmk -dvi -use-make -8bit -e '$$max_repeat=${TEX_MAX_PASSES}'
+PDFLATEX?=        latexmk -pdf -use-make -8bit -e '$$max_repeat=${TEX_MAX_PASSES}'
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
-COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  for i in 1 2 3 4 5; do \
-    grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  done
+COMPILE.tex?=     $(call TEX_COMPILE,${PDFLATEX})
 COMPILE.dtx?=     ${COMPILE.tex}
+TEX_COMPILE?=     \
+  TEX_UNSETTLED=; i=1; \
+  $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
+  while [ "$$i" -lt ${TEX_MAX_PASSES} ] && [ -z "$$TEX_UNSETTLED" ] && \
+        grep -q "Rerun to get" ${TEX_LOG}; do \
+    i=$$((i+1)); \
+    $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
+  done; \
+  if [ -n "$$TEX_UNSETTLED" ]; then \
+    $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
+  fi; \
+  ${WARN_UNSETTLED}
+TEX_LOG?=         ${TEX_OUTDIR}/$(basename $(notdir $<)).log
+TEX_RUNDIR?=      $(or ${TEX_OUTDIR},.)
+TEX_RUNLOG?=      ${TEX_RUNDIR}/$(basename $(notdir $<)).texrunlog
+TEX_RUNSTATUS?=   ${TEX_RUNDIR}/$(basename $(notdir $<)).texrunstatus
+TEX_RUN?=         ${MKDIR} ${TEX_RUNDIR}; ${RM} ${TEX_RUNSTATUS}; \
+  { $(1) ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+    echo $$? > ${TEX_RUNSTATUS}; } 2>&1 | tee ${TEX_RUNLOG}
+CHECK_TEX_RUN?= \
+  rc=$$(cat ${TEX_RUNSTATUS} 2>/dev/null) || rc=1; [ -n "$$rc" ] || rc=1; \
+  if [ "$$rc" = 0 ]; then :; \
+  elif grep -q '^Latexmk: .*without getting stable files' ${TEX_RUNLOG} && \
+       ! grep -q '^Collected error summary' ${TEX_RUNLOG} && \
+       ! grep -qE '^make(\[[0-9]+\])?: \*\*\* \[' ${TEX_RUNLOG}; \
+  then \
+    TEX_UNSETTLED=yes; \
+  else \
+    ${RM} $@; exit $$rc; \
+  fi
+WARN_UNSETTLED?= \
+  if [ -n "$$TEX_UNSETTLED" ] || grep -q "Rerun to get" ${TEX_LOG}; then \
+    echo "tex.mk: WARNING: $< did not settle within the limit of passes;" \
+      "the output is complete, but its references may be off" >&2; \
+  fi
 TEX_BBL?=
 BIBTEX?=            bibtexu
 BIBTEXFLAGS?=
-BIBLIOGRAPHY.aux?=  ${BIBTEX} ${BIBTEXFLAGS} $<
+BIBLIOGRAPHY.aux?=  ${BIBTEX} ${BIBTEXFLAGS} $< || [ $$? = 1 ]
 BIBER?=             biber
 BIBERFLAGS?=
 BIBLIOGRAPHY.bcf?=  ${BIBER} -O $@ ${BIBERFLAGS} $<
@@ -46,7 +77,6 @@ ${TEX_OUTDIR}/%.aux: %.tex
 	${PREPROCESS.tex}
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
-	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 ${TEX_OUTDIR}/%.bcf: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.tex}
@@ -81,11 +111,7 @@ ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
 %.dvi ${TEX_OUTDIR}/%.dvi: %.tex
-	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-	for i in 1 2 3 4 5; do \
-	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-	done
+	$(call TEX_COMPILE,${LATEX})
 	-${LN} ${TEX_OUTDIR}/$@ $@
 latexmkrc:
 	[ -e $@ -o "${INCLUDE_MAKEFILES}" = "." ] || \
@@ -97,11 +123,7 @@ latexmkrc:
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
 %.dvi ${TEX_OUTDIR}/%.dvi: %.dtx
-	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-	for i in 1 2 3 4 5; do \
-	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-	done
+	$(call TEX_COMPILE,${LATEX})
 	-${LN} ${TEX_OUTDIR}/$@ $@
 ${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
 	${PREPROCESS.dtx}
@@ -193,6 +215,7 @@ clean-tex:
 	  ${RM} -R ${TEX_OUTDIR}
 	${RM} *.pytxcode
 	${RM} -R pythontex-files-*
+	${RM} ${TEX_RUNDIR}/*.texrunlog ${TEX_RUNDIR}/*.texrunstatus
 
 .PHONY: distclean distclean-tex
 distclean: distclean-tex
