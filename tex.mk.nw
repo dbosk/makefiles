@@ -45,8 +45,9 @@ them apart.
   } exited zero with an \enquote{Emergency stop} and a bibtex(1)
   \enquote{Error 2} in its log, which is how a clean clone that no longer built
   stayed hidden.
-\item[The document did not settle] The recipe warns and succeeds.
-  The output is complete, but cross-references or page breaks may still be off.
+\item[The document did not settle] The recipe warns and succeeds, provided there
+  is any output.
+  Cross-references or page breaks may still be off.
   Some documents have no fixed point at all, such as one with a noweb
   [[longxref]] continuation list, whose line count feeds back into the
   pagination it describes.
@@ -97,13 +98,16 @@ A latexmk(1) that has given up gets exactly one more run, because it gives up
 before the later steps of a chain: with [[-xelatex]] the PDF is made from the
 [[.xdv]] file by xdvipdfmx(1), which it hasn't reached, so without that run there
 would be no PDF at all.
-That run doesn't start LaTeX over, because latexmk(1) marks the rule as done when
-it gives up and records the state of the files it generated; so it goes straight
-to the remaining steps, and where the output is direct, as with plain [[-pdf]],
-it answers \enquote{Nothing to do}.
+That run normally doesn't start LaTeX over, because latexmk(1) marks the rule as
+done when it gives up and records the state of the files it generated; so it goes
+straight to the remaining steps, and where the output is direct, as with plain
+[[-pdf]], it answers \enquote{Nothing to do}.
 More runs would be pointless.
-A [[-g]] in the command defeats this, since it tells latexmk(1) to start over
-regardless, and could then leave no PDF.
+Two things do make it start over: a document that rewrites one of its own input
+files on every pass, since that record covers only generated files, and a [[-g]]
+in the command, which asks for it.
+It then gives up again before the same step, which is why the finishing run is
+followed by a check that there is any output at all.
 We look for \enquote{Rerun to get} rather than for the cross-references alone,
 since [[hyperref]] words its request for another pass over the outlines the same
 way.
@@ -120,7 +124,7 @@ TEX_COMPILE?=     \
     $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
   done; \
   if [ -n "$$TEX_UNSETTLED" ]; then \
-    $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
+    $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; ${CHECK_TEX_OUTPUT}; \
   fi; \
   ${WARN_UNSETTLED}
 @
@@ -184,6 +188,16 @@ out of runs too.
 The finishing run above tells them apart: latexmk(1) remembers the error from the
 invocation before and fails again, this time without saying it ran out of runs,
 and then the status counts.
+That depends on the finishing run not starting over.
+If it does, latexmk(1) just runs out of runs again and a broken document passes
+for an unsettled one: with [[-f -g]] at once, and for a document that rewrites its
+own input on the [[make]] after the one that failed.
+
+We accept that rather than search the log for \TeX's errors, which would be the
+obvious way to catch these.
+An error does start a line with an exclamation mark, but so can other text, because
+the log wraps at 79 columns: the documentation of nytid, which has no error at all,
+has such a line in the middle of an overfull box, and would fail.
 
 A plain [[pdflatex]] never says it ran out of runs, so any failure of it counts
 as a broken document, as it should.
@@ -211,6 +225,19 @@ CHECK_TEX_RUN?= \
   fi
 @
 
+A document that didn't settle succeeds on the understanding that there is a
+document to hand over, so that is what the check after the finishing run asks for.
+It names the output after the source rather than using [[$@]], because some
+projects build [[ltxobj/slides-incomplete.pdf]] from [[slides.tex]] and move the
+output afterwards.
+A file left by an earlier build also satisfies it.
+<<variables>>=
+CHECK_TEX_OUTPUT?= \
+  [ -s ${TEX_RUNDIR}/$(basename $(notdir $<))$(suffix $@) ] || { \
+    echo "tex.mk: $< did not settle and left no output" >&2; \
+    ${RM} $@; exit 1; }
+@
+
 The warning comes after the loop so that a document gets one warning however it
 got there: latexmk(1) said so, or a plain [[pdflatex]] used up its passes and
 the log still asks for another.
@@ -221,7 +248,7 @@ got.
 WARN_UNSETTLED?= \
   if [ -n "$$TEX_UNSETTLED" ] || grep -q "Rerun to get" ${TEX_LOG}; then \
     echo "tex.mk: WARNING: $< did not settle within the limit of passes;" \
-      "the output is complete, but its references may be off" >&2; \
+      "its references may be off, and its log may hold errors" >&2; \
   fi
 @
 

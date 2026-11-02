@@ -24,7 +24,7 @@ TEX_COMPILE?=     \
     $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
   done; \
   if [ -n "$$TEX_UNSETTLED" ]; then \
-    $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
+    $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; ${CHECK_TEX_OUTPUT}; \
   fi; \
   ${WARN_UNSETTLED}
 TEX_LOG?=         ${TEX_OUTDIR}/$(basename $(notdir $<)).log
@@ -44,10 +44,14 @@ CHECK_TEX_RUN?= \
   else \
     ${RM} $@ ${TEX_RUNDIR}/$(basename $(notdir $<)).fdb_latexmk; exit $$rc; \
   fi
+CHECK_TEX_OUTPUT?= \
+  [ -s ${TEX_RUNDIR}/$(basename $(notdir $<))$(suffix $@) ] || { \
+    echo "tex.mk: $< did not settle and left no output" >&2; \
+    ${RM} $@; exit 1; }
 WARN_UNSETTLED?= \
   if [ -n "$$TEX_UNSETTLED" ] || grep -q "Rerun to get" ${TEX_LOG}; then \
     echo "tex.mk: WARNING: $< did not settle within the limit of passes;" \
-      "the output is complete, but its references may be off" >&2; \
+      "its references may be off, and its log may hold errors" >&2; \
   fi
 TEX_BBL?=
 BIBTEX?=            bibtexu
