@@ -16,7 +16,9 @@ sub pythontex {
     # side effects in creating other files.  The dependence is a way
     # of triggering the rule to be run whenever the .pytxcode file
     # changes, and to do this before running latex/pdflatex again.
-    return system("python3 \$(which pythontex) --interpreter python:python3 --verbose \"$_[0]\"");
+    my $pythontex = $ENV{PYTHONTEX} || 'python3 $(which pythontex)';
+    my $pythontexflags = $ENV{PYTHONTEXFLAGS} // '--interpreter python:python3';
+    return system("$pythontex $pythontexflags --verbose \"$_[0]\"");
 }
 
 $pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
