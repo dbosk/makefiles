@@ -28,32 +28,232 @@ The reason is that [[latexmk]] doesn't stop on error, it just keeps on going.
 input---which it does otherwise.
 So the [[-halt-on-error]] option actually makes it more likely that we miss 
 that an error occurred.
+For the same reason we leave \TeX{} in its default interactive mode rather
+than passing [[-interaction=nonstopmode]]: when \TeX{} stops at an error we
+want to see it, not have the run plough on and bury the error in the log.
+
+A compilation has three possible outcomes, and make(1) must be able to tell
+them apart.
+\begin{description}
+\item[The document compiled] There is nothing to say, and the recipe succeeds
+  silently.
+\item[The document is broken] The recipe fails with the status of the command
+  that compiled it, and removes its target.
+  A build that cannot fail cannot be observed to have failed: the documentation
+  of nytid\footnote{%
+    URL: \url{https://github.com/dbosk/nytid}
+  } exited zero with an \enquote{Emergency stop} and a bibtex(1)
+  \enquote{Error 2} in its log, which is how a clean clone that no longer built
+  stayed hidden.
+\item[The document did not settle] The recipe warns and succeeds, provided there
+  is any output.
+  Cross-references or page breaks may still be off.
+  Some documents have no fixed point at all, such as one with a noweb
+  [[longxref]] continuation list, whose line count feeds back into the
+  pagination it describes.
+  No number of passes can fix that, and refusing to hand over the document
+  would help nobody.
+\end{description}
+When the compiling command reports success, we take its word for it.
+latexmk(1) succeeds for a document that settled even if a file it asked for could
+not be made, for instance when [[\bibliography]] names a file that doesn't
+exist, so such a document counts as compiled here too.
+
+The limit is seven passes, kept in [[TEX_MAX_PASSES]].
+latexmk(1) stops after five by default, which can be too few for a document
+using the [[footnotereuse]] option of the didactic package, whose footnotes need
+several passes to settle.
+The one number drives two loops, because which of them does the work depends on
+the command.
+latexmk(1) reruns LaTeX itself, so its limit is its [[$max_repeat]] variable.
+A plain [[pdflatex]] runs once per call, so there the shell loop below is the
+only one.
+A project that needs another limit sets [[TEX_MAX_PASSES]]: a [[$max_repeat]] in
+a [[latexmkrc]] file has no effect, since the one on the command line here
+overrides it.
 <<variables>>=
-LATEX?=           latexmk -dvi -use-make -8bit
-PDFLATEX?=        latexmk -pdf -use-make -8bit
+TEX_MAX_PASSES?=  7
+LATEX?=           latexmk -dvi -use-make -8bit -e '$$max_repeat=${TEX_MAX_PASSES}'
+PDFLATEX?=        latexmk -pdf -use-make -8bit -e '$$max_repeat=${TEX_MAX_PASSES}'
 LATEXFLAGS?=
 PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
-COMPILE.tex?=     \
-  ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  for i in 1 2 3 4 5; do \
-    grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-    ${PDFLATEX} ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-  done
+COMPILE.tex?=     $(call TEX_COMPILE,${PDFLATEX})
 COMPILE.dtx?=     ${COMPILE.tex}
-@ The [[COMPILE.tex]] command compiles once and then reruns for as long as the
-log still asks us to \enquote{Rerun to get cross}---but at most five extra
-passes.
-We need the cap because latexmk already reruns internally and gives up on a
-document that never converges, leaving that message in the final log; without
-the bound the loop above would relaunch latexmk forever.
-This happens for documents whose layout has no fixed point, such as a noweb
-[[longxref]] continuation list whose line count feeds back into the pagination
-it describes.
-
-Thus one would have to change the [[COMPILE.tex]] variable to change format
+@ Thus one would have to change the [[COMPILE.tex]] variable to change format
 from PDF to DVI unless a suffix rule is used.
+
+[[TEX_COMPILE]] takes the compiling command as its argument, so that PDF and DVI
+share the loop and with it the outcomes above.
+Its commands all run in one shell, which is what lets a failure in any of them
+end the recipe with its own status: a recipe otherwise reports the status of its
+\emph{last} command, here the warning, and that succeeds however the compilation
+went.
+That is how failed builds used to go unnoticed.
+
+The loop stops when the passes are used up, when latexmk(1) has given up, or when
+the log no longer asks for another pass.
+A latexmk(1) that has given up gets exactly one more run, because it gives up
+before the later steps of a chain: with [[-xelatex]] the PDF is made from the
+[[.xdv]] file by xdvipdfmx(1), which it hasn't reached, so without that run there
+would be no PDF at all.
+That run normally doesn't start LaTeX over, because latexmk(1) marks the rule as
+done when it gives up and records the state of the files it generated; so it goes
+straight to the remaining steps, and where the output is direct, as with plain
+[[-pdf]], it answers \enquote{Nothing to do}.
+More runs would be pointless.
+It does start over if one of the document's own input files has changed since,
+since that record covers only generated files: the document may rewrite it
+itself, or someone may save an edit during the build.
+Go mode, [[-g]] or [[$go_mode]], also makes it start over, since that is what it
+asks for.
+It then gives up again before the same step, which is why the finishing run is
+followed by a check that there is any output at all.
+We look for \enquote{Rerun to get} rather than for the cross-references alone,
+since [[hyperref]] words its request for another pass over the outlines the same
+way.
+A table of contents that is merely out of date prints no such request, so a plain
+[[pdflatex]] can stop too early for it, while latexmk(1), which compares the
+files themselves, will not.
+<<variables>>=
+TEX_COMPILE?=     \
+  TEX_UNSETTLED=; i=1; \
+  $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
+  while [ "$$i" -lt ${TEX_MAX_PASSES} ] && [ -z "$$TEX_UNSETTLED" ] && \
+        grep -q "Rerun to get" ${TEX_LOG}; do \
+    i=$$((i+1)); \
+    $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; \
+  done; \
+  if [ -n "$$TEX_UNSETTLED" ]; then \
+    $(call TEX_RUN,$(1)); ${CHECK_TEX_RUN}; ${CHECK_TEX_OUTPUT}; \
+  fi; \
+  ${WARN_UNSETTLED}
+@
+
+Each run is wrapped so that its standard error reaches both the terminal and a
+file we can read afterwards, since the status alone turns out not to be enough.
+Standard error is where latexmk(1) and make(1) say what we need to know.
+We leave standard output alone, connected to the terminal, because \TeX{} would
+buffer it if it were a pipe: a document stuck in a loop would then show nothing
+at all.
+\TeX{} also still gets the terminal as its input, so it can still stop at an
+error and ask.
+File descriptor 3 is how the inner command reaches that standard output from
+inside the pipeline.
+The status has to be put aside explicitly, because a pipeline reports the status
+of tee(1).
+The pipeline ends in [[|| :]] so that a shell running with [[-e]] can't end the
+recipe here, before we have looked at what kind of failure it was: with
+[[pipefail]] the failure would otherwise be the pipeline's, and without the
+[[||]] the group could stop before writing the status at all.
+We remove the previous status first, so that a shell killed before it could write
+a new one isn't read as this run having succeeded.
+We create [[TEX_OUTDIR]] first, for two reasons: tee(1) has to be able to create
+its file there, and while latexmk(1) would create the directory itself, a plain
+[[pdflatex]] refuses to write there and stops at once.
+The [[$(or ...)]] is for [[TEX_OUTDIR]] set to nothing at all: everything else
+in this file then addresses [[/]], and these two files should not be what
+first notices.
+
+We name the log by the base name of the source rather than by substituting
+[[.tex]] with [[.log]], since that substitution does nothing to a [[.dtx]] file:
+the loop would then look for the message in the source file, or in a file that
+doesn't exist, and never ask for a second pass.
+<<variables>>=
+TEX_LOG?=         ${TEX_OUTDIR}/$(basename $(notdir $<)).log
+TEX_RUNDIR?=      $(or ${TEX_OUTDIR},.)
+TEX_RUNLOG?=      ${TEX_RUNDIR}/$(basename $(notdir $<)).texrunlog
+TEX_RUNSTATUS?=   ${TEX_RUNDIR}/$(basename $(notdir $<)).texrunstatus
+TEX_RUN?=         ${MKDIR} ${TEX_RUNDIR}; ${RM} ${TEX_RUNSTATUS}; \
+  { { $(1) ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+      echo $$? > ${TEX_RUNSTATUS}; } 2>&1 >&3 | tee ${TEX_RUNLOG} >&2 || :; } 3>&1
+@
+
+The status isn't enough because latexmk(1) spends a single one, 12, on both a
+broken document and an unsettled one.
+It tells them apart only in words: for the latter it reports \enquote{Maximum
+runs of \ldots{} reached without getting stable files}.
+We therefore treat a failure as an unsettled document only when latexmk(1) says
+it ran out of runs and no recipe failed.
+The second [[grep]] is what keeps this from masking failures again: a run whose
+[[-use-make]] delegation ran a rule that failed leaves make(1)'s
+[[*** [...] Error]], or [[*** [...] Terminated]] if the recipe was killed.
+We look for a \emph{recipe} that failed rather than for make(1) being unhappy in
+general, since latexmk(1) asks it for every file LaTeX reported missing,
+including the ones LaTeX is about to write itself, and make(1) answers
+\enquote{No rule to make target} with nothing at all wrong.
+
+Force mode, which a project can turn on with [[-f]] or in its [[latexmkrc]], looks
+unsettled at first, since latexmk(1) then carries on past an error until it runs
+out of runs too.
+The finishing run above tells them apart: latexmk(1) remembers the error from the
+invocation before and fails again, this time without saying it ran out of runs,
+and then the status counts.
+That depends on the finishing run not starting over.
+If it does, latexmk(1) just runs out of runs again and a broken document passes
+for an unsettled one: with [[-f -g]] at once, and with direct output for a document
+that rewrites its own input, on the [[make]] after the one that failed.
+Under [[-xelatex]] the latter has no output, so the check for that catches it.
+
+We accept that rather than search the log for \TeX's errors, which would be the
+obvious way to catch these.
+An error does start a line with an exclamation mark, but so can other text, because
+the log wraps at 79 columns: the documentation of nytid, which has no error at all,
+has such a line in the middle of an overfull box, and would fail.
+
+A plain [[pdflatex]] never says it ran out of runs, so any failure of it counts
+as a broken document, as it should.
+
+A broken document also loses its target and latexmk(1)'s database.
+\TeX{} ships what it has, so a failed run can leave a fresh output file behind,
+and the next make(1) would answer that it is up to date and succeed.
+Without the database, latexmk(1) has to work out again what needs doing; with it,
+it could find nothing changed since it last tried and answer \enquote{Nothing to
+do}, although what failed has not been fixed.
+What goes is [[$@]], usually the link in the working directory; the output in
+[[TEX_OUTDIR]] stays, for reading what got that far.
+That output does still count as up to date if something asks for it by that name,
+as [[make ltxobj/d.pdf]] after a failed [[make d.pdf]] would.
+<<variables>>=
+CHECK_TEX_RUN?= \
+  rc=$$(cat ${TEX_RUNSTATUS} 2>/dev/null) || rc=1; [ -n "$$rc" ] || rc=1; \
+  if [ "$$rc" = 0 ]; then :; \
+  elif grep -q '^Latexmk: .*without getting stable files' ${TEX_RUNLOG} && \
+       ! grep -qE '^make(\[[0-9]+\])?: \*\*\* \[' ${TEX_RUNLOG}; \
+  then \
+    TEX_UNSETTLED=yes; \
+  else \
+    ${RM} $@ ${TEX_RUNDIR}/$(basename $(notdir $<)).fdb_latexmk; exit $$rc; \
+  fi
+@
+
+A document that didn't settle succeeds on the understanding that there is a
+document to hand over, so that is what the check after the finishing run asks for.
+It names the output after the source rather than using [[$@]], because some
+projects build [[ltxobj/slides-incomplete.pdf]] from [[slides.tex]] and move the
+output afterwards.
+A file left by an earlier build also satisfies it.
+<<variables>>=
+CHECK_TEX_OUTPUT?= \
+  [ -s ${TEX_RUNDIR}/$(basename $(notdir $<))$(suffix $@) ] || { \
+    echo "tex.mk: $< did not settle and left no output" >&2; \
+    ${RM} $@; exit 1; }
+@
+
+The warning comes after the loop so that a document gets one warning however it
+got there: latexmk(1) said so, or a plain [[pdflatex]] used up its passes and
+the log still asks for another.
+It must not promise more than it knows.
+A document may have no fixed point, or it may merely need more passes than it
+got.
+<<variables>>=
+WARN_UNSETTLED?= \
+  if [ -n "$$TEX_UNSETTLED" ] || grep -q "Rerun to get" ${TEX_LOG}; then \
+    echo "tex.mk: WARNING: $< did not settle within the limit of passes;" \
+      "its references may be off, and its log may hold errors" >&2; \
+  fi
+@
 
 %We note that we add this output directory to the search path for 
 %prerequisites~\cite[see][Sect.\ 4.5.1]{GNUMake}.
@@ -71,8 +271,14 @@ by
 <<variables>>=
 BIBTEX?=            bibtexu
 BIBTEXFLAGS?=
-BIBLIOGRAPHY.aux?=  ${BIBTEX} ${BIBTEXFLAGS} $<
-@ And, in case we use biblatex, the biber(1) command is controlled by
+BIBLIOGRAPHY.aux?=  ${BIBTEX} ${BIBTEXFLAGS} $< || [ $$? = 1 ]
+@ bibtex(1) exits with 1 after a mere warning, such as an entry that lacks a
+publisher, and with 2 or more after an error.
+Only the latter should fail the rule, since a failed rule under [[-use-make]] is
+what tells a broken document from an unsettled one in \cref{tex:Intro}.
+The warning has already been printed by then.
+
+And, in case we use biblatex, the biber(1) command is controlled by
 <<variables>>=
 BIBER?=             biber
 BIBERFLAGS?=
@@ -183,6 +389,10 @@ already add the following line to the cleaning recipe.
   ${RM} -R ${TEX_OUTDIR}
 ${RM} *.pytxcode
 ${RM} -R pythontex-files-*
+@ The output directory may be the working directory, and latexmk(1)'s cleaning
+doesn't know about the copies of the output we keep in \cref{tex:Intro}.
+<<clean recipe>>=
+${RM} ${TEX_RUNDIR}/*.texrunlog ${TEX_RUNDIR}/*.texrunstatus
 @
 
 
@@ -244,10 +454,11 @@ using the [[biblatex]] package and biber(1).
 The first approach, using bibtex(1), depends on the [[.aux]] file.
 This means that we can have a target creating the desired [[.bbl]] file from 
 the [[.aux]] file.
+bibtex(1) writes its [[.bbl]] and [[.blg]] beside the [[.aux]] file it is given,
+so they are already where the target says and there is nothing to move.
 <<bbl target for bibtex>>=
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
-	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 @
 
 The second approach uses the [[biblatex]] package~\cite{biblatex} and 
@@ -429,16 +640,10 @@ the file in [[TEX_OUTDIR]] is unlinked, whereas the other is not.)
 	-${LN} ${TEX_OUTDIR}/$@ $@
 @
 
-The compilation step for DVI is the usual.
-We compile once, then we recompile as long as the log file tells us to---but,
-as for [[COMPILE.tex]] above, at most five extra passes so that a document
-that never converges ends the build instead of looping latexmk forever.
+The compilation step for DVI is that of [[COMPILE.tex]] above, with the same
+three outcomes and the same limit, but with [[LATEX]] as the command.
 <<compile DVI>>=
-${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
-for i in 1 2 3 4 5; do \
-  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
-  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
-done
+$(call TEX_COMPILE,${LATEX})
 @
 
 
