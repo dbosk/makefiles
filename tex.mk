@@ -32,18 +32,17 @@ TEX_RUNDIR?=      $(or ${TEX_OUTDIR},.)
 TEX_RUNLOG?=      ${TEX_RUNDIR}/$(basename $(notdir $<)).texrunlog
 TEX_RUNSTATUS?=   ${TEX_RUNDIR}/$(basename $(notdir $<)).texrunstatus
 TEX_RUN?=         ${MKDIR} ${TEX_RUNDIR}; ${RM} ${TEX_RUNSTATUS}; \
-  { $(1) ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
-    echo $$? > ${TEX_RUNSTATUS}; } 2>&1 | tee ${TEX_RUNLOG}
+  { { $(1) ${LATEXFLAGS} -output-directory=${TEX_OUTDIR} $<; \
+      echo $$? > ${TEX_RUNSTATUS}; } 2>&1 >&3 | tee ${TEX_RUNLOG} >&2 || :; } 3>&1
 CHECK_TEX_RUN?= \
   rc=$$(cat ${TEX_RUNSTATUS} 2>/dev/null) || rc=1; [ -n "$$rc" ] || rc=1; \
   if [ "$$rc" = 0 ]; then :; \
   elif grep -q '^Latexmk: .*without getting stable files' ${TEX_RUNLOG} && \
-       ! grep -q '^Collected error summary' ${TEX_RUNLOG} && \
        ! grep -qE '^make(\[[0-9]+\])?: \*\*\* \[' ${TEX_RUNLOG}; \
   then \
     TEX_UNSETTLED=yes; \
   else \
-    ${RM} $@; exit $$rc; \
+    ${RM} $@ ${TEX_RUNDIR}/$(basename $(notdir $<)).fdb_latexmk; exit $$rc; \
   fi
 WARN_UNSETTLED?= \
   if [ -n "$$TEX_UNSETTLED" ] || grep -q "Rerun to get" ${TEX_LOG}; then \
