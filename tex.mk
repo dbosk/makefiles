@@ -9,7 +9,8 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
-PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} \
+  $(if $(findstring latexmk,${PDFLATEX}),,-output-directory=${TEX_OUTDIR}) $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 COMPILE.tex?=     \
@@ -50,9 +51,11 @@ ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
 	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
 else
+ifeq ($(findstring latexmk,${PDFLATEX}),)
 ${TEX_OUTDIR}/%.bcf: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.tex}
+endif
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
 	${BIBLIOGRAPHY.bcf}
 endif
@@ -107,8 +110,12 @@ latexmkrc:
 	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
-${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
+${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.idx: %.dtx
 	${PREPROCESS.dtx}
+ifeq ($(findstring latexmk,${PDFLATEX}),)
+${TEX_OUTDIR}/%.bcf: %.dtx
+	${PREPROCESS.dtx}
+endif
 define download_archive
 $(foreach file,${TEX_EXT_FILES-$(1)},\
   $(eval $(notdir ${file}): ${TEX_EXT_DIR-$(1)}/${file}))
