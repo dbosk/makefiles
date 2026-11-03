@@ -145,6 +145,20 @@ gitattributes: transform.mk.nw
 ${RM} gitattributes
 @
 
+The tests of [[tex.mk]] (\cref{tex:Tests}) take minutes, so they aren't part of
+[[all]], and projects have no use for them, so they aren't among [[OTHERS]].
+For the same reason we don't keep the tangled script, unlike the files above.
+<<OTHERS targets>>=
+test-tex.sh: tex.mk.nw
+	${NOTANGLE}
+
+.PHONY: check
+check: test-tex.sh tex.mk portability.mk latexmkrc
+	bash test-tex.sh
+<<clean recipe>>=
+${RM} test-tex.sh
+@
+
 \subsection{The Docker image}
 
 The [[Dockerfile]] is used to produce a Docker image.
