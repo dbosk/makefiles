@@ -91,6 +91,7 @@ end the recipe with its own status: a recipe otherwise reports the status of its
 \emph{last} command, here the warning, and that succeeds however the compilation
 went.
 That is how failed builds used to go unnoticed.
+\Cref{tex:Tests} tests these outcomes.
 
 The loop stops when the passes are used up, when latexmk(1) has given up, or when
 the log no longer asks for another pass.
@@ -644,6 +645,430 @@ The compilation step for DVI is that of [[COMPILE.tex]] above, with the same
 three outcomes and the same limit, but with [[LATEX]] as the command.
 <<compile DVI>>=
 $(call TEX_COMPILE,${LATEX})
+@
+
+
+\section{Testing the compilation}\label{tex:Tests}
+
+The three outcomes of \cref{tex:Intro} rest on how latexmk(1), \TeX{} and make(1)
+behave together, and a mistake here doesn't show: a build that wrongly succeeds
+looks just like one that rightly does.
+So [[test-tex.sh]] checks the outcomes, run by [[make check]]
+(\cref{Makefile}).
+
+It builds real documents with the real tools.
+That makes it take minutes, but the alternative is to test against our own idea
+of what these tools do, and that idea has been wrong often enough: latexmk(1)'s
+wording, where its messages go and what it does when it has given up were all
+found out by running it.
+It replaces a tool only to get a failure nothing else produces, and the prose
+says so where that happens.
+Even so, small documents only go so far.
+Two fixes to this code passed on small documents and would have broken the
+documentation of nytid, so a change to the compilation should also be tried on a
+large document.
+
+The script needs GNU make(1), latexmk(1), a \TeX{} distribution with XeTeX,
+bibtexu(1), biber(1), pdftotext(1) and the [[script]] command of util-linux, so it
+is for Linux.
+It takes the directory holding [[tex.mk]] as an optional argument, so that a
+modified copy can be tested, for instance to check that a test fails when the
+code it covers is broken.
+Each case runs in its own directory of a temporary directory, which is removed
+if all the tests pass and otherwise kept for reading the output.
+<<[[test-tex.sh]]>>=
+#!/bin/bash
+<<test setup>>
+<<test helpers>>
+<<test cases>>
+<<test report>>
+@
+
+We clear make(1)'s variables because [[make check]] would otherwise pass its own
+flags on to every build in here.
+<<test setup>>=
+MK=$(cd "${1:-$(dirname "$0")}" && pwd) || exit 1
+W=$(mktemp -d) || exit 1
+unset MAKEFLAGS MFLAGS MAKELEVEL
+mkdir "$W/mk"
+cp "$MK"/tex.mk "$MK"/portability.mk "$MK"/latexmkrc "$W/mk/" || exit 1
+FAILS=0
+NF=-interaction=nonstopmode
+INF=100000
+@
+
+The script must report failure in its own status, or we would repeat in the tests
+the mistake they are there to catch.
+<<test report>>=
+echo
+if [ "$FAILS" = 0 ]; then
+  echo "ALL OK"
+  rm -rf "$W"
+else
+  echo "$FAILS FAILED, see $W"
+  exit 1
+fi
+@
+
+To see how many passes are needed, and to control it, a document counts through a
+label.
+Each pass reads the previous value, so [[doc u 3]] settles on the fourth pass, and
+[[doc u $INF]] doesn't settle within any limit we would use.
+This is what makes the \enquote{did not settle} outcome testable at all.
+<<test helpers>>=
+newcase(){ # directory: start a case, with a Makefile that includes our tex.mk
+  mkdir -p "$W/$1"; cd "$W/$1" || exit 1
+  printf 'all:\n\nINCLUDE_MAKEFILES=../mk\ninclude ../mk/tex.mk\n' > Makefile
+}
+doc(){ # name target-value preamble body
+  cat > "$1.tex" <<EOF
+\\documentclass{article}
+\\usepackage{refcount}
+$3
+\\makeatletter
+\\newcounter{c}
+\\begin{document}
+\\setcounter{c}{\\getrefnumber{v}}
+\\ifnum\\value{c}<$2 \\stepcounter{c}\\fi
+Value \\arabic{c}.
+\\protected@edef\\@currentlabel{\\arabic{c}}\\label{v}
+\\makeatother
+$4
+\\end{document}
+EOF
+}
+plain(){ # file body preamble: a document without the counter
+  printf '\\documentclass{article}%s\\begin{document}%s\\end{document}\n' \
+    "$3" "$2" > "$1"
+}
+GOOD='Good.'
+BROKEN='\undefinedmacro{} Bad.'
+@
+
+Every case goes through the same call of make(1), with no terminal as input and
+no prompt to get stuck at, and leaves its status in [[RC]].
+<<test helpers>>=
+m(){ # output-file make-args...
+  o=$1; shift
+  timeout 280 make "$@" LATEXFLAGS=$NF </dev/null >"$o" 2>&1; RC=$?
+}
+passes(){ grep -cE '^This is (pdfTeX|XeTeX)' "$1"; }
+warned(){ grep -c '^tex.mk: WARNING' "$1"; }
+exists(){ [ -s "$1" ] && echo yes || echo no; }
+is(){ # label want got
+  if [ "$2" = "$3" ]; then
+    printf 'ok    %-44s %s\n' "$1" "$3"
+  else
+    printf 'FAIL  %-44s want %s got %s\n' "$1" "$2" "$3"
+    FAILS=$((FAILS+1))
+  fi
+}
+@
+
+\subsection{A failed build stays failed}
+
+\TeX{} ships what it has, so a failed run can leave a fresh output file, and if
+that made the next make(1) succeed we would be back where we started.
+Hence every case runs make(1) twice.
+The [[sleep]] is there because make(1) compares modification times.
+<<test cases>>=
+echo "=== a failed build keeps failing on the next make"
+newcase rerun1; plain d.tex "$GOOD"
+m o0 d.pdf; is "good first build rc" 0 "$RC"
+sleep 1; plain d.tex "$BROKEN"
+m o1 d.pdf; is "edited to break, run 1 rc" 2 "$RC"
+m o2 d.pdf; is "edited to break, run 2 rc" 2 "$RC"
+is "the partial PDF stays readable in TEX_OUTDIR" yes "$(exists ltxobj/d.pdf)"
+newcase rerun2; plain u.tex "$BROKEN"
+m o1 ltxobj/u.pdf; is "prefixed target, run 1 rc" 2 "$RC"
+m o2 ltxobj/u.pdf; is "prefixed target, run 2 rc" 2 "$RC"
+newcase rerun3; plain u.tex "$BROKEN"
+m o1 ltxobj/u.pdf PDFLATEX=pdflatex; is "prefixed, pdflatex, run 1 rc" 2 "$RC"
+m o2 ltxobj/u.pdf PDFLATEX=pdflatex; is "prefixed, pdflatex, run 2 rc" 2 "$RC"
+newcase rerun4; plain u.tex "$BROKEN"
+m o1 ltxobj/u.dvi; is "prefixed DVI, run 1 rc" 2 "$RC"
+m o2 ltxobj/u.dvi; is "prefixed DVI, run 2 rc" 2 "$RC"
+@
+
+The status of the previous run must not be mistaken for that of this one.
+A [[-e]] shell tests whether a failure ends the recipe before the status is
+written.
+For the other way to lose a status, a shell killed before it can write one, we
+must inject the failure, since nothing else kills that shell and leaves make(1)
+running.
+<<test cases>>=
+echo "=== a stale status cannot pass a broken document (-e shell)"
+newcase errexit; plain d.tex "$GOOD"
+m o0 d.pdf .SHELLFLAGS=-ec; is "good build under -ec rc" 0 "$RC"
+sleep 1; plain d.tex "$BROKEN"
+m o1 d.pdf .SHELLFLAGS=-ec; is "broken after good under -ec rc" 2 "$RC"
+m o2 d.pdf .SHELLFLAGS=-ec; is "  and on the next make" 2 "$RC"
+
+echo "=== a shell killed before writing its status is not an old success"
+newcase killed; plain d.tex "$GOOD"
+m o0 d.pdf; is "good first build rc" 0 "$RC"
+sleep 1; plain d.tex 'Edited.'
+m o1 d.pdf 'PDFLATEX=sh -c "kill -9 \$$PPID" x'
+is "wrapping shell killed rc" 2 "$RC"
+@
+
+\subsection{A document that doesn't settle}
+
+The opposite mistake is to fail a document that only ran out of passes.
+Under [[-xelatex]] and [[-pdfdvi]] the PDF is made after the point where latexmk(1)
+gives up, so there the check that the PDF exists is what shows the finishing run
+doing its job.
+<<test cases>>=
+echo "=== unsettled documents warn; only a real failure fails"
+newcase uns; doc u $INF
+m o u.pdf; is "plain unsettled rc" 0 "$RC"
+is "plain unsettled warned" 1 "$(warned o)"
+is "plain unsettled passes" 7 "$(passes o)"
+is "one relaunch after giving up" 1 "$(grep -c 'Nothing to do' o)"
+is "the output exists" yes "$(exists ltxobj/u.pdf)"
+newcase unsxe; doc u $INF
+m o u.pdf "PDFLATEX=latexmk -pdf -xelatex -use-make -8bit -e '\$\$max_repeat=7'"
+is "unsettled, -xelatex rc" 0 "$RC"; is "  warned" 1 "$(warned o)"
+is "  passes" 7 "$(passes o)"
+is "  the PDF exists (made by the finishing run)" yes "$(exists ltxobj/u.pdf)"
+newcase unspd; doc u $INF
+m o u.pdf "PDFLATEX=latexmk -pdfdvi -use-make -8bit -e '\$\$max_repeat=7'"
+is "unsettled, -pdfdvi rc" 0 "$RC"; is "  warned" 1 "$(warned o)"
+is "  the PDF exists (made by the finishing run)" yes "$(exists ltxobj/u.pdf)"
+@
+
+A bibliography is the step most likely to run through make(1) inside a document
+that doesn't settle, and bibtex(1) has a status that means no harm: 1, for
+warnings only.
+A real bibtex(1) error makes latexmk(1) report failure by itself, so only an
+injected status of 2 shows what our rule does with one.
+
+The first known limit is here too: the failed step left a [[.bbl]] file, so on
+the next make(1) nothing asks for it again, and the document counts as unsettled.
+We assert that as it stands, labelled [[KNOWN LIMIT]], so that a change to it is
+noticed; issue 100 in the tracker is about these limits.
+<<test cases>>=
+BIBOK='@book{a,author={A Author},title={A Title},publisher={P},year=2000}'
+BIBWARN='@book{a,author={A Author},title={A Title},year=2000}'
+CLASSIC='See \cite{a}.\bibliographystyle{plain}\bibliography{r}'
+BIBLATEX='\usepackage[backend=biber]{biblatex}\addbibresource{r.bib}'
+HAS_BIB_SWITCH=; grep -q '^TEX_BIB?=' "$W/mk/tex.mk" && HAS_BIB_SWITCH=yes
+BB=; [ -n "$HAS_BIB_SWITCH" ] && BB=TEX_BIB=bibtex
+
+newcase unsbib; doc u $INF '' "$CLASSIC"; echo "$BIBOK" > r.bib
+m o u.pdf $BB; is "unsettled, classical bib clean rc" 0 "$RC"
+is "  warned" 1 "$(warned o)"
+newcase unsbibw; doc u $INF '' "$CLASSIC"; echo "$BIBWARN" > r.bib
+m o u.pdf $BB; is "unsettled, classical bib with warning rc" 0 "$RC"
+is "  warned" 1 "$(warned o)"
+is "  the BibTeX warning is still printed" yes \
+  "$(grep -q 'Warning--' o && echo yes || echo no)"
+newcase unsbibe; echo "$BIBOK" > r.bib
+doc u $INF '' 'See \cite{a}.\bibliographystyle{nosuchstyle}\bibliography{r}'
+m o u.pdf $BB; is "unsettled, bibtex real error (no style) rc" 2 "$RC"
+newcase unsbib2; doc u $INF '' "$CLASSIC"; echo "$BIBOK" > r.bib
+printf '#!/bin/sh\nbibtexu "$@"\nexit 2\n' > fb; chmod +x fb
+m o u.pdf $BB BIBTEX=./fb; is "unsettled, bibtex exits 2 (injected) rc" 2 "$RC"
+m o u.pdf $BB BIBTEX=./fb
+is "  KNOWN LIMIT next make, .bbl left behind" 0 "$RC"; is "    warned" 1 "$(warned o)"
+newcase bibwset; plain s.tex "$CLASSIC"; echo "$BIBWARN" > r.bib
+m o s.pdf $BB; is "settled, classical bib with warning rc" 0 "$RC"
+is "  warned" 0 "$(warned o)"
+is "  citation resolved" yes \
+  "$(pdftotext ltxobj/s.pdf - 2>/dev/null | grep -q 'See \[1\]' && echo yes || echo no)"
+@
+
+The cases for biblatex need [[TEX_BIB]] to select the biber rule.
+Without it, the [[bibtexu]] sub-make that latexmk(1) runs for such a document
+fails, harmlessly, and that is a failed recipe to us.
+<<test cases>>=
+if [ -n "$HAS_BIB_SWITCH" ]; then
+  newcase unsblx; doc u $INF "$BIBLATEX" 'See \cite{a}.\printbibliography'
+  echo "$BIBOK" > r.bib
+  m o u.pdf; is "unsettled, biblatex rc" 0 "$RC"; is "  warned" 1 "$(warned o)"
+  newcase bblfail; doc u $INF "$BIBLATEX" 'See \cite{a}.\printbibliography'
+  echo "$BIBOK" > r.bib
+  m o u.pdf 'BIBLIOGRAPHY.bcf=exit 2'; is "unsettled, biber recipe fails rc" 2 "$RC"
+  m o u.pdf 'BIBLIOGRAPHY.bcf=exit 2'
+  is "  KNOWN LIMIT next make, .bbl left behind" 0 "$RC"
+  is "    warned" 1 "$(warned o)"
+else
+  echo "(biblatex + unsettled skipped: this tex.mk has no TEX_BIB)"
+fi
+@
+
+Any recipe latexmk(1) runs through [[-use-make]] can fail, and it can fail in two
+ways that make(1) words differently: with [[Error]], or with [[Terminated]] when
+it's killed.
+A figure built by the same [[tex.mk]] checks that this isn't overdone: its
+sub-make prints a compilation of its own, which must not confuse the verdict on
+the document around it.
+<<test cases>>=
+INPUT_GEN='\InputIfFileExists{gen.tex}{}{\typeout{No file gen.tex.}}'
+newcase recfail; doc u $INF '' "$INPUT_GEN"; printf 'gen.tex:\n\tfalse\n' >> Makefile
+m o u.pdf; is "unsettled, recipe fails rc" 2 "$RC"
+m o u.pdf; is "  and on the next make" 2 "$RC"
+newcase recsig; doc u $INF '' "$INPUT_GEN"
+printf 'gen.tex:\n\tkill -TERM $$$$\n' >> Makefile
+m o u.pdf; is "unsettled, recipe killed by signal rc" 2 "$RC"
+m o u.pdf; is "  and on the next make" 2 "$RC"
+m o u.pdf; is "  and the one after" 2 "$RC"
+
+echo "=== a sub-make echoing tex.mk's own recipe does not confuse the classifier"
+FIG='\includegraphics{fig}'
+GRAPHICX='\usepackage{graphicx}'
+newcase nest1; doc u $INF "$GRAPHICX" "$FIG"; plain fig.tex F
+m o u.pdf; is "unsettled, nested figure rc" 0 "$RC"
+is "  warned for main" 1 "$(grep -c '^tex.mk: WARNING: u.tex' o)"
+newcase nest2; plain u.tex "$FIG\\undefinedmacro{}" "$GRAPHICX"; plain fig.tex F
+m o u.pdf; is "broken, nested figure rc" 2 "$RC"
+
+echo "=== plain pdflatex notices every rerun request LaTeX words the same way"
+newcase hy; plain h.tex '\tableofcontents\section{A}' '\usepackage{hyperref}'
+m o h.pdf PDFLATEX=pdflatex; is "hyperref rc" 0 "$RC"
+is "  passes" 2 "$(passes o)"; is "  warned" 0 "$(warned o)"
+@
+
+\subsection{The limit}
+
+Two documents straddle the limit: one settles on the last pass allowed, the other
+would on the first pass too many.
+Both tools must agree on where it lies, for PDF and for DVI, since one number
+drives two loops.
+<<test cases>>=
+echo "=== the limit has one name"
+newcase lim; doc k6 6; doc k7 7
+for tool in latexmk pdflatex; do
+  a=; [ $tool = pdflatex ] && a=PDFLATEX=pdflatex
+  rm -rf ltxobj k6.pdf k7.pdf
+  m o k6.pdf $a; is "$tool k6 passes" 7 "$(passes o)"; is "  warned" 0 "$(warned o)"
+  m o k7.pdf $a; is "$tool k7 passes" 7 "$(passes o)"; is "  warned" 1 "$(warned o)"
+  is "  rc" 0 "$RC"
+  rm -rf ltxobj k7.pdf
+  m o k7.pdf $a TEX_MAX_PASSES=9
+  is "$tool k7 TEX_MAX_PASSES=9 passes" 8 "$(passes o)"; is "  warned" 0 "$(warned o)"
+done
+newcase limd; doc k6 6; doc k7 7
+for tool in latexmk latex; do
+  a=; [ $tool = latex ] && a=LATEX=latex
+  rm -rf ltxobj k6.dvi k7.dvi
+  m o k6.dvi $a; is "$tool DVI k6 passes" 7 "$(passes o)"; is "  warned" 0 "$(warned o)"
+  m o k7.dvi $a; is "$tool DVI k7 passes" 7 "$(passes o)"; is "  warned" 1 "$(warned o)"
+done
+@
+
+\subsection{When latexmk(1) carries on, or starts over}
+
+Force mode is the case where latexmk(1) says it ran out of runs although the
+document is broken, which the finishing run has to expose.
+<<test cases>>=
+echo "=== force mode: an error it carried on past is still an error"
+FORCE="PDFLATEX=latexmk -pdf -use-make -8bit -f -e '\$\$max_repeat=7'"
+newcase force; doc u $INF '' '\undefinedmacro{}'
+m o u.pdf "$FORCE"; is "-f, broken + unsettled rc" 2 "$RC"
+is "  latexmk did run out of runs" 1 "$(grep -c '^Latexmk: Maximum runs' o)"
+m o2 u.pdf "$FORCE"; is "  and on the next make" 2 "$RC"
+newcase force2; doc u $INF
+m o u.pdf "$FORCE"; is "-f, clean + unsettled rc" 0 "$RC"; is "  warned" 1 "$(warned o)"
+FX="PDFLATEX=latexmk -pdf -xelatex -use-make -8bit -f -e '\$\$max_repeat=7'"
+newcase force3; doc u $INF '' '\undefinedmacro{}'
+m o u.pdf "$FX"; is "-f -xelatex, broken + unsettled rc" 2 "$RC"
+@
+
+A finishing run that starts over is harder to come by, so we provoke it: a document
+that rewrites an input file on every pass, through [[\write18]], and the [[-g]]
+option.
+The command is in a file of its own because the [[%]] of [[date]] would comment
+out the rest of a line of \TeX{}.
+These cases hold the check for missing output, a project that moves its output
+after the compilation, and the two remaining known limits.
+The last case is why those limits remain, since it's what the obvious way to close
+them, searching the log for errors, gets wrong.
+<<test cases>>=
+echo "=== latexmk starts over in the finishing run: no output means failure"
+rewriting(){
+  echo 'printf "%s\n" "$(date +%N)" > stamp.tex' > gen.sh; echo 0 > stamp.tex
+}
+LP="latexmk -pdf -shell-escape -use-make -8bit"
+LX="latexmk -pdf -xelatex -shell-escape -use-make -8bit"
+L3="-e '\$\$max_repeat=3'"
+REWRITE='\immediate\write18{sh gen.sh}\input{stamp}'
+newcase rw1; doc u $INF '' "$REWRITE x"; rewriting
+m o1 u.pdf TEX_MAX_PASSES=3 "PDFLATEX=$LX $L3"
+is "-xelatex, rewrites its input, no PDF rc" 2 "$RC"
+is "  says why" 1 "$(grep -c '^tex.mk: .*left no output' o1)"
+is "  no false warning" 0 "$(warned o1)"
+m o2 u.pdf TEX_MAX_PASSES=3 "PDFLATEX=$LX $L3"; is "  and on the next make" 2 "$RC"
+newcase rw2; doc u $INF '' "$REWRITE x"; rewriting
+m o1 u.pdf TEX_MAX_PASSES=3 "PDFLATEX=$LP $L3"
+is "-pdf, rewrites its input, has PDF rc" 0 "$RC"; is "  warned" 1 "$(warned o1)"
+is "  the PDF exists" yes "$(exists ltxobj/u.pdf)"
+newcase g1; doc u $INF
+m o1 u.pdf TEX_MAX_PASSES=3 "PDFLATEX=latexmk -pdf -xelatex -g -use-make -8bit $L3"
+is "-xelatex -g, no PDF rc" 2 "$RC"
+newcase g2; doc u $INF
+m o1 u.pdf TEX_MAX_PASSES=3 "PDFLATEX=latexmk -pdf -g -use-make -8bit $L3"
+is "-pdf -g, has PDF rc" 0 "$RC"
+newcase mvout; doc slides $INF
+printf 'ltxobj/slides-incomplete.pdf: slides.tex\n\t${COMPILE.tex}\n' >> Makefile
+printf '\tmv ltxobj/slides.pdf ltxobj/slides-incomplete.pdf\n' >> Makefile
+m o1 ltxobj/slides-incomplete.pdf TEX_MAX_PASSES=3 \
+  "PDFLATEX=latexmk -pdf -use-make -8bit $L3"
+is "target named apart from its source rc" 0 "$RC"
+newcase rw3; plain s.tex "$REWRITE \\undefinedmacro"; rewriting
+m o1 s.pdf TEX_MAX_PASSES=3 "PDFLATEX=$LP $L3"; is "broken, rewrites its input rc" 2 "$RC"
+m o2 s.pdf TEX_MAX_PASSES=3 "PDFLATEX=$LP $L3"
+is "  KNOWN LIMIT next make" 0 "$RC"; is "    warned" 1 "$(warned o2)"
+newcase fg1; doc u $INF '' '\undefinedmacro{}'
+m o1 u.pdf TEX_MAX_PASSES=3 "PDFLATEX=latexmk -pdf -f -g -use-make -8bit $L3"
+is "KNOWN LIMIT -f -g, broken rc" 0 "$RC"; is "  warned" 1 "$(warned o1)"
+
+echo "=== a line starting with ! is not an error"
+newcase bang; doc u $INF '' '\typeout{! not an error}'
+m o1 u.pdf TEX_MAX_PASSES=3 "PDFLATEX=latexmk -pdf -use-make -8bit $L3"
+is "unsettled, ! at start of a log line rc" 0 "$RC"; is "  warned" 1 "$(warned o1)"
+@
+
+\subsection{The shell and the terminal}
+
+A project can run its recipes in a stricter shell, and with [[pipefail]] the
+pipeline around \TeX{} fails where it otherwise wouldn't.
+<<test cases>>=
+echo "=== strict shells"
+STRICT=(SHELL=/bin/bash ".SHELLFLAGS=-eu -o pipefail -c")
+newcase st1; doc u $INF
+m o u.pdf "${STRICT[@]}"; is "pipefail -e, unsettled rc" 0 "$RC"; is "  warned" 1 "$(warned o)"
+newcase st2; doc u $INF
+m o u.pdf "${STRICT[@]}" \
+  "PDFLATEX=latexmk -pdf -xelatex -use-make -8bit -e '\$\$max_repeat=7'"
+is "pipefail -e, unsettled -xelatex rc" 0 "$RC"
+is "  the PDF exists" yes "$(exists ltxobj/u.pdf)"
+newcase st3; plain d.tex "$BROKEN"
+m o1 ltxobj/d.pdf "${STRICT[@]}"; is "pipefail -e, broken run 1 rc" 2 "$RC"
+m o2 ltxobj/d.pdf "${STRICT[@]}"; is "pipefail -e, broken run 2 rc" 2 "$RC"
+@
+
+Finally, a person at a terminal should see \TeX's output as it happens.
+\TeX{} buffers its output when it's going to a pipe, so this takes a real terminal
+to test, which [[script]] provides.
+The document prints a line and then keeps \TeX{} busy for much longer than we wait
+for that line.
+<<test cases>>=
+echo "=== TeX's output reaches the terminal as it happens (pty)"
+live(){ # args for make...: yes if START shows within 10 s
+  rm -rf ltxobj d.pdf; rm -f pty.log
+  script -qfec "make d.pdf LATEXFLAGS=$NF $*" pty.log </dev/null >/dev/null 2>&1 &
+  p=$!; t=0; r=no
+  while [ $t -lt 20 ]; do
+    grep -aq START pty.log 2>/dev/null && { r=yes; break; }
+    sleep 0.5; t=$((t+1))
+  done
+  wait $p; echo $r
+}
+newcase live
+plain d.tex '\typeout{START}\newcount\m\loop\advance\m by 1 \ifnum\m<100000000 \repeat Good.'
+is "latexmk: START visible early" yes "$(live)"
+is "pdflatex: START visible early" yes "$(live PDFLATEX=pdflatex)"
 @
 
 

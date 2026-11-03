@@ -36,6 +36,12 @@ latexmkrc: tex.mk.nw
 
 gitattributes: transform.mk.nw
 	${NOTANGLE}
+test-tex.sh: tex.mk.nw
+	${NOTANGLE}
+
+.PHONY: check
+check: test-tex.sh tex.mk portability.mk latexmkrc
+	bash test-tex.sh
 DOCKER_ID_USER?=dbosk
 
 .PHONY: docker-makefiles push
@@ -62,6 +68,7 @@ clean:
 	${RM} Dockerfile.tex
 	${RM} ${MKFILES:.mk=.tex}
 	${RM} gitattributes
+	${RM} test-tex.sh
 	${RM} makefiles.tar.gz
 
 distclean:

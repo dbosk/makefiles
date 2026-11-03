@@ -18,3 +18,4 @@ Dockerfile.tex
 intro.tex
 Makefile.tex
 noweb_lexer.py
+test-tex.sh
