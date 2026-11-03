@@ -32,7 +32,8 @@ that an error occurred.
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
-PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} \
+  $(if $(findstring latexmk,${PDFLATEX}),,-output-directory=${TEX_OUTDIR}) $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 COMPILE.tex?=     \
@@ -231,14 +232,42 @@ ${PREPROCESS.tex}
 @
 
 \subsection{Bibliographies}
+\label{tex:Bibliographies}
 
-One file that is commonly needed is the one used to create the bibliography, 
+One file that is commonly needed is the one used to create the bibliography,
 the [[.bbl]] file.
-There are two ways to create this file, either using classical bibtex(1) or 
+There are two ways to create this file, either using classical bibtex(1) or
 using the [[biblatex]] package and biber(1).
+We must pick exactly one of them.
+Both approaches define a rule for the same [[%.bbl]] target, and the classical
+one can always be satisfied---every document produces an [[.aux]] file---so if
+both rules are active make(1) always chooses bibtex(1) and never reaches
+biber(1).
+For a [[biblatex]] document that is wrong: latexmk(1) asks make(1) for the
+missing [[.bbl]], bibtex(1) finds nothing to do in the [[.aux]] file and fails,
+and only then does latexmk(1) run biber(1) by itself.
+The document comes out right, but each build that lacks the [[.bbl]] carries a
+failed sub-make in its log.
+
+The variable [[TEX_BIB]] therefore selects the backend.
+It defaults to biber(1), since [[biblatex]] is the common case.
+A document that uses classical bibtex(1), or [[biblatex]] with
+[[backend=bibtex]], should set it to [[bibtex]].
+Under latexmk(1) it still comes out right with the default, since make(1) fails
+to create the [[.bbl]] and latexmk(1) then runs bibtex(1) by itself, at the cost
+of one failed sub-make in the log.
+Under plain pdflatex(1) it does not, since biber(1) has no [[.bcf]] file to read.
+Since make(1) evaluates the conditional below when it reads this file, a project
+must set [[TEX_BIB]] before it includes [[tex.mk]], or on the command line.
+<<variables>>=
+TEX_BIB?=           biber
+@ With the backend chosen, we include only the matching [[.bbl]] rule.
 <<bibliography files>>=
+ifeq (${TEX_BIB},bibtex)
 <<bbl target for bibtex>>
+else
 <<bbl target for biber>>
+endif
 @
 
 The first approach, using bibtex(1), depends on the [[.aux]] file.
@@ -252,12 +281,35 @@ ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 
 The second approach uses the [[biblatex]] package~\cite{biblatex} and 
 biber(1)~\cite{biber}.
-They do not rely on the [[.aux]] file, instead [[biblatex]] creates a [[.bcf]] 
+They do not rely on the [[.aux]] file, instead [[biblatex]] creates a [[.bcf]]
 file.
-Thus its target is exactly the same as that of the [[.aux]] file.
+Who runs \LaTeX{} to create it depends on what compiles the document, so the two
+cases need different rules.
+
+Under latexmk(1) there must be no rule for the [[.bcf]] file.
+latexmk(1) has already run \LaTeX{} when it asks make(1) for the [[.bbl]], so if
+the [[.bcf]] file is missing then the document doesn't use biber(1), or it failed
+before writing the file, and running \LaTeX{} again doesn't help.
+It does harm.
+A nested latexmk(1) without an output directory leaves \TeX{}'s files in the
+current directory, where they stay after [[make clean]].
+With the same output directory, as with [[TEX_OUTDIR=.]], it asks make(1) for the
+same [[.bbl]] again, which recurses without end.
+
+Under plain pdflatex(1) nothing else creates the [[.bcf]] file, so we need the
+rule, and we need it to put the file where biber(1) will look.
+That is why [[PREPROCESS.tex]] passes the output directory exactly when the
+command isn't latexmk(1).
+Nothing asks for the [[.bbl]] under pdflatex(1) though, so a project must add it
+as a prerequisite of the document, for example
+[[ltxobj/doc.pdf: ltxobj/doc.bbl]].
+As with [[TEX_BIB]], the choice is made when make(1) reads this file, so a project
+must set [[PDFLATEX]] before it includes [[tex.mk]], or on the command line.
 <<bbl target for biber>>=
+ifeq ($(findstring latexmk,${PDFLATEX}),)
 ${TEX_OUTDIR}/%.bcf: %.tex
 	<<create output directory and preprocess TeX>>
+endif
 @ This [[.bcf]] file is in turn used by biber(1) to create the [[.bbl]] file.
 To compile the [[.bbl]] with biber(1) and put the output files in the desired
 directory, we do the following.
@@ -483,9 +535,15 @@ documents.
 	<<compile DVI>>
 	-${LN} ${TEX_OUTDIR}/$@ $@
 @ However, we must tell make(1) how to make a [[.bbl]] etc.\ from [[.dtx]].
+The [[.bcf]] file gets a rule only without latexmk(1), for the reasons in
+\cref{tex:Bibliographies}.
 <<compile class and package documentation>>=
-${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
+${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.idx: %.dtx
 	${PREPROCESS.dtx}
+ifeq ($(findstring latexmk,${PDFLATEX}),)
+${TEX_OUTDIR}/%.bcf: %.dtx
+	${PREPROCESS.dtx}
+endif
 @
 
 
