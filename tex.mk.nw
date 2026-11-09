@@ -251,6 +251,28 @@ latexmkrc:
 [ ! -L latexmkrc ] || ${RM} latexmkrc
 @
 
+Documents whose layout depends on the [[.aux]] file settle only after several
+runs of latex(1): a run decides where something goes, which moves something
+else, which the next run sees.
+Dense margin notes do this (one run records where a page must end for a note,
+the next applies it, and the one after sees the notes in their new places),
+and such a document can need more than the five runs latexmk(1) allows by
+default.
+Stopping there is worse than it sounds.
+The first [[make]] fails, as it should, with exit status 12.
+But latexmk(1) then counts the target as up to date, so the next [[make]]
+succeeds without a run and keeps the PDF of the last run, which isn't settled.
+We could leave the limit to each document, but a failure that a retry hides
+doesn't point anyone to the cure.
+Thus we raise the limit for all documents, to ten runs.
+A document that settles earlier isn't affected, since latexmk(1) stops as soon
+as the files stop changing.
+We don't remove the limit altogether, since a document can also never settle,
+and that must still end, with an error.
+<<[[latexmkrc]]>>=
+$max_repeat = 10;
+@
+
 We will now discuss the different files we need latex(1) to generate.
 Note that in many cases we want latex(1) to generate more files, \eg [[.toc]]
 files, but we do not have to care about these here.
