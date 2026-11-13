@@ -37,6 +37,7 @@ COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 TEX_PYTHONTEX?=
 PYTHONTEX?=       python3 $$(which pythontex)
 PYTHONTEXFLAGS?=  --interpreter python:python3
+TEX_DOC_PREREQS?=
 BIBTOOL?=     bibtool
 BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
 ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
@@ -54,9 +55,6 @@ ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
 	${BIBLIOGRAPHY.bcf}
 ifneq (${TEX_BBL},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
-endif
-ifneq (${TEX_PYTHONTEX},)
-${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.pytxmcr
 endif
 ${TEX_OUTDIR}/%.idx: %.tex
 	${MKDIR} ${TEX_OUTDIR}
@@ -76,11 +74,14 @@ ${TEX_OUTDIR}/%.pytxcode: ${TEX_OUTDIR}/%.aux
 	cd $(dir $@) && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
 %.pytxmcr ${TEX_OUTDIR}/%.pytxmcr:: ${TEX_OUTDIR}/%.pytxcode
 	cd ${TEX_OUTDIR} && ${PYTHONTEX} ${PYTHONTEXFLAGS} $(basename $(notdir $@))
-%.pdf ${TEX_OUTDIR}/%.pdf: %.tex
+ifneq (${TEX_PYTHONTEX},)
+TEX_DOC_PREREQS+= latexmkrc
+endif
+%.pdf ${TEX_OUTDIR}/%.pdf: %.tex ${TEX_DOC_PREREQS}
 	${COMPILE.tex}
 	-${LN} ${TEX_OUTDIR}/$@ $@
 
-%.dvi ${TEX_OUTDIR}/%.dvi: %.tex
+%.dvi ${TEX_OUTDIR}/%.dvi: %.tex ${TEX_DOC_PREREQS}
 	${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<
 	for i in 1 2 3 4 5; do \
 	  grep "Rerun to get cross" ${TEX_OUTDIR}/${<:.tex=.log} || break; \
