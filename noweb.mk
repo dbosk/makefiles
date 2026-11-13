@@ -7,9 +7,6 @@ NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -n -delay -t2 -autolang \
                     -langrule '^test \[\[.*\.sh\]\]=bash' \
                     -langrule '^test \[\[Makefile\]\]=make' \
                     -index -filter tominted
-NOWEAVE.pdf?=       \
-  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
-  latexmk -pdf ${@:.pdf=.tex}
 NOWEAVEFLAGS.pdf?=  \
   ${NOWEAVEFLAGS} -t2 -autolang \
   -langrule '^test \[\[.*\.py\]\]=python' \
@@ -17,6 +14,10 @@ NOWEAVEFLAGS.pdf?=  \
   -langrule '^test \[\[Makefile\]\]=make' \
   -option "shift,breakcode,longxref,longchunks" \
   -index -minted
+NOWEAVE.pdf?=       \
+  trap '${RM} ${@:.pdf=.tex}' EXIT INT TERM; \
+  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
+  latexmk -pdf ${@:.pdf=.tex}
 NOTANGLEFLAGS?=
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R"[[$(notdir $@)]]" $(filter %.nw,$^) | \
                   ${CPIF} $@ && noroots $(filter %.nw,$^)
