@@ -78,13 +78,20 @@ $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_tex,${suf})))
 @
 
 To differentiate the second case from the first (in terms of suffix rules), we 
-go from [[.nw]] directly to [[.pdf]]\footnote{%
-  Note, however, that these pattern rules will never be used by make.
-  The make algorithm performs a depth-first search, thus make will take the 
-  long way by first converting to TeX, then to PDF.
-  We can determine which of these two pattern rules should be used by moving 
-  the inclusion of the [[tex.mk]] include file above.
-}.
+go from [[.nw]] directly to [[.pdf]].
+
+Which way make takes to [[foo.pdf]] depends on whether there is a
+[[foo.tex]].
+Make first tries the pattern rules whose prerequisites exist (or are
+mentioned in the makefile), and only then those that need a chain of rules.
+Without a [[foo.tex]], only the direct rule below has an existing
+prerequisite, [[foo.nw]], so make uses it.
+With a [[foo.tex]], the rule from [[.tex]] to [[.pdf]] in [[tex.mk]] applies
+too.
+That rule comes first, since we include [[tex.mk]] above, so make takes the
+long way: it weaves [[foo.tex]] anew with [[NOWEAVE.tex]], if [[foo.nw]] is
+newer, and compiles that.
+This matters for the recipe [[NOWEAVE.pdf]] below.
 <<suffix rule for weaving to PDF>>=
 %.pdf: %.nw
 	${NOWEAVE.pdf}
@@ -98,12 +105,39 @@ $(foreach suf,${NOWEB_SUFFIXES},$(eval $(call def_weave_to_pdf,${suf})))
 @ What differs [[NOWEAVE.pdf]] from [[NOWEAVE.tex]] is the options to 
 [[noweave]] and the compilation step (instead of having that separately).
 <<variables>>=
-NOWEAVE.pdf?=       \
-  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
-  latexmk -pdf ${@:.pdf=.tex}
 NOWEAVEFLAGS.pdf?=  \
   ${NOWEAVEFLAGS} -x -t2 \
   -option "shift,breakcode,longxref,longchunks"
+@
+
+The recipe writes its TeX file to [[foo.tex]], since latexmk names the PDF
+after it.
+That is the name that the first case uses too, but not the same contents:
+this file has a preamble, that one must not have one.
+If we left the file behind, the next build would find a [[foo.tex]] and, as
+described above, take the long way: weave it anew without a preamble and
+fail to compile it.
+So the recipe removes the file when it's done, whether it succeeded or not.
+
+Declaring the file as [[.INTERMEDIATE]] would not do that.
+Make only removes the intermediate files that it has made itself, as the
+target of a rule, and this file is a by-product of the recipe.
+(Nor does [[.INTERMEDIATE]] take a pattern.)
+
+We remove it with a [[trap]] rather than with a command at the end, for two
+reasons.
+The exit status of the recipe remains that of latexmk.
+And latexmk remains last, so that a rule can still add flags to it, as in
+[[${NOWEAVE.pdf} -shell-escape]].
+The trap also covers an interrupt, since Ctrl-C is one way out of a LaTeX
+error prompt.
+The file is there for as long as latexmk runs, so at such a prompt we can
+still look up the line that LaTeX complains about.
+<<variables>>=
+NOWEAVE.pdf?=       \
+  trap '${RM} ${@:.pdf=.tex}' EXIT INT TERM; \
+  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
+  latexmk -pdf ${@:.pdf=.tex}
 @
 
 \subsection{Tangling code}

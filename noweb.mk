@@ -3,12 +3,13 @@ NOWEB_MK = true
 
 NOWEAVE.tex?=       noweave ${NOWEAVEFLAGS.tex} $< > $@
 NOWEAVEFLAGS.tex?=  ${NOWEAVEFLAGS} -x -n -delay -t2
-NOWEAVE.pdf?=       \
-  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
-  latexmk -pdf ${@:.pdf=.tex}
 NOWEAVEFLAGS.pdf?=  \
   ${NOWEAVEFLAGS} -x -t2 \
   -option "shift,breakcode,longxref,longchunks"
+NOWEAVE.pdf?=       \
+  trap '${RM} ${@:.pdf=.tex}' EXIT INT TERM; \
+  noweave ${NOWEAVEFLAGS.pdf} $< > ${@:.pdf=.tex} && \
+  latexmk -pdf ${@:.pdf=.tex}
 NOTANGLEFLAGS?=
 NOTANGLE?=      notangle ${NOTANGLEFLAGS} -R"[[$(notdir $@)]]" $(filter %.nw,$^) | \
                   ${CPIF} $@ && noroots $(filter %.nw,$^)
