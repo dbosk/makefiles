@@ -69,7 +69,7 @@ PUB_COMMIT_OPTS?=   -av
 @
 
 
-\section{Configuration for publishing files on a server, [[upload]]}
+\section{Configuration for publishing files on a server, \texttt{upload}}
 
 Publication means that we upload the files somewhere.
 This is controlled by the following variable.
@@ -218,7 +218,7 @@ We will now cover the different parts below.
 The [[<<variables>>]] block has been covered in the usage section, but the 
 remaining are discussed below.
 
-\subsection{The upload publication mechanism, [[upload]]}
+\subsection{The upload publication mechanism, \texttt{upload}}
 
 The upload target consists of two parts.
 <<upload target>>=
@@ -426,7 +426,7 @@ endef
 @
 
 
-\subsection{GitHub releases, [[gh-release]]}
+\subsection{GitHub releases, \texttt{gh-release}}
 
 Now let's turn our attention to the [[gh-release]] target.
 It's important that we push any changes, since the tag and release are created 
@@ -441,7 +441,7 @@ gh-release: ${PUB_FILES}
 
 
 \subsection{Automatically committing and tagging,
-  [[autotag]] and [[autocommit]]}
+  \texttt{autotag} and \texttt{autocommit}}
 
 The last feature allows us to automatically commit and make a tag when we 
 publish.
