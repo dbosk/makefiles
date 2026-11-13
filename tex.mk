@@ -9,7 +9,8 @@ include ${INCLUDE_MAKEFILES}/portability.mk
 LATEX?=           latexmk -dvi -use-make -8bit
 PDFLATEX?=        latexmk -pdf -use-make -8bit
 LATEXFLAGS?=
-PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} $<
+PREPROCESS.tex?=  ${PDFLATEX} ${LATEXFLAGS} \
+  $(if $(findstring latexmk,${PDFLATEX}),,-output-directory=${TEX_OUTDIR}) $<
 PREPROCESS.dtx?=  ${PREPROCESS.tex}
 TEX_OUTDIR?=      ltxobj
 COMPILE.tex?=     \
@@ -37,6 +38,7 @@ COMPILE.nlo?= ${MAKEINDEX} ${OUTPUT_OPTION} ${MAKEIDXFLAGS} -s nomencl.ist $<
 TEX_PYTHONTEX?=
 PYTHONTEX?=       python3 $$(which pythontex)
 PYTHONTEXFLAGS?=  --interpreter python:python3
+TEX_BIB?=           biber
 BIBTOOL?=     bibtool
 BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
 ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
@@ -44,14 +46,19 @@ ARCHIVE.bib?= ${CAT} $(if $(wildcard $@),$@) $% | \
 ${TEX_OUTDIR}/%.aux: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.tex}
+ifeq (${TEX_BIB},bibtex)
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.aux
 	${BIBLIOGRAPHY.aux}
 	${MV} $@ ${@:.bbl=.blg} ${TEX_OUTDIR}
+else
+ifeq ($(findstring latexmk,${PDFLATEX}),)
 ${TEX_OUTDIR}/%.bcf: %.tex
 	${MKDIR} ${TEX_OUTDIR}
 	${PREPROCESS.tex}
+endif
 ${TEX_OUTDIR}/%.bbl: ${TEX_OUTDIR}/%.bcf
 	${BIBLIOGRAPHY.bcf}
+endif
 ifneq (${TEX_BBL},)
 %.pdf ${TEX_OUTDIR}/%.pdf: ${TEX_OUTDIR}/%.bbl
 endif
@@ -103,8 +110,12 @@ latexmkrc:
 	  ${LATEX} -output-directory=${TEX_OUTDIR} ${LATEXFLAGS} $<; \
 	done
 	-${LN} ${TEX_OUTDIR}/$@ $@
-${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.bcf ${TEX_OUTDIR}/%.idx: %.dtx
+${TEX_OUTDIR}/%.aux ${TEX_OUTDIR}/%.idx: %.dtx
 	${PREPROCESS.dtx}
+ifeq ($(findstring latexmk,${PDFLATEX}),)
+${TEX_OUTDIR}/%.bcf: %.dtx
+	${PREPROCESS.dtx}
+endif
 define download_archive
 $(foreach file,${TEX_EXT_FILES-$(1)},\
   $(eval $(notdir ${file}): ${TEX_EXT_DIR-$(1)}/${file}))
